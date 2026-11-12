@@ -5,7 +5,7 @@
 
 class UBorder;
 
-/** 유리 뒤에 비칠 바탕: ground 위에 크게 흐린 색 원 3개(backdrop-a/b/c). 원은 또렷하고, 위의 유리 표면이 흐리게 보이게 한다. */
+/** 유리 뒤에 비칠 바탕: ground 위에 색 원 3개(backdrop-a/b/c)를 놓고 화면 전체를 강하게 흐려 번진 색 바탕으로 만든다. */
 UCLASS()
 class DRUIGLASS_API UDrGlassBackdrop : public UUserWidget {
   GENERATED_BODY()

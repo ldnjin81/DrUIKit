@@ -2,6 +2,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateColorBrush.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
+#include "Components/BackgroundBlur.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -27,6 +28,10 @@ TSharedRef<SWidget> UDrGlassBackdrop::RebuildWidget() {
       }
       Blobs.Add(Circle);
     }
+    // 원을 그대로 두면 또렷한 도형으로 보인다. 화면 전체를 아주 강하게 흐려 색이 번진 바탕(메시 그라데이션)으로 만든다.
+    UBackgroundBlur* Wash = WidgetTree->ConstructWidget<UBackgroundBlur>();
+    Wash->SetBlurStrength(100.f);
+    if (UCanvasPanelSlot* WashSlot = Canvas->AddChildToCanvas(Wash)) { WashSlot->SetAnchors(FAnchors(0, 0, 1, 1)); WashSlot->SetOffsets(FMargin(0)); }
     ApplyTheme();
   }
   return Super::RebuildWidget();
