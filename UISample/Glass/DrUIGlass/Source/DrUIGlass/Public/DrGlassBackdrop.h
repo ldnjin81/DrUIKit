@@ -4,8 +4,9 @@
 #include "DrGlassBackdrop.generated.h"
 
 class UBorder;
+class UImage;
 
-/** 유리 뒤에 비칠 바탕: ground 위에 색 원 3개(backdrop-a/b/c)를 놓고 화면 전체를 강하게 흐려 번진 색 바탕으로 만든다. */
+/** 유리 뒤에 비칠 바탕: ground 위에 가장자리가 부드럽게 사라지는 큰 색 덩어리 3개(backdrop-a/b/c). 실시간 흐림을 쓰지 않아 가볍다. */
 UCLASS()
 class DRUIGLASS_API UDrGlassBackdrop : public UUserWidget {
   GENERATED_BODY()
@@ -16,6 +17,6 @@ protected:
 private:
   void ApplyTheme();
   UPROPERTY(Transient) TObjectPtr<UBorder> Ground;
-  UPROPERTY(Transient) TArray<TObjectPtr<UBorder>> Blobs;
+  UPROPERTY(Transient) TArray<TObjectPtr<UImage>> Blobs;
   FDelegateHandle ThemeHandle;
 };
