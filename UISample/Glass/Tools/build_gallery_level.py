@@ -7,7 +7,8 @@ import unreal as u
 
 level = '/DrUIGlass/Maps/L_DrUIGallery'
 levels = u.get_editor_subsystem(u.LevelEditorSubsystem)
-if not (levels.load_level(level) if u.EditorAssetLibrary.does_asset_exist(level) else levels.new_level(level)):
+# 커맨드릿에서는 플러그인 콘텐츠가 아직 검색되지 않아 does_asset_exist가 거짓일 수 있다. 먼저 열어 보고 없으면 만든다.
+if not (levels.load_level(level) or levels.new_level(level)):
     raise RuntimeError('갤러리 레벨 생성 실패')
 world = u.get_editor_subsystem(u.UnrealEditorSubsystem).get_editor_world()
 world.get_world_settings().set_editor_property('default_game_mode', u.DrGlassGalleryGameMode)
