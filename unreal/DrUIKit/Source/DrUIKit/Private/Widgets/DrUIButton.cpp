@@ -110,7 +110,13 @@ void UDrUIButton::ApplyVisualState() {
   LabelText->ColorToken = Ink;
   LabelText->ApplyTheme();
   LabelText->SetText(Text);
-  if (Spinner) Spinner->SetVisibility(VisualState == EDrUIState::Loading ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+  if (Spinner) {
+    Spinner->SetVisibility(VisualState == EDrUIState::Loading ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+    // 스피너 조각은 기본 이미지를 쓰므로 글자색으로 칠한다.
+    FSlateBrush Piece = Spinner->GetImage();
+    Piece.TintColor = FSlateColor(UDrUIThemeSubsystem::Current().GetColor(Ink));
+    Spinner->SetImage(Piece);
+  }
 }
 
 void UDrUIButton::NativeTick(const FGeometry& Geometry, float DeltaTime) {

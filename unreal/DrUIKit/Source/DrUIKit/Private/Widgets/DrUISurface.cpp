@@ -28,11 +28,17 @@ void UDrUISurface::ApplyTheme() {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   const float Radius = RadiusToken.IsNone() ? 0.f : Theme.GetRadius(RadiusToken);
   const FLinearColor Stroke = StrokeToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(StrokeToken);
-  SetBrush(FSlateRoundedBoxBrush(ResolveFill(), Radius, Stroke, StrokeToken.IsNone() ? 0.f : StrokeWidth));
+  FSlateRoundedBoxBrush Brush(ResolveFill(), Radius, Stroke, StrokeToken.IsNone() ? 0.f : StrokeWidth);
+  // 알약(radius-pill = 999)은 반경을 그대로 쓰면 마름모처럼 그려진다. 높이의 절반으로 둥글린다.
+  const bool bPill = Radius >= 500.f;
+  if (bPill) Brush.OutlineSettings.RoundingType = ESlateBrushRoundingType::HalfHeightRadius;
+  SetBrush(Brush);
   if (!PaddingToken.IsNone()) SetPadding(FMargin(Theme.GetSpacing(PaddingToken)));
   if (Blur) {
     Blur->SetBlurStrength(ResolveBlur());
-    Blur->SetCornerRadius(FVector4(Radius, Radius, Radius, Radius));
+    // 흐림은 반경을 그대로 받으므로 알약은 적당히 크게(대부분의 바 높이의 절반 이상)만 준다.
+    const float BlurRadius = bPill ? 24.f : Radius;
+    Blur->SetCornerRadius(FVector4(BlurRadius, BlurRadius, BlurRadius, BlurRadius));
   }
 }
 
