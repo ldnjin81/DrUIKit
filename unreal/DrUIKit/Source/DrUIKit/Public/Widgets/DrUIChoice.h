@@ -32,7 +32,7 @@ protected:
   virtual void BuildDefaultTree() override;
   virtual void ApplyVisualState() override;
   virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
-  /** 표시 테두리·채움 공통 규칙(꺼짐: 유리 + 옅은 테두리, 켜짐: accent, 비활성: hairline, 포커스: 2px 링). */
+  /** 표시 테두리·채움 공통 규칙(꺼짐: 유리 + 옅은 테두리, 켜짐: accent, 포커스: 2px 링). 비활성은 부품 전체 불투명도 .4. */
   void PaintBox(UDrUISurface* Box, float OnAmount) const;
 
   FDrUISpring On;

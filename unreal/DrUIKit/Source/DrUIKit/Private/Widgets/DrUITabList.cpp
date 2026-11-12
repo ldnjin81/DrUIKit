@@ -5,6 +5,8 @@
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/SizeBox.h"
+#include "Components/UniformGridPanel.h"
+#include "Components/UniformGridSlot.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrUISurface.h"
 #include "Widgets/DrUIText.h"
@@ -64,7 +66,9 @@ void UDrUITabList::EnsureTree() {
   IndicatorBox->AddChild(Indicator);
   IndicatorBox->SetVisibility(ESlateVisibility::Hidden);  // 첫 배치 전에는 숨긴다.
   Layers->AddChildToOverlay(IndicatorBox);
-  Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Row"));
+  // 같은 너비: 균등 격자는 칸을 가장 긴 탭의 너비로 맞춘다(가로 상자 Fill은 전체를 나눠 긴 글자가 잘렸다).
+  Row = bEqualWidth ? static_cast<UPanelWidget*>(WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass(), TEXT("Row")))
+                    : WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Row"));
   if (UOverlaySlot* S = Layers->AddChildToOverlay(Row)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
   ApplyTheme();
 }
@@ -122,14 +126,19 @@ void UDrUITabList::HandleTabCreation_Implementation(FName TabNameID, UCommonButt
     Button->SelectedInk = Style == EDrUITabStyle::Pill ? TEXT("on-chip") : TEXT("ink");
     if (const FText* Found = PendingLabels.Find(TabNameID)) Button->SetLabel(*Found);
   }
-  if (Row) if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(TabButton)) {
-    S->SetVerticalAlignment(VAlign_Fill);
-    if (bEqualWidth) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+  if (UUniformGridPanel* Grid = Cast<UUniformGridPanel>(Row)) {
+    if (UUniformGridSlot* S = Grid->AddChildToUniformGrid(TabButton, 0, Grid->GetChildrenCount())) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
+  } else if (UHorizontalBox* Box = Cast<UHorizontalBox>(Row)) {
+    if (UHorizontalBoxSlot* S = Box->AddChildToHorizontalBox(TabButton)) S->SetVerticalAlignment(VAlign_Fill);
   }
 }
 
 void UDrUITabList::HandleTabRemoval_Implementation(FName TabNameID, UCommonButtonBase* TabButton) {
-  if (Row && TabButton) Row->RemoveChild(TabButton);
+  if (!Row || !TabButton) return;
+  Row->RemoveChild(TabButton);
+  // 균등 격자는 칸 번호가 비지 않게 다시 매긴다.
+  for (int32 I = 0; I < Row->GetChildrenCount(); ++I)
+    if (UUniformGridSlot* S = Cast<UUniformGridSlot>(Row->GetChildAt(I)->Slot)) S->SetColumn(I);
 }
 
 void UDrUITabList::NativeTick(const FGeometry& Geometry, float DeltaTime) {

@@ -32,10 +32,12 @@ void UDrUIChoiceBase::ApplyVisualState() {
   DriveSpring(On, IsOn() ? 1.f : 0.f);
   if (LabelText) {
     LabelText->SetVisibility(Label.IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
-    LabelText->ColorToken = VisualState == EDrUIState::Disabled ? TEXT("ink-faint") : TEXT("ink");
+    LabelText->ColorToken = TEXT("ink");
     LabelText->ApplyTheme();
     LabelText->SetText(Label);
   }
+  // 비활성은 모양을 지우지 않고 통째로 흐리게(옅은 색으로 칠하면 꺼진 상태가 바탕에 묻혔다).
+  SetRenderOpacity(VisualState == EDrUIState::Disabled ? .4f : 1.f);
   ApplyIndicator(On.Value);
 }
 
@@ -49,12 +51,11 @@ void UDrUIChoiceBase::NativeTick(const FGeometry& Geometry, float DeltaTime) {
 
 void UDrUIChoiceBase::PaintBox(UDrUISurface* Box, float OnAmount) const {
   if (!Box) return;
-  const bool bDisabled = VisualState == EDrUIState::Disabled;
   const bool bRing = bFocusedNow && DrUIState::IsFocusRingVisible(GetStateInputs());
   const bool bOn = OnAmount >= .5f;
-  Box->FillToken = bDisabled ? TEXT("hairline") : bOn ? TEXT("accent") : TEXT("glass-strong");
+  Box->FillToken = bOn ? TEXT("accent") : TEXT("glass-strong");
   Box->FillStrongToken = NAME_None;
-  Box->StrokeToken = bRing ? FName(TEXT("focus")) : (bOn || bDisabled) ? NAME_None : VisualState == EDrUIState::Hover || VisualState == EDrUIState::Pressed ? FName(TEXT("ink-muted")) : FName(TEXT("ink-faint"));
+  Box->StrokeToken = bRing ? FName(TEXT("focus")) : bOn ? NAME_None : VisualState == EDrUIState::Hover || VisualState == EDrUIState::Pressed ? FName(TEXT("ink-muted")) : FName(TEXT("ink-faint"));
   Box->StrokeWidth = bRing ? 2.f : 1.5f;
   Box->ApplyTheme();
   Box->SetBrushColor(VisualState == EDrUIState::Pressed ? FLinearColor(.9f, .9f, .9f) : FLinearColor::White);
@@ -85,7 +86,7 @@ UWidget* UDrUICheckBox::BuildIndicator() {
 void UDrUICheckBox::ApplyIndicator(float OnAmount) {
   PaintBox(Box, OnAmount);
   if (Mark) {
-    Mark->ColorToken = VisualState == EDrUIState::Disabled ? TEXT("ink-faint") : TEXT("on-accent");
+    Mark->ColorToken = TEXT("on-accent");
     Mark->Progress = OnAmount;
     Mark->ApplyTheme();
   }
@@ -127,11 +128,10 @@ UWidget* UDrUISwitch::BuildIndicator() {
 }
 
 void UDrUISwitch::ApplyIndicator(float OnAmount) {
-  const bool bDisabled = VisualState == EDrUIState::Disabled;
   const bool bRing = bFocusedNow && DrUIState::IsFocusRingVisible(GetStateInputs());
   if (Track) {
     // 트랙 색은 손잡이가 가운데를 지날 때 바뀐다.
-    Track->FillToken = bDisabled ? TEXT("hairline") : OnAmount >= .5f ? TEXT("accent") : TEXT("ink-faint");
+    Track->FillToken = OnAmount >= .5f ? TEXT("accent") : TEXT("ink-faint");
     Track->FillStrongToken = NAME_None;
     Track->StrokeToken = bRing ? FName(TEXT("focus")) : NAME_None;
     Track->StrokeWidth = 2.f;
@@ -139,7 +139,7 @@ void UDrUISwitch::ApplyIndicator(float OnAmount) {
     Track->SetBrushColor(VisualState == EDrUIState::Hover ? FLinearColor(1.08f, 1.08f, 1.08f) : VisualState == EDrUIState::Pressed ? FLinearColor(.92f, .92f, .92f) : FLinearColor::White);
   }
   if (Thumb) {
-    Thumb->FillToken = bDisabled ? TEXT("glass-strong") : TEXT("on-accent");
+    Thumb->FillToken = TEXT("on-accent");
     Thumb->FillStrongToken = NAME_None;
     Thumb->ApplyTheme();
     Thumb->SetRenderTranslation(FVector2D(ThumbTravel(OnAmount), 0.f));

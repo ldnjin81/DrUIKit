@@ -7,7 +7,7 @@
 
 class UDrUISurface;
 class UDrUIText;
-class UHorizontalBox;
+class UPanelWidget;
 class USizeBox;
 
 /** 탭 버튼. 바탕은 칠하지 않는다(선택 표시는 탭 목록의 인디케이터가 칠한다). */
@@ -44,7 +44,7 @@ class DRUIKIT_API UDrUITabList : public UCommonTabListWidgetBase {
   GENERATED_BODY()
 public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrUITabStyle Style = EDrUITabStyle::Pill;
-  /** 탭 버튼 너비를 똑같이 나눌지(세그먼트). */
+  /** 탭 버튼 너비를 가장 긴 탭에 맞춰 똑같이 할지(세그먼트). 트리를 만들기 전에 정한다. */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") bool bEqualWidth = false;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") TSubclassOf<UDrUITabButton> TabButtonClass;
 
@@ -58,7 +58,7 @@ protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISurface> Track;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISurface> Indicator;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<USizeBox> IndicatorBox;
-  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UHorizontalBox> Row;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UPanelWidget> Row;  // 가로 상자, 같은 너비면 균등 격자
 
   virtual TSharedRef<SWidget> RebuildWidget() override;
   virtual void NativeOnInitialized() override;
