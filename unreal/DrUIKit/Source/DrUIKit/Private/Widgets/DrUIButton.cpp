@@ -7,18 +7,6 @@
 #include "Widgets/DrUISurface.h"
 #include "Widgets/DrUIText.h"
 
-UDrUIButtonStyle::UDrUIButtonStyle() {
-  for (FSlateBrush* Brush : {&NormalBase, &NormalHovered, &NormalPressed, &SelectedBase, &SelectedHovered, &SelectedPressed, &Disabled})
-    Brush->DrawAs = ESlateBrushDrawType::NoDrawType;
-  ButtonPadding = FMargin(0.f);
-  CustomPadding = FMargin(0.f);
-}
-
-UDrUIButton::UDrUIButton(const FObjectInitializer& Initializer) : Super(Initializer) {
-  Style = UDrUIButtonStyle::StaticClass();
-  Scale.Snap(1.f);
-}
-
 void UDrUIButton::BuildDefaultTree() {
   Surface = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Surface"));
   Surface->RadiusToken = TEXT("radius-sm");
@@ -40,44 +28,17 @@ void UDrUIButton::BuildDefaultTree() {
   if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(LabelText)) LabelSlot->SetVerticalAlignment(VAlign_Center);
 }
 
-TSharedRef<SWidget> UDrUIButton::RebuildWidget() {
-  if (WidgetTree && !WidgetTree->RootWidget) BuildDefaultTree();
-  return Super::RebuildWidget();
-}
-
 void UDrUIButton::NativeOnInitialized() {
-  Super::NativeOnInitialized();
   ShownLabel = Label;
-  if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get())
-    ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyVisualState(); });
-  RefreshState();
-}
-
-void UDrUIButton::NativeDestruct() {
-  if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
-  ThemeHandle.Reset();
-  Super::NativeDestruct();
+  Super::NativeOnInitialized();
 }
 
 FDrUIStateInputs UDrUIButton::GetStateInputs() const {
-  FDrUIStateInputs In;
-  In.bHovered = IsHovered();
-  In.bPressed = bPressedNow;
-  In.bFocused = bFocusedNow;
-  In.bDisabled = !GetIsEnabled();
+  FDrUIStateInputs In = Super::GetStateInputs();
   In.bLoading = bLoading;
   In.bSuccess = SuccessUntil >= 0.f;
   In.bError = bError;
-  In.bSelected = GetSelected();
   return In;
-}
-
-void UDrUIButton::RefreshState() {
-  const EDrUIState Next = DrUIState::Resolve(GetStateInputs());
-  const bool bReduce = UDrUIThemeSubsystem::Get() && UDrUIThemeSubsystem::Get()->IsReduceMotion();
-  Scale.Target = Next == EDrUIState::Pressed && !bReduce ? .97f : 1.f;
-  VisualState = Next;
-  ApplyVisualState();
 }
 
 void UDrUIButton::ApplyVisualState() {
@@ -126,10 +87,6 @@ void UDrUIButton::NativeTick(const FGeometry& Geometry, float DeltaTime) {
     SuccessUntil -= DeltaTime;
     if (SuccessUntil < 0.f) { SuccessUntil = -1.f; ShownLabel = Label; RefreshState(); }
   }
-  if (!Scale.IsSettled()) {
-    Scale.Step(DeltaTime);
-    SetRenderScale(FVector2D(Scale.Value));
-  }
 }
 
 void UDrUIButton::SetLabel(const FText& InLabel) { Label = InLabel; ShownLabel = InLabel; ApplyVisualState(); }
@@ -153,14 +110,3 @@ void UDrUIButton::SetError(bool bInError, const FText& ErrorLabel) {
   ShownLabel = bInError && !ErrorLabel.IsEmpty() ? ErrorLabel : Label;
   RefreshState();
 }
-
-void UDrUIButton::NativeOnHovered() { Super::NativeOnHovered(); RefreshState(); }
-void UDrUIButton::NativeOnUnhovered() { Super::NativeOnUnhovered(); bPressedNow = false; RefreshState(); }
-void UDrUIButton::NativeOnPressed() { Super::NativeOnPressed(); bPressedNow = true; RefreshState(); }
-void UDrUIButton::NativeOnReleased() { Super::NativeOnReleased(); bPressedNow = false; RefreshState(); }
-void UDrUIButton::NativeOnSelected(bool bBroadcast) { Super::NativeOnSelected(bBroadcast); RefreshState(); }
-void UDrUIButton::NativeOnDeselected(bool bBroadcast) { Super::NativeOnDeselected(bBroadcast); RefreshState(); }
-void UDrUIButton::NativeOnEnabled() { Super::NativeOnEnabled(); RefreshState(); }
-void UDrUIButton::NativeOnDisabled() { Super::NativeOnDisabled(); RefreshState(); }
-void UDrUIButton::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) { Super::NativeOnAddedToFocusPath(InFocusEvent); bFocusedNow = true; RefreshState(); }
-void UDrUIButton::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent) { Super::NativeOnRemovedFromFocusPath(InFocusEvent); bFocusedNow = false; RefreshState(); }

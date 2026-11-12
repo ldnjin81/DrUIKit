@@ -5,9 +5,13 @@
 #include "Widgets/DrUIButton.h"
 #include "DrGlassGallery.generated.h"
 
+class UCommonAnimatedSwitcher;
+class UCommonButtonGroupBase;
+class UDrUISegmented;
+class UDrUISwitch;
+class UDrUITabList;
 class UDrUIText;
 class UVerticalBox;
-class UWidgetSwitcher;
 
 /**
  * DrUIKit 갤러리(테스트 레벨 L_DrUIGallery가 띄운다). 위 조작 바(테마·표면 품질·움직임 줄이기) + 탭 + 페이지.
@@ -24,23 +28,31 @@ public:
   void ShowPage(int32 Index);
 protected:
   virtual TSharedRef<SWidget> RebuildWidget() override;
-  virtual void NativeOnInitialized() override;
   virtual void NativeDestruct() override;
 private:
   void Build();
   UWidget* BuildFoundationPage();
   UWidget* BuildButtonPage();
+  UWidget* BuildSelectionPage();
+  UFUNCTION() void HandleSegmentDemo(int32 Index);
+  UFUNCTION() void HandleThemeChoice(int32 Index);
+  UFUNCTION() void HandleQualityChoice(int32 Index);
   UDrUIButton* MakeButton(const FText& Label, EDrUIButtonVariant Variant = EDrUIButtonVariant::Secondary);
   UDrUIText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
   UWidget* Section(const FText& Title, UWidget* Body);
-  void SelectOnly(const TArray<TObjectPtr<UDrUIButton>>& Group, UDrUIButton* Selected);
   bool CaptureStep(float DeltaTime);
 
-  UPROPERTY(Transient) TObjectPtr<UWidgetSwitcher> Pages;
-  UPROPERTY(Transient) TArray<TObjectPtr<UDrUIButton>> TabButtons;
-  UPROPERTY(Transient) TArray<TObjectPtr<UDrUIButton>> ThemeButtons;
-  UPROPERTY(Transient) TArray<TObjectPtr<UDrUIButton>> QualityButtons;
-  TArray<FText> PageNames;
+  static FName PageId(int32 Index) { return FName(TEXT("Page"), Index + 1); }
+
+  UPROPERTY(Transient) TObjectPtr<UCommonAnimatedSwitcher> Pages;
+  UPROPERTY(Transient) TObjectPtr<UDrUITabList> PageTabs;
+  UPROPERTY(Transient) TObjectPtr<UDrUISegmented> ThemeChoice;
+  UPROPERTY(Transient) TObjectPtr<UDrUISegmented> QualityChoice;
+  UPROPERTY(Transient) TObjectPtr<UDrUISwitch> MotionSwitch;
+  /** 라디오 묶음(하나만 선택). 위젯이 아니라서 따로 붙잡아 둔다. */
+  UPROPERTY(Transient) TArray<TObjectPtr<UCommonButtonGroupBase>> RadioGroups;
+  UPROPERTY(Transient) TObjectPtr<UDrUIText> SegmentDemoValue;
+  TArray<FText> SegmentDemoOptions;
   FTSTicker::FDelegateHandle CaptureTicker;
   int32 CaptureIndex = 0;
   /** 남은 대기 프레임 수. */

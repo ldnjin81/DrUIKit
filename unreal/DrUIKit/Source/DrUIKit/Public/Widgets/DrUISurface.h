@@ -15,6 +15,7 @@ class DRUIKIT_API UDrUISurface : public UBorder {
   GENERATED_BODY()
 public:
   UDrUISurface();
+  /** 비우면 투명(테두리만). */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName FillToken = TEXT("glass");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName FillStrongToken = TEXT("glass-strong");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName StrokeToken = TEXT("glass-stroke");

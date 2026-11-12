@@ -1,5 +1,7 @@
 #include "DrGlassGallery.h"
 #include "Blueprint/WidgetTree.h"
+#include "CommonAnimatedSwitcher.h"
+#include "Groups/CommonButtonGroupBase.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Overlay.h"
@@ -9,7 +11,6 @@
 #include "Components/Spacer.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
-#include "Components/WidgetSwitcher.h"
 #include "Components/WrapBox.h"
 #include "DrGlassBackdrop.h"
 #include "Engine/World.h"
@@ -20,14 +21,19 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "TimerManager.h"
 #include "UnrealClient.h"
+#include "Widgets/DrUIChoice.h"
+#include "Widgets/DrUIGlyph.h"
 #include "Widgets/DrUIIcon.h"
 #include "Widgets/DrUISurface.h"
+#include "Widgets/DrUITabList.h"
 #include "Widgets/DrUIText.h"
 
 #define LOCTEXT_NAMESPACE "DrGlassGallery"
 
 TArray<UClass*> UDrGlassGallery::CoveredClasses() {
-  return {UDrUIText::StaticClass(), UDrUIIcon::StaticClass(), UDrUISurface::StaticClass(), UDrUIButton::StaticClass()};
+  return {UDrUIText::StaticClass(), UDrUIIcon::StaticClass(), UDrUISurface::StaticClass(), UDrUIButton::StaticClass(),
+    UDrUIGlyph::StaticClass(), UDrUICheckBox::StaticClass(), UDrUIRadio::StaticClass(), UDrUISwitch::StaticClass(),
+    UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass()};
 }
 
 UDrUIText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -56,10 +62,6 @@ UWidget* UDrGlassGallery::Section(const FText& Title, UWidget* Body) {
   if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(MakeText(Title, TEXT("title")))) TitleSlot->SetPadding(FMargin(0, 0, 0, 12));
   Column->AddChildToVerticalBox(Body);
   return Card;
-}
-
-void UDrGlassGallery::SelectOnly(const TArray<TObjectPtr<UDrUIButton>>& Group, UDrUIButton* Selected) {
-  for (UDrUIButton* Button : Group) if (Button) Button->SetIsSelected(Button == Selected, false);
 }
 
 UWidget* UDrGlassGallery::BuildFoundationPage() {
@@ -147,6 +149,117 @@ UWidget* UDrGlassGallery::BuildButtonPage() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildSelectionPage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+  auto MakeRow = [this] { UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>(); Row->SetInnerSlotPadding(FVector2D(24, 12)); return Row; };
+
+  // 체크박스: 직접 눌러 보기 + 고정 견본(켜짐·비활성).
+  UWrapBox* Checks = MakeRow();
+  for (const auto& [Label, bOn, bEnabled] : TArray<TTuple<FText, bool, bool>>{
+         {LOCTEXT("CheckLive", "알림 받기"), false, true}, {LOCTEXT("CheckOn", "자동 저장"), true, true},
+         {LOCTEXT("CheckOffDisabled", "비활성"), false, false}, {LOCTEXT("CheckOnDisabled", "비활성 켜짐"), true, false}}) {
+    UDrUICheckBox* Check = WidgetTree->ConstructWidget<UDrUICheckBox>();
+    Check->Label = Label;
+    Check->SetOn(bOn);
+    Check->SetIsEnabled(bEnabled);
+    Checks->AddChild(Check);
+  }
+  Add(Section(LOCTEXT("CheckTitle", "체크박스(UDrUICheckBox) · 켜면 체크를 그린다"), Checks));
+
+  // 라디오: CommonUI 버튼 묶음이 하나만 선택을 맡는다.
+  UWrapBox* Radios = MakeRow();
+  UCommonButtonGroupBase* Group = NewObject<UCommonButtonGroupBase>(this);
+  Group->SetSelectionRequired(true);
+  RadioGroups.Add(Group);
+  for (const FText& Label : {LOCTEXT("RadioEasy", "쉬움"), LOCTEXT("RadioNormal", "보통"), LOCTEXT("RadioHard", "어려움")}) {
+    UDrUIRadio* Radio = WidgetTree->ConstructWidget<UDrUIRadio>();
+    Radio->Label = Label;
+    Group->AddWidget(Radio);
+    Radios->AddChild(Radio);
+  }
+  Group->SelectButtonAtIndex(1, false);
+  UDrUIRadio* RadioDisabled = WidgetTree->ConstructWidget<UDrUIRadio>();
+  RadioDisabled->Label = LOCTEXT("RadioDisabled", "비활성");
+  RadioDisabled->SetIsEnabled(false);
+  Radios->AddChild(RadioDisabled);
+  Add(Section(LOCTEXT("RadioTitle", "라디오(UDrUIRadio + UCommonButtonGroupBase) · 하나만 선택"), Radios));
+
+  // 스위치.
+  UWrapBox* Switches = MakeRow();
+  for (const auto& [Label, bOn, bEnabled] : TArray<TTuple<FText, bool, bool>>{
+         {LOCTEXT("SwitchLive", "진동"), false, true}, {LOCTEXT("SwitchOn", "자막"), true, true}, {LOCTEXT("SwitchDisabled", "비활성"), true, false}}) {
+    UDrUISwitch* Switch = WidgetTree->ConstructWidget<UDrUISwitch>();
+    Switch->Label = Label;
+    Switch->SetOn(bOn);
+    Switch->SetIsEnabled(bEnabled);
+    Switches->AddChild(Switch);
+  }
+  Add(Section(LOCTEXT("SwitchTitle", "스위치(UDrUISwitch) · 손잡이가 스프링으로 미끄러진다"), Switches));
+
+  // 세그먼트: 고른 값을 옆 글자로 보여 준다.
+  UHorizontalBox* SegmentRow = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrUISegmented* Segmented = WidgetTree->ConstructWidget<UDrUISegmented>();
+  const TArray<FText> Ranges = {LOCTEXT("Day", "일"), LOCTEXT("Week", "주"), LOCTEXT("Month", "월"), LOCTEXT("Year", "년")};
+  Segmented->SetOptions(Ranges);
+  USizeBox* SegmentSize = WidgetTree->ConstructWidget<USizeBox>();
+  SegmentSize->SetWidthOverride(320.f);
+  SegmentSize->AddChild(Segmented);
+  if (UHorizontalBoxSlot* S = SegmentRow->AddChildToHorizontalBox(SegmentSize)) S->SetVerticalAlignment(VAlign_Center);
+  UDrUIText* SegmentValue = MakeText(FText::GetEmpty(), TEXT("body"), TEXT("ink-muted"));
+  if (UHorizontalBoxSlot* S = SegmentRow->AddChildToHorizontalBox(SegmentValue)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(16, 0, 0, 0)); }
+  Segmented->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleSegmentDemo);
+  SegmentDemoValue = SegmentValue;
+  SegmentDemoOptions = Ranges;
+  Segmented->SetSelectedIndex(1);
+  Add(Section(LOCTEXT("SegmentTitle", "세그먼트(UDrUISegmented) · 값 하나 고르기"), SegmentRow));
+
+  // 탭(밑줄형): 위 페이지 탭은 알약형. 밑줄형은 작은 스위처에 붙여 확인한다.
+  UVerticalBox* TabDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  UDrUITabList* Underline = WidgetTree->ConstructWidget<UDrUITabList>();
+  Underline->Style = EDrUITabStyle::Underline;
+  UCommonAnimatedSwitcher* TabPages = WidgetTree->ConstructWidget<UCommonAnimatedSwitcher>();
+  Underline->SetLinkedSwitcher(TabPages);
+  for (const auto& [Id, Label, Body] : TArray<TTuple<FName, FText, FText>>{
+         {TEXT("Graphics"), LOCTEXT("TabGraphics", "그래픽"), LOCTEXT("TabGraphicsBody", "그래픽 설정 내용")},
+         {TEXT("Sound"), LOCTEXT("TabSound", "소리"), LOCTEXT("TabSoundBody", "소리 설정 내용")},
+         {TEXT("Controls"), LOCTEXT("TabControls", "조작"), LOCTEXT("TabControlsBody", "조작 설정 내용(패드는 탭 목록의 이전·다음 입력으로 넘긴다)")}}) {
+    UDrUIText* Content = MakeText(Body, TEXT("body"), TEXT("ink-muted"));
+    TabPages->AddChild(Content);
+    Underline->AddTab(Id, Label, Content);
+  }
+  if (UVerticalBoxSlot* S = TabDemo->AddChildToVerticalBox(Underline)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 12)); }
+  TabDemo->AddChildToVerticalBox(TabPages);
+  Add(Section(LOCTEXT("TabTitle", "탭(UDrUITabList, UDrUITabButton) · 밑줄형. 위 페이지 탭이 알약형"), TabDemo));
+
+  // 표시(UDrUIGlyph): 모든 모양.
+  UWrapBox* Glyphs = MakeRow();
+  for (const EDrUIGlyphShape Shape : {EDrUIGlyphShape::Check, EDrUIGlyphShape::Dot, EDrUIGlyphShape::Minus, EDrUIGlyphShape::Plus, EDrUIGlyphShape::Close,
+         EDrUIGlyphShape::ChevronLeft, EDrUIGlyphShape::ChevronRight, EDrUIGlyphShape::ChevronDown}) {
+    UDrUIGlyph* Glyph = WidgetTree->ConstructWidget<UDrUIGlyph>();
+    Glyph->Shape = Shape;
+    Glyph->GlyphSize = 24.f;
+    Glyphs->AddChild(Glyph);
+  }
+  Add(Section(LOCTEXT("GlyphTitle", "표시(UDrUIGlyph) · 에셋 없이 선으로 그림"), Glyphs));
+  return Page;
+}
+
+void UDrGlassGallery::HandleSegmentDemo(int32 Index) {
+  if (SegmentDemoValue && SegmentDemoOptions.IsValidIndex(Index))
+    SegmentDemoValue->SetText(FText::Format(LOCTEXT("SegmentValue", "고른 값: {0}"), SegmentDemoOptions[Index]));
+}
+
+void UDrGlassGallery::HandleThemeChoice(int32 Index) {
+  static const FName Ids[] = {TEXT("glass-light"), TEXT("glass-dark")};
+  if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get(); S && Index >= 0 && Index < UE_ARRAY_COUNT(Ids)) S->SetTheme(Ids[Index]);
+}
+
+void UDrGlassGallery::HandleQualityChoice(int32 Index) {
+  static const EDrUISurfaceQuality Levels[] = {EDrUISurfaceQuality::High, EDrUISurfaceQuality::Medium, EDrUISurfaceQuality::Low};
+  if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get(); S && Index >= 0 && Index < UE_ARRAY_COUNT(Levels)) S->SetSurfaceQuality(Levels[Index]);
+}
+
 void UDrGlassGallery::Build() {
   UOverlay* Root = WidgetTree->ConstructWidget<UOverlay>();
   WidgetTree->RootWidget = Root;
@@ -165,67 +278,62 @@ void UDrGlassGallery::Build() {
   };
   BarAdd(MakeText(LOCTEXT("GalleryTitle", "DrUIKit 갤러리"), TEXT("heading")));
   BarAdd(WidgetTree->ConstructWidget<USpacer>(), true);
-  for (const auto& [Id, Label] : TArray<TPair<FName, FText>>{{TEXT("glass-light"), LOCTEXT("Light", "밝게")}, {TEXT("glass-dark"), LOCTEXT("Dark", "어둡게")}}) {
-    UDrUIButton* Button = MakeButton(Label);
-    Button->SetIsSelectable(true);
-    Button->OnClicked().AddWeakLambda(this, [this, Button, Id] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetTheme(Id); SelectOnly(ThemeButtons, Button); });
-    ThemeButtons.Add(Button);
-    BarAdd(Button);
-  }
-  for (const auto& [Quality, Label] : TArray<TPair<EDrUISurfaceQuality, FText>>{{EDrUISurfaceQuality::High, LOCTEXT("High", "품질 높음")}, {EDrUISurfaceQuality::Medium, LOCTEXT("Medium", "보통")}, {EDrUISurfaceQuality::Low, LOCTEXT("Low", "낮음")}}) {
-    UDrUIButton* Button = MakeButton(Label, EDrUIButtonVariant::Ghost);
-    Button->SetIsSelectable(true);
-    Button->OnClicked().AddWeakLambda(this, [this, Button, Quality] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetSurfaceQuality(Quality); SelectOnly(QualityButtons, Button); });
-    QualityButtons.Add(Button);
-    BarAdd(Button);
-  }
-  UDrUIButton* Motion = MakeButton(LOCTEXT("ReduceMotion", "움직임 줄이기"), EDrUIButtonVariant::Ghost);
-  Motion->SetIsToggleable(true);
-  Motion->OnClicked().AddWeakLambda(this, [Motion] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetReduceMotion(Motion->GetSelected()); });
-  BarAdd(Motion);
+  ThemeChoice = WidgetTree->ConstructWidget<UDrUISegmented>();
+  ThemeChoice->SetOptions({LOCTEXT("Light", "밝게"), LOCTEXT("Dark", "어둡게")});
+  ThemeChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleThemeChoice);
+  BarAdd(ThemeChoice);
+  QualityChoice = WidgetTree->ConstructWidget<UDrUISegmented>();
+  QualityChoice->SetOptions({LOCTEXT("High", "품질 높음"), LOCTEXT("Medium", "보통"), LOCTEXT("Low", "낮음")});
+  QualityChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleQualityChoice);
+  BarAdd(QualityChoice);
+  MotionSwitch = WidgetTree->ConstructWidget<UDrUISwitch>();
+  MotionSwitch->Label = LOCTEXT("ReduceMotion", "움직임 줄이기");
+  MotionSwitch->OnClicked().AddWeakLambda(this, [this] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetReduceMotion(MotionSwitch->IsOn()); });
+  BarAdd(MotionSwitch);
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Bar)) S->SetPadding(FMargin(0, 0, 0, 16));
 
-  // 탭 + 페이지.
-  UHorizontalBox* Tabs = WidgetTree->ConstructWidget<UHorizontalBox>();
-  if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Tabs)) S->SetPadding(FMargin(0, 0, 0, 16));
-  Pages = WidgetTree->ConstructWidget<UWidgetSwitcher>();
+  // 탭(알약형 UDrUITabList) + 페이지(UCommonAnimatedSwitcher).
+  PageTabs = WidgetTree->ConstructWidget<UDrUITabList>();
+  if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(PageTabs)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
+  Pages = WidgetTree->ConstructWidget<UCommonAnimatedSwitcher>();
+  Pages->TransitionType = ECommonSwitcherTransition::FadeOnly;
+  Pages->TransitionDuration = .15f;
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+  PageTabs->SetLinkedSwitcher(Pages);
   const TArray<TPair<FText, UWidget*>> PageList = {
     {LOCTEXT("PageFoundation", "기초: 글자·색·표면·아이콘"), BuildFoundationPage()},
-    {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()}};
+    {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()},
+    {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·세그먼트·탭"), BuildSelectionPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
     Pages->AddChild(Scroll);
-    PageNames.Add(PageList[I].Key);
-    UDrUIButton* Tab = MakeButton(PageList[I].Key);
-    Tab->SetIsSelectable(true);
-    Tab->OnClicked().AddWeakLambda(this, [this, I] { ShowPage(I); });
-    TabButtons.Add(Tab);
-    if (UHorizontalBoxSlot* S = Tabs->AddChildToHorizontalBox(Tab)) S->SetPadding(FMargin(0, 0, 8, 0));
+    PageTabs->AddTab(PageId(I), PageList[I].Key, Scroll);
   }
 }
 
 int32 UDrGlassGallery::GetPageCount() const { return Pages ? Pages->GetNumWidgets() : 0; }
 
 void UDrGlassGallery::ShowPage(int32 Index) {
-  if (!Pages || !TabButtons.IsValidIndex(Index)) return;
-  Pages->SetActiveWidgetIndex(Index);
-  SelectOnly(TabButtons, TabButtons[Index]);
+  if (PageTabs && Index >= 0 && Index < GetPageCount()) PageTabs->SelectTabByID(PageId(Index), true);
 }
 
 TSharedRef<SWidget> UDrGlassGallery::RebuildWidget() {
-  if (WidgetTree && !WidgetTree->RootWidget) Build();
+  // 트리는 여기서 만든다(NativeOnInitialized는 이보다 먼저 불려 부품이 아직 없다). 첫 선택·캡처 준비도 만든 직후에.
+  if (WidgetTree && !WidgetTree->RootWidget) {
+    Build();
+    ShowPage(0);
+    if (ThemeChoice) ThemeChoice->SetSelectedIndex(0);
+    if (QualityChoice) QualityChoice->SetSelectedIndex(0);
+    if (FParse::Param(FCommandLine::Get(), TEXT("DrUIGalleryCapture")) && !CaptureTicker.IsValid()) {
+      // 캡처는 몇십 프레임만 기다리므로 움직임(인디케이터·페이지 전환)을 끄고 찍는다. 스위치도 켜진 모습으로 맞춘다.
+      if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetReduceMotion(true);
+      if (MotionSwitch) MotionSwitch->SetOn(true);
+      if (Pages) Pages->SetDisableTransitionAnimation(true);
+      CaptureTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::CaptureStep));
+    }
+  }
   return Super::RebuildWidget();
-}
-
-void UDrGlassGallery::NativeOnInitialized() {
-  Super::NativeOnInitialized();
-  ShowPage(0);
-  if (ThemeButtons.Num()) SelectOnly(ThemeButtons, ThemeButtons[0]);
-  if (QualityButtons.Num()) SelectOnly(QualityButtons, QualityButtons[0]);
-  if (FParse::Param(FCommandLine::Get(), TEXT("DrUIGalleryCapture")))
-    CaptureTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::CaptureStep));
 }
 
 void UDrGlassGallery::NativeDestruct() {
@@ -244,7 +352,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   const FName Theme = ThemeIds[CaptureIndex / GetPageCount()];
   const int32 Page = CaptureIndex % GetPageCount();
   if (!bCaptureShotPending) {
-    if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetTheme(Theme);
+    if (ThemeChoice) ThemeChoice->SetSelectedIndex(CaptureIndex / GetPageCount());  // HandleThemeChoice가 테마를 바꾼다
     ShowPage(Page);
     bCaptureShotPending = true;
     CaptureWait = 30.f;

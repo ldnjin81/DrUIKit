@@ -1,9 +1,11 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계를 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계, 표시 그리기·스위치 손잡이 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "Widgets/DrUIChoice.h"
+#include "Widgets/DrUIGlyph.h"
 #include "Widgets/DrUISurface.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
@@ -100,6 +102,29 @@ bool FDrUISurfaceQualityTest::RunTest(const FString&) {
   TestEqual(TEXT("낮음: 불투명에 가까운 채움"), Surface->ResolveFill().A, .9f);
   Subsystem->SetSurfaceQuality(Before);
   Subsystem->SetTheme(TEXT("default"));
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIGlyphTrimTest, "DrUIKit.Core.Glyph.Trim", DrUIKitTestFlags)
+bool FDrUIGlyphTrimTest::RunTest(const FString&) {
+  const TArray<FVector2f> Line = {{0.f, 0.f}, {1.f, 0.f}, {1.f, 1.f}};
+  TestEqual(TEXT("0이면 아무것도 그리지 않음"), DrUIGlyph::Trim(Line, 0.f).Num(), 0);
+  TestEqual(TEXT("1이면 그대로"), DrUIGlyph::Trim(Line, 1.f).Num(), 3);
+  const TArray<FVector2f> Half = DrUIGlyph::Trim(Line, .5f);
+  TestEqual(TEXT("절반은 첫 획 끝까지"), Half.Num(), 2);
+  TestTrue(TEXT("절반 끝점 (1,0)"), Half.Last().Equals(FVector2f(1.f, 0.f), 1e-4f));
+  const TArray<FVector2f> ThreeQuarter = DrUIGlyph::Trim(Line, .75f);
+  TestTrue(TEXT("3/4 끝점 (1,.5)"), ThreeQuarter.Last().Equals(FVector2f(1.f, .5f), 1e-4f));
+  TestEqual(TEXT("체크는 획 하나"), DrUIGlyph::Strokes(EDrUIGlyphShape::Check).Num(), 1);
+  TestEqual(TEXT("닫기는 획 둘"), DrUIGlyph::Strokes(EDrUIGlyphShape::Close).Num(), 2);
+  TestEqual(TEXT("점은 획 없음(원)"), DrUIGlyph::Strokes(EDrUIGlyphShape::Dot).Num(), 0);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISwitchThumbTest, "DrUIKit.Core.Switch.ThumbTravel", DrUIKitTestFlags)
+bool FDrUISwitchThumbTest::RunTest(const FString&) {
+  TestEqual(TEXT("꺼짐은 왼쪽"), UDrUISwitch::ThumbTravel(0.f), 0.f);
+  TestEqual(TEXT("켜짐은 트랙 끝에서 여백만큼 안쪽"), UDrUISwitch::ThumbTravel(1.f), UDrUISwitch::TrackWidth - UDrUISwitch::ThumbSize - 2.f * UDrUISwitch::Inset);
+  TestEqual(TEXT("스프링이 넘쳐도 트랙 밖으로 안 나감"), UDrUISwitch::ThumbTravel(1.2f), UDrUISwitch::ThumbTravel(1.f));
   return true;
 }
 #endif

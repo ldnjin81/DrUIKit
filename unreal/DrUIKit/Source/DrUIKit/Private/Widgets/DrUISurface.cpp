@@ -13,7 +13,8 @@ static EDrUISurfaceQuality CurrentQuality() {
 FLinearColor UDrUISurface::ResolveFill() const {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   const bool bNoBlur = BackdropToken.IsNone() || CurrentQuality() == EDrUISurfaceQuality::Low;
-  return Theme.GetColor(bNoBlur && !FillStrongToken.IsNone() ? FillStrongToken : FillToken);
+  const FName Token = bNoBlur && !FillStrongToken.IsNone() ? FillStrongToken : FillToken;
+  return Token.IsNone() ? FLinearColor::Transparent : Theme.GetColor(Token);
 }
 
 float UDrUISurface::ResolveBlur() const {

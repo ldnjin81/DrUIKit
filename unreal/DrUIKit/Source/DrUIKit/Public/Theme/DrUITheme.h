@@ -75,7 +75,7 @@ inline const FName Hairline = TEXT("hairline"), Ink = TEXT("ink"), InkMuted = TE
 inline const FName Accent = TEXT("accent"), OnAccent = TEXT("on-accent"), AccentSoft = TEXT("accent-soft"), Chip = TEXT("chip"), OnChip = TEXT("on-chip");
 inline const FName Success = TEXT("success"), Warning = TEXT("warning"), Danger = TEXT("danger"), Focus = TEXT("focus");
 inline const FName Body = TEXT("body"), Label = TEXT("label"), Caption = TEXT("caption");
-inline const FName RadiusSm = TEXT("radius-sm"), RadiusMd = TEXT("radius-md"), RadiusLg = TEXT("radius-lg"), RadiusXl = TEXT("radius-xl"), RadiusPill = TEXT("radius-pill");
+inline const FName RadiusXs = TEXT("radius-xs"), RadiusSm = TEXT("radius-sm"), RadiusMd = TEXT("radius-md"), RadiusLg = TEXT("radius-lg"), RadiusXl = TEXT("radius-xl"), RadiusPill = TEXT("radius-pill");
 inline const FName Space2 = TEXT("space-2"), Space3 = TEXT("space-3"), Space4 = TEXT("space-4");
 inline const FName BackdropGlass = TEXT("backdrop-glass"), ShadowGlass = TEXT("shadow-glass"), ShadowFloat = TEXT("shadow-float");
 }
