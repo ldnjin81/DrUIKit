@@ -1,0 +1,17 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIKit",
+  "Description": "스타일 중립 UI 부품 — 엔진·CommonUI 위젯 상속 확장, 테마 토큰, 상태, 움직임",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Modules": [
+    { "Name": "DrUIKit", "Type": "Runtime", "LoadingPhase": "Default" }
+  ],
+  "Plugins": [
+    { "Name": "CommonUI", "Enabled": true }
+  ],
+  "CreatedByURL": "https://github.com/ldnjin81"
+}
