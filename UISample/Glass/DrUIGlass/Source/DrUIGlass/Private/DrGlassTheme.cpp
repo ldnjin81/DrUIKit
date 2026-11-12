@@ -72,6 +72,8 @@ TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Oute
           Style.Weight = int32(StyleJson->GetNumberField(TEXT("fontWeight")));
           FString Spacing;
           if (StyleJson->TryGetStringField(TEXT("letterSpacing"), Spacing)) Style.LetterSpacing = (Spacing.StartsWith(TEXT("-")) ? -1.f : 1.f) * LeadingNumber(Spacing);
+          // 본문 글꼴은 Pretendard(OFL, Fonts/). 코드 글꼴(mono)은 엔진 기본.
+          if (G->AsObject()->GetStringField(TEXT("family")) == TEXT("sans")) Style.Font = TSoftObjectPtr<const UObject>(FSoftObjectPath(TEXT("/DrUIGlass/Fonts/F_Pretendard.F_Pretendard")));
           Theme->TextStyles.Add(*StyleJson->GetStringField(TEXT("name")), Style);
         }
     }

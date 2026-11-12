@@ -48,14 +48,29 @@ float UDrUITheme::GetBackdrop(FName Token) const {
   return 0.f;
 }
 
+FName UDrUITheme::PickTypeface(const UFont& Font, int32 Weight) {
+  // CSS 굵기 → 서체 이름. 글꼴에 있는 이름 중 가장 가까운 굵기를 고른다(같은 거리면 더 굵은 쪽).
+  static const TPair<int32, FName> Names[] = {{300, TEXT("Light")}, {400, TEXT("Regular")}, {500, TEXT("Medium")}, {600, TEXT("SemiBold")}, {700, TEXT("Bold")}};
+  TSet<FName> Available;
+  for (const FTypefaceEntry& Entry : Font.GetCompositeFont()->DefaultTypeface.Fonts) Available.Add(Entry.Name);
+  FName Best = NAME_None;
+  int32 BestDistance = MAX_int32;
+  for (const auto& [Value, Name] : Names) {
+    if (!Available.Contains(Name)) continue;
+    const int32 Distance = FMath::Abs(Value - Weight) * 2 - (Value > Weight ? 1 : 0);
+    if (Distance < BestDistance) { BestDistance = Distance; Best = Name; }
+  }
+  return Best.IsNone() && Font.GetCompositeFont()->DefaultTypeface.Fonts.Num() ? Font.GetCompositeFont()->DefaultTypeface.Fonts[0].Name : Best;
+}
+
 FSlateFontInfo UDrUITheme::MakeFont(FName TextToken) const {
   const FDrUITextStyle Style = GetTextStyle(TextToken);
-  // 엔진 기본 글꼴(Roboto)의 서체 이름: Light / Regular / Bold.
-  const FName Typeface = Style.Weight >= 600 ? TEXT("Bold") : Style.Weight <= 300 ? TEXT("Light") : TEXT("Regular");
-  FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(Typeface, FMath::RoundToInt(Style.Size));
-  if (const UObject* Custom = Style.Font.LoadSynchronous()) {
+  // 엔진 기본 글꼴(Roboto)의 서체: Light / Regular / Bold.
+  const FName EngineTypeface = Style.Weight >= 600 ? TEXT("Bold") : Style.Weight <= 300 ? TEXT("Light") : TEXT("Regular");
+  FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(EngineTypeface, FMath::RoundToInt(Style.Size));
+  if (const UFont* Custom = Cast<UFont>(Style.Font.LoadSynchronous())) {
     Font.FontObject = Custom;
-    Font.TypefaceFontName = Typeface;
+    Font.TypefaceFontName = PickTypeface(*Custom, Style.Weight);
   }
   Font.LetterSpacing = FMath::RoundToInt(Style.LetterSpacing * 1000.f);
   return Font;

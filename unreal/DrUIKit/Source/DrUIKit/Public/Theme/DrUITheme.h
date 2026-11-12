@@ -51,6 +51,8 @@ public:
   FDrUIShadow GetShadow(FName Token) const;
   float GetBackdrop(FName Token) const;
   FSlateFontInfo MakeFont(FName TextToken) const;
+  /** 복합 글꼴에서 CSS 굵기에 가장 가까운 서체 이름(Light·Regular·Medium·SemiBold·Bold 중 있는 것). */
+  static FName PickTypeface(const class UFont& Font, int32 Weight);
 
   /** 샘플 없이도 화면이 깨지지 않는 회색조 기본 테마. */
   static UDrUITheme* MakeDefault(UObject* Outer);
