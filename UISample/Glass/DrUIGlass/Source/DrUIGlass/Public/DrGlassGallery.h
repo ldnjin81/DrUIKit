@@ -35,6 +35,7 @@ private:
   UWidget* BuildFoundationPage();
   UWidget* BuildButtonPage();
   UWidget* BuildSelectionPage();
+  UWidget* BuildStatusPage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);

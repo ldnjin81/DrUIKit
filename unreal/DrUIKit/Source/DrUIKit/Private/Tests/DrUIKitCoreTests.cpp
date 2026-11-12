@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움 계산을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
@@ -7,6 +7,7 @@
 #include "Widgets/DrUIChoice.h"
 #include "Widgets/DrUIGlyph.h"
 #include "Widgets/DrUISlider.h"
+#include "Widgets/DrUIStatus.h"
 #include "Widgets/DrUISurface.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
@@ -141,6 +142,22 @@ bool FDrUISliderFillTest::RunTest(const FString&) {
   TestEqual(TEXT("0이면 손잡이 반지름까지"), UDrUISlider::FillEnd(200.f, 0.f, 18.f), 9.f);
   TestEqual(TEXT("1이면 끝에서 반지름 안쪽"), UDrUISlider::FillEnd(200.f, 1.f, 18.f), 191.f);
   TestEqual(TEXT("절반은 가운데"), UDrUISlider::FillEnd(200.f, .5f, 18.f), 100.f);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIStatusMathTest, "DrUIKit.Core.Status.Math", DrUIKitTestFlags)
+bool FDrUIStatusMathTest::RunTest(const FString&) {
+  TestTrue(TEXT("배지 0은 빈 글자(숨김)"), UDrUIBadge::FormatCount(0, 99).IsEmpty());
+  TestEqual(TEXT("배지 12"), UDrUIBadge::FormatCount(12, 99).ToString(), FString(TEXT("12")));
+  TestEqual(TEXT("배지 최댓값 넘으면 99+"), UDrUIBadge::FormatCount(120, 99).ToString(), FString(TEXT("99+")));
+  const TArray<FVector2f> Quarter = DrUIProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, .25f, 64);
+  TestTrue(TEXT("원호는 12시에서 시작"), Quarter[0].Equals(FVector2f(0.f, -10.f), 1e-3f));
+  TestTrue(TEXT("1/4 바퀴는 3시(시계 방향)"), Quarter.Last().Equals(FVector2f(10.f, 0.f), 1e-3f));
+  TestEqual(TEXT("1/4 바퀴 조각 16개"), Quarter.Num(), 17);
+  TestEqual(TEXT("길이 0이면 점 없음"), DrUIProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, 0.f).Num(), 0);
+  float Low = 1.f, High = 0.f;
+  for (double T = 0.0; T < 2.4; T += .05) { Low = FMath::Min(Low, UDrUISkeleton::PulseAlpha(T)); High = FMath::Max(High, UDrUISkeleton::PulseAlpha(T)); }
+  TestTrue(TEXT("스켈레톤 불투명도 .18~.32"), Low >= .179f && High <= .321f && High - Low > .1f);
   return true;
 }
 

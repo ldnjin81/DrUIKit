@@ -5,7 +5,7 @@
 
 class UDrUISurface;
 class UDrUIText;
-class UCircularThrobber;
+class UDrUISpinner;
 
 UENUM(BlueprintType)
 enum class EDrUIButtonVariant : uint8 { Primary, Secondary, Ghost, Destructive };
@@ -35,7 +35,7 @@ public:
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISurface> Surface;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUIText> LabelText;
-  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UCircularThrobber> Spinner;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISpinner> Spinner;
 
   virtual void BuildDefaultTree() override;
   virtual void ApplyVisualState() override;

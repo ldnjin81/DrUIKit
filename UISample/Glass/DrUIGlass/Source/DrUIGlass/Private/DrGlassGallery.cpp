@@ -8,6 +8,7 @@
 #include "Components/OverlaySlot.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
+#include "Components/SizeBoxSlot.h"
 #include "Components/Spacer.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -25,6 +26,7 @@
 #include "Widgets/DrUIGlyph.h"
 #include "Widgets/DrUIIcon.h"
 #include "Widgets/DrUISlider.h"
+#include "Widgets/DrUIStatus.h"
 #include "Widgets/DrUISurface.h"
 #include "Widgets/DrUITabList.h"
 #include "Widgets/DrUIText.h"
@@ -34,7 +36,8 @@
 TArray<UClass*> UDrGlassGallery::CoveredClasses() {
   return {UDrUIText::StaticClass(), UDrUIIcon::StaticClass(), UDrUISurface::StaticClass(), UDrUIButton::StaticClass(),
     UDrUIGlyph::StaticClass(), UDrUICheckBox::StaticClass(), UDrUIRadio::StaticClass(), UDrUISwitch::StaticClass(),
-    UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass(), UDrUISlider::StaticClass()};
+    UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass(), UDrUISlider::StaticClass(),
+    UDrUIBadge::StaticClass(), UDrUIProgressBar::StaticClass(), UDrUIProgressRing::StaticClass(), UDrUISkeleton::StaticClass(), UDrUISpinner::StaticClass()};
 }
 
 UDrUIText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -266,6 +269,110 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildStatusPage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+  auto MakeRow = [this] { UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>(); Row->SetInnerSlotPadding(FVector2D(20, 12)); return Row; };
+  // 높이 40 줄 가운데에 놓는다(크기가 다른 배지·링·스피너를 한 줄에 맞추기).
+  auto Center = [this](UWidget* W) {
+    USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>();
+    Box->SetHeightOverride(40.f);
+    if (USizeBoxSlot* S = Cast<USizeBoxSlot>(Box->AddChild(W))) { S->SetVerticalAlignment(VAlign_Center); S->SetHorizontalAlignment(HAlign_Center); }
+    return Box;
+  };
+
+  // 배지: 숫자·넘침·점·색 + 버튼 위에 붙인 배지(눌러서 +1).
+  UWrapBox* Badges = MakeRow();
+  for (const auto& [Count, bDot, Tone] : TArray<TTuple<int32, bool, EDrUIBadgeTone>>{
+         {3, false, EDrUIBadgeTone::Alert}, {12, false, EDrUIBadgeTone::Accent}, {120, false, EDrUIBadgeTone::Danger},
+         {5, false, EDrUIBadgeTone::Success}, {8, false, EDrUIBadgeTone::Warning}, {42, false, EDrUIBadgeTone::Neutral}, {0, true, EDrUIBadgeTone::Alert}}) {
+    UDrUIBadge* Badge = WidgetTree->ConstructWidget<UDrUIBadge>();
+    Badge->Count = Count;
+    Badge->bDot = bDot;
+    Badge->Tone = Tone;
+    Badges->AddChild(Center(Badge));
+  }
+  UOverlay* Inbox = WidgetTree->ConstructWidget<UOverlay>();
+  UDrUIButton* InboxButton = MakeButton(LOCTEXT("Inbox", "받은 편지함 +1"));
+  if (UOverlaySlot* S = Inbox->AddChildToOverlay(InboxButton)) S->SetPadding(FMargin(0, 6, 8, 0));
+  UDrUIBadge* InboxBadge = WidgetTree->ConstructWidget<UDrUIBadge>();
+  InboxBadge->Count = 1;
+  if (UOverlaySlot* S = Inbox->AddChildToOverlay(InboxBadge)) { S->SetHorizontalAlignment(HAlign_Right); S->SetVerticalAlignment(VAlign_Top); }
+  InboxButton->OnClicked().AddWeakLambda(InboxBadge, [InboxBadge] { InboxBadge->SetCount(InboxBadge->Count + 1); });
+  Badges->AddChild(Inbox);
+  Add(Section(LOCTEXT("BadgeTitle", "배지(UDrUIBadge) · 숫자·99+·점, 색 6종. 오른쪽 버튼을 누르면 +1"), Badges));
+
+  // 진행 막대 + 진행 링: 한 버튼으로 같이 25%씩 채운다.
+  UVerticalBox* Progress = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto BarLine = [&](float Percent, FName Fill, bool bMarquee, const FText& Caption) {
+    UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>();
+    UDrUIProgressBar* Bar = WidgetTree->ConstructWidget<UDrUIProgressBar>();
+    Bar->FillToken = Fill;
+    Bar->SetPercent(Percent);
+    Bar->SetIsMarquee(bMarquee);
+    USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>();
+    Width->SetWidthOverride(360.f);
+    Width->AddChild(Bar);
+    if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(Width)) S->SetVerticalAlignment(VAlign_Center);
+    if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(MakeText(Caption, TEXT("caption"), TEXT("ink-muted")))) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(12, 0, 0, 0)); }
+    if (UVerticalBoxSlot* S = Progress->AddChildToVerticalBox(Line)) S->SetPadding(FMargin(0, 0, 0, 10));
+    return Bar;
+  };
+  UDrUIProgressBar* LiveBar = BarLine(.25f, TEXT("accent"), false, LOCTEXT("BarLive", "아래 버튼으로 채움"));
+  BarLine(1.f, TEXT("success"), false, LOCTEXT("BarDone", "완료(success)"));
+  BarLine(.7f, TEXT("danger"), false, LOCTEXT("BarDanger", "위험(danger)"));
+  BarLine(0.f, TEXT("accent"), true, LOCTEXT("BarMarquee", "끝없는 진행(엔진 marquee)"));
+  UWrapBox* Rings = MakeRow();
+  UDrUIProgressRing* LiveRing = WidgetTree->ConstructWidget<UDrUIProgressRing>();
+  LiveRing->Percent = .25f;
+  Rings->AddChild(LiveRing);
+  for (const auto& [Percent, Size, Fill] : TArray<TTuple<float, float, FName>>{{.75f, 40.f, TEXT("success")}, {.4f, 24.f, TEXT("warning")}, {.9f, 56.f, TEXT("accent")}}) {
+    UDrUIProgressRing* Ring = WidgetTree->ConstructWidget<UDrUIProgressRing>();
+    Ring->Percent = Percent;
+    Ring->RingSize = Size;
+    Ring->FillToken = Fill;
+    Rings->AddChild(Center(Ring));
+  }
+  UDrUIProgressRing* Spin = WidgetTree->ConstructWidget<UDrUIProgressRing>();
+  Spin->bIndeterminate = true;
+  Rings->AddChild(Spin);
+  UDrUIButton* Advance = MakeButton(LOCTEXT("Advance", "진행 +25%"));
+  Advance->OnClicked().AddWeakLambda(this, [LiveBar, LiveRing] {
+    const float Next = LiveRing->Percent >= .999f ? 0.f : LiveRing->Percent + .25f;
+    LiveBar->SetPercent(Next);
+    LiveRing->SetPercent(Next);
+  });
+  Rings->AddChild(Center(Advance));
+  if (UVerticalBoxSlot* S = Progress->AddChildToVerticalBox(Rings)) S->SetPadding(FMargin(0, 6, 0, 0));
+  Add(Section(LOCTEXT("ProgressTitle", "진행 막대(UDrUIProgressBar) · 진행 링(UDrUIProgressRing). 첫 막대와 첫 링은 버튼으로 함께 채움, 마지막 링은 끝없는 진행"), Progress));
+
+  // 스켈레톤: 목록 행 하나를 불러오는 모양.
+  UHorizontalBox* Skeleton = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrUISkeleton* Avatar = WidgetTree->ConstructWidget<UDrUISkeleton>();
+  Avatar->BlockSize = FVector2D(40.f);
+  Avatar->RadiusToken = TEXT("radius-pill");
+  if (UHorizontalBoxSlot* S = Skeleton->AddChildToHorizontalBox(Avatar)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 12, 0)); }
+  UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>();
+  for (const float Width : {220.f, 140.f}) {
+    UDrUISkeleton* Line = WidgetTree->ConstructWidget<UDrUISkeleton>();
+    Line->BlockSize = FVector2D(Width, 12.f);
+    if (UVerticalBoxSlot* S = Lines->AddChildToVerticalBox(Line)) S->SetPadding(FMargin(0, 3));
+  }
+  if (UHorizontalBoxSlot* S = Skeleton->AddChildToHorizontalBox(Lines)) S->SetVerticalAlignment(VAlign_Center);
+  Add(Section(LOCTEXT("SkeletonTitle", "스켈레톤(UDrUISkeleton) · 천천히 밝아졌다 어두워짐. 움직임 줄이기면 멈춤"), Skeleton));
+
+  // 스피너: 크기·색.
+  UWrapBox* Spinners = MakeRow();
+  for (const auto& [Radius, Color] : TArray<TPair<float, FName>>{{6.f, TEXT("ink")}, {8.f, TEXT("ink-muted")}, {12.f, TEXT("accent")}}) {
+    UDrUISpinner* Spinner = WidgetTree->ConstructWidget<UDrUISpinner>();
+    Spinner->SetRadius(Radius);
+    Spinner->ColorToken = Color;
+    Spinners->AddChild(Center(Spinner));
+  }
+  Add(Section(LOCTEXT("SpinnerTitle", "스피너(UDrUISpinner) · 엔진 UCircularThrobber를 토큰 색으로. 버튼 로딩도 이것을 쓴다"), Spinners));
+  return Page;
+}
+
 void UDrGlassGallery::HandleSegmentDemo(int32 Index) {
   if (SegmentDemoValue && SegmentDemoOptions.IsValidIndex(Index))
     SegmentDemoValue->SetText(FText::Format(LOCTEXT("SegmentValue", "고른 값: {0}"), SegmentDemoOptions[Index]));
@@ -340,7 +447,8 @@ void UDrGlassGallery::Build() {
   const TArray<TPair<FText, UWidget*>> PageList = {
     {LOCTEXT("PageFoundation", "기초: 글자·색·표면·아이콘"), BuildFoundationPage()},
     {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()},
-    {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()}};
+    {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()},
+    {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);

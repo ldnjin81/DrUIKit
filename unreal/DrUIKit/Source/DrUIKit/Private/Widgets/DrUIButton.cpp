@@ -1,9 +1,9 @@
 #include "Widgets/DrUIButton.h"
 #include "Blueprint/WidgetTree.h"
-#include "Components/CircularThrobber.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "Widgets/DrUIStatus.h"
 #include "Widgets/DrUISurface.h"
 #include "Widgets/DrUIText.h"
 
@@ -18,8 +18,7 @@ void UDrUIButton::BuildDefaultTree() {
   WidgetTree->RootWidget = Surface;
   UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
   Surface->SetContent(Row);
-  Spinner = WidgetTree->ConstructWidget<UCircularThrobber>(UCircularThrobber::StaticClass(), TEXT("Spinner"));
-  Spinner->SetNumberOfPieces(6);
+  Spinner = WidgetTree->ConstructWidget<UDrUISpinner>(UDrUISpinner::StaticClass(), TEXT("Spinner"));
   Spinner->SetRadius(7.f);
   Spinner->SetVisibility(ESlateVisibility::Collapsed);
   if (UHorizontalBoxSlot* SpinnerSlot = Row->AddChildToHorizontalBox(Spinner)) { SpinnerSlot->SetPadding(FMargin(0, 0, 6, 0)); SpinnerSlot->SetVerticalAlignment(VAlign_Center); }
@@ -73,11 +72,7 @@ void UDrUIButton::ApplyVisualState() {
   LabelText->SetText(Text);
   if (Spinner) {
     Spinner->SetVisibility(VisualState == EDrUIState::Loading ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-    // 스피너 조각은 기본 이미지를 쓰므로 글자색으로 칠한다.
-    FSlateBrush Piece = Spinner->GetImage();
-    Piece.TintColor = FSlateColor(UDrUIThemeSubsystem::Current().GetColor(Ink));
-    Piece.ImageSize = FVector2D(3.f);  // 기본 조각은 커서 반경 7에서 서로 겹쳐 덩어리로 보인다.
-    Spinner->SetImage(Piece);
+    Spinner->SetColorToken(Ink);  // 글자색과 같게
   }
 }
 
