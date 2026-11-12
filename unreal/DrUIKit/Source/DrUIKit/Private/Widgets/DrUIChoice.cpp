@@ -104,8 +104,8 @@ UDrUISwitch::UDrUISwitch(const FObjectInitializer& Initializer) : Super(Initiali
 
 UWidget* UDrUISwitch::BuildIndicator() {
   USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>();
-  Size->SetWidthOverride(TrackWidth);
-  Size->SetHeightOverride(TrackHeight);
+  Size->SetWidthOverride(DrUISwitchSize::TrackWidth);
+  Size->SetHeightOverride(DrUISwitchSize::TrackHeight);
   UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>();
   Size->AddChild(Layers);
   Track = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Track"));
@@ -114,15 +114,15 @@ UWidget* UDrUISwitch::BuildIndicator() {
   Track->BackdropToken = NAME_None;
   if (UOverlaySlot* S = Layers->AddChildToOverlay(Track)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
   USizeBox* ThumbSizeBox = WidgetTree->ConstructWidget<USizeBox>();
-  ThumbSizeBox->SetWidthOverride(ThumbSize);
-  ThumbSizeBox->SetHeightOverride(ThumbSize);
+  ThumbSizeBox->SetWidthOverride(DrUISwitchSize::ThumbSize);
+  ThumbSizeBox->SetHeightOverride(DrUISwitchSize::ThumbSize);
   Thumb = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Thumb"));
   Thumb->RadiusToken = TEXT("radius-pill");
   Thumb->PaddingToken = NAME_None;
   Thumb->BackdropToken = NAME_None;
   Thumb->StrokeToken = NAME_None;
   ThumbSizeBox->AddChild(Thumb);
-  if (UOverlaySlot* S = Layers->AddChildToOverlay(ThumbSizeBox)) { S->SetHorizontalAlignment(HAlign_Left); S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(Inset, 0, 0, 0)); }
+  if (UOverlaySlot* S = Layers->AddChildToOverlay(ThumbSizeBox)) { S->SetHorizontalAlignment(HAlign_Left); S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(DrUISwitchSize::Inset, 0, 0, 0)); }
   return Size;
 }
 

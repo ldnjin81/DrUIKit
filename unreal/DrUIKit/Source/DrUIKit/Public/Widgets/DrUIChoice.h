@@ -64,6 +64,11 @@ protected:
   virtual UWidget* BuildIndicator() override;
 };
 
+/** 스위치 크기(px). DLL로 내보내는 클래스 안에는 constexpr 상수를 둘 수 없어 밖에 둔다. */
+namespace DrUISwitchSize {
+inline constexpr float TrackWidth = 44.f, TrackHeight = 24.f, ThumbSize = 18.f, Inset = 3.f;
+}
+
 /** 스위치(움직이는 토글). 설정처럼 바로 적용되는 켜고 끄기에 쓴다. */
 UCLASS()
 class DRUIKIT_API UDrUISwitch : public UDrUIChoiceBase {
@@ -71,8 +76,7 @@ class DRUIKIT_API UDrUISwitch : public UDrUIChoiceBase {
 public:
   UDrUISwitch(const FObjectInitializer& Initializer);
   /** 손잡이가 트랙 왼쪽에서 움직인 거리(px). 테스트용으로 공개. */
-  static float ThumbTravel(float OnAmount) { return FMath::Clamp(OnAmount, 0.f, 1.f) * (TrackWidth - ThumbSize - 2.f * Inset); }
-  static constexpr float TrackWidth = 44.f, TrackHeight = 24.f, ThumbSize = 18.f, Inset = 3.f;
+  static float ThumbTravel(float OnAmount) { return FMath::Clamp(OnAmount, 0.f, 1.f) * (DrUISwitchSize::TrackWidth - DrUISwitchSize::ThumbSize - 2.f * DrUISwitchSize::Inset); }
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISurface> Track;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISurface> Thumb;

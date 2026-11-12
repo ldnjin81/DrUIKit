@@ -123,7 +123,7 @@ bool FDrUIGlyphTrimTest::RunTest(const FString&) {
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISwitchThumbTest, "DrUIKit.Core.Switch.ThumbTravel", DrUIKitTestFlags)
 bool FDrUISwitchThumbTest::RunTest(const FString&) {
   TestEqual(TEXT("꺼짐은 왼쪽"), UDrUISwitch::ThumbTravel(0.f), 0.f);
-  TestEqual(TEXT("켜짐은 트랙 끝에서 여백만큼 안쪽"), UDrUISwitch::ThumbTravel(1.f), UDrUISwitch::TrackWidth - UDrUISwitch::ThumbSize - 2.f * UDrUISwitch::Inset);
+  TestEqual(TEXT("켜짐은 트랙 끝에서 여백만큼 안쪽"), UDrUISwitch::ThumbTravel(1.f), DrUISwitchSize::TrackWidth - DrUISwitchSize::ThumbSize - 2.f * DrUISwitchSize::Inset);
   TestEqual(TEXT("스프링이 넘쳐도 트랙 밖으로 안 나감"), UDrUISwitch::ThumbTravel(1.2f), UDrUISwitch::ThumbTravel(1.f));
   return true;
 }

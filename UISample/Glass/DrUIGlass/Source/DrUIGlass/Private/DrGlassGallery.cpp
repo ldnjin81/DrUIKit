@@ -296,8 +296,6 @@ void UDrGlassGallery::Build() {
   PageTabs = WidgetTree->ConstructWidget<UDrUITabList>();
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(PageTabs)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
   Pages = WidgetTree->ConstructWidget<UCommonAnimatedSwitcher>();
-  Pages->TransitionType = ECommonSwitcherTransition::FadeOnly;
-  Pages->TransitionDuration = .15f;
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
   PageTabs->SetLinkedSwitcher(Pages);
   const TArray<TPair<FText, UWidget*>> PageList = {
