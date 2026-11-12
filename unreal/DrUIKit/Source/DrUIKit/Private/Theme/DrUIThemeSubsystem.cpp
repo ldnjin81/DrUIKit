@@ -18,6 +18,7 @@ void UDrUIThemeSubsystem::Initialize(FSubsystemCollectionBase& Collection) {
   for (const TSoftObjectPtr<UDrUITheme>& Soft : Settings->Themes)
     if (UDrUITheme* Theme = Soft.LoadSynchronous()) Themes.Add(Theme);
   SurfaceQuality = Settings->SurfaceQuality;
+  SurfaceTransparency = Settings->SurfaceTransparency;
   bReduceMotion = Settings->bReduceMotion;
   Active = Themes.IsEmpty() ? Fallback.Get() : Themes[0].Get();
   if (!Settings->StartTheme.IsNone()) SetTheme(Settings->StartTheme);
@@ -55,5 +56,12 @@ TArray<FName> UDrUIThemeSubsystem::GetThemeIds() const {
 }
 
 void UDrUIThemeSubsystem::SetSurfaceQuality(EDrUISurfaceQuality Quality) { SurfaceQuality = Quality; Broadcast(); }
+
+void UDrUIThemeSubsystem::SetSurfaceTransparency(float Transparency) {
+  const float Clamped = FMath::Clamp(Transparency, 0.f, 1.f);
+  if (FMath::IsNearlyEqual(Clamped, SurfaceTransparency)) return;
+  SurfaceTransparency = Clamped;
+  Broadcast();
+}
 
 void UDrUIThemeSubsystem::Broadcast() { OnThemeChanged.Broadcast(GetTheme()); }

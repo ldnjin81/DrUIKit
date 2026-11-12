@@ -45,6 +45,8 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, FDrUIShadow> Shadows;
   /** 뒤 흐림 강도(UBackgroundBlur BlurStrength). */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, float> Backdrops;
+  /** 표면 투명도 설정을 따르는 색 토큰(유리 채움처럼 반투명이 뜻인 것). 글자·강조색은 넣지 않는다. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TSet<FName> TranslucentTokens;
 
   /** 코드로 만든 복합 글꼴(TTF 파일 경로 기반, 에셋 없음). 샘플이 넣는다. */
   TSharedPtr<const FCompositeFont> RuntimeFont;
@@ -57,6 +59,8 @@ public:
   FDrUIShadow GetShadow(FName Token) const;
   float GetBackdrop(FName Token) const;
   FSlateFontInfo MakeFont(FName TextToken) const;
+  /** 투명도 설정을 반영한 알파. 0 → 1(불투명), .5 → Alpha 그대로, 1 → Alpha의 1/4. */
+  static float AdjustAlpha(float Alpha, float Transparency);
   /** 복합 글꼴에서 CSS 굵기에 가장 가까운 서체 이름(Light·Regular·Medium·SemiBold·Bold 중 있는 것). */
   static FName PickTypeface(const FCompositeFont& Font, int32 Weight);
 

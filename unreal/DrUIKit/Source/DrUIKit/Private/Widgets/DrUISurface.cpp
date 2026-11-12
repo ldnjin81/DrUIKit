@@ -14,7 +14,13 @@ FLinearColor UDrUISurface::ResolveFill() const {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   const bool bNoBlur = BackdropToken.IsNone() || CurrentQuality() == EDrUISurfaceQuality::Low;
   const FName Token = bNoBlur && !FillStrongToken.IsNone() ? FillStrongToken : FillToken;
-  return Token.IsNone() ? FLinearColor::Transparent : Theme.GetColor(Token);
+  if (Token.IsNone()) return FLinearColor::Transparent;
+  FLinearColor Color = Theme.GetColor(Token);
+  if (Theme.TranslucentTokens.Contains(Token)) {
+    const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
+    Color.A = UDrUITheme::AdjustAlpha(Color.A, Subsystem ? Subsystem->GetSurfaceTransparency() : GetDefault<UDrUIKitSettings>()->SurfaceTransparency);
+  }
+  return Color;
 }
 
 float UDrUISurface::ResolveBlur() const {

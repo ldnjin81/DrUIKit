@@ -18,6 +18,8 @@ public:
   /** 시작 테마의 ThemeId. 비우면 Themes의 첫 번째. */
   UPROPERTY(Config, EditAnywhere, Category = "테마") FName StartTheme;
   UPROPERTY(Config, EditAnywhere, Category = "표면") EDrUISurfaceQuality SurfaceQuality = EDrUISurfaceQuality::High;
+  /** 표면 투명도: 0 불투명, .5 테마 그대로, 1 가장 투명. 테마의 TranslucentTokens(유리 채움)만 따른다. */
+  UPROPERTY(Config, EditAnywhere, Category = "표면", meta = (ClampMin = 0, ClampMax = 1)) float SurfaceTransparency = .5f;
   /** 위치 이동을 페이드로 바꾸고 카운트 업 등을 끈다. */
   UPROPERTY(Config, EditAnywhere, Category = "움직임") bool bReduceMotion = false;
 };

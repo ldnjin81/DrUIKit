@@ -78,6 +78,11 @@ FSlateFontInfo UDrUITheme::MakeFont(FName TextToken) const {
   return Font;
 }
 
+float UDrUITheme::AdjustAlpha(float Alpha, float Transparency) {
+  const float T = FMath::Clamp(Transparency, 0.f, 1.f);
+  return T <= .5f ? FMath::Lerp(1.f, Alpha, T * 2.f) : FMath::Lerp(Alpha, Alpha * .25f, (T - .5f) * 2.f);
+}
+
 UDrUITheme* UDrUITheme::MakeDefault(UObject* Outer) {
   UDrUITheme* Theme = NewObject<UDrUITheme>(Outer ? Outer : GetTransientPackage(), TEXT("DrUIDefaultTheme"));
   Theme->ThemeId = TEXT("default");
@@ -96,6 +101,7 @@ UDrUITheme* UDrUITheme::MakeDefault(UObject* Outer) {
   Theme->Spacing = {{TEXT("space-1"), 4}, {DrUITokens::Space2, 8}, {DrUITokens::Space3, 12}, {DrUITokens::Space4, 16}, {TEXT("space-6"), 24}};
   Theme->Radius = {{DrUITokens::RadiusXs, 4}, {DrUITokens::RadiusSm, 6}, {DrUITokens::RadiusMd, 8}, {DrUITokens::RadiusLg, 10}, {DrUITokens::RadiusXl, 12}, {DrUITokens::RadiusPill, 999}};
   Theme->Backdrops = {{DrUITokens::BackdropGlass, 0.f}};
+  Theme->TranslucentTokens = {DrUITokens::Glass, DrUITokens::GlassStrong};
   Theme->Shadows = {{DrUITokens::ShadowGlass, FDrUIShadow()}, {DrUITokens::ShadowFloat, FDrUIShadow()}};
   return Theme;
 }

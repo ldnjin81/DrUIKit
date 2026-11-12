@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계, 표시 그리기·스위치 손잡이 계산을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
@@ -6,6 +6,7 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrUIChoice.h"
 #include "Widgets/DrUIGlyph.h"
+#include "Widgets/DrUISlider.h"
 #include "Widgets/DrUISurface.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
@@ -104,6 +105,45 @@ bool FDrUISurfaceQualityTest::RunTest(const FString&) {
   Subsystem->SetTheme(TEXT("default"));
   return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISurfaceTransparencyTest, "DrUIKit.Core.Surface.Transparency", DrUIKitTestFlags)
+bool FDrUISurfaceTransparencyTest::RunTest(const FString&) {
+  TestEqual(TEXT("0은 불투명"), UDrUITheme::AdjustAlpha(.6f, 0.f), 1.f);
+  TestEqual(TEXT(".5는 테마 그대로"), UDrUITheme::AdjustAlpha(.6f, .5f), .6f);
+  TestEqual(TEXT("1은 1/4"), UDrUITheme::AdjustAlpha(.6f, 1.f), .15f);
+  TestEqual(TEXT("범위 밖은 자름"), UDrUITheme::AdjustAlpha(.6f, 2.f), .15f);
+  UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
+  if (!TestNotNull(TEXT("테마 서브시스템"), Subsystem)) return false;
+  UDrUITheme* Theme = UDrUITheme::MakeDefault(GetTransientPackage());
+  Theme->ThemeId = TEXT("test-transparency");
+  Theme->Colors.Add(DrUITokens::Glass, FLinearColor(1, 1, 1, .5f));
+  Theme->Colors.Add(DrUITokens::Accent, FLinearColor(0, 0, 1, 1));
+  Theme->Backdrops.Add(DrUITokens::BackdropGlass, 20.f);
+  const float Before = Subsystem->GetSurfaceTransparency();
+  const EDrUISurfaceQuality QualityBefore = Subsystem->GetSurfaceQuality();
+  Subsystem->SetThemeObject(Theme);
+  Subsystem->SetSurfaceQuality(EDrUISurfaceQuality::High);
+  UDrUISurface* Glass = NewObject<UDrUISurface>();
+  UDrUISurface* Solid = NewObject<UDrUISurface>();
+  Solid->FillToken = DrUITokens::Accent;
+  Subsystem->SetSurfaceTransparency(0.f);
+  TestEqual(TEXT("유리는 불투명해짐"), Glass->ResolveFill().A, 1.f);
+  Subsystem->SetSurfaceTransparency(1.f);
+  TestEqual(TEXT("유리는 더 투명해짐"), Glass->ResolveFill().A, .125f);
+  TestEqual(TEXT("TranslucentTokens에 없는 색(accent)은 그대로"), Solid->ResolveFill().A, 1.f);
+  Subsystem->SetSurfaceTransparency(Before);
+  Subsystem->SetSurfaceQuality(QualityBefore);
+  Subsystem->SetTheme(TEXT("default"));
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISliderFillTest, "DrUIKit.Core.Slider.FillEnd", DrUIKitTestFlags)
+bool FDrUISliderFillTest::RunTest(const FString&) {
+  TestEqual(TEXT("0이면 손잡이 반지름까지"), UDrUISlider::FillEnd(200.f, 0.f, 18.f), 9.f);
+  TestEqual(TEXT("1이면 끝에서 반지름 안쪽"), UDrUISlider::FillEnd(200.f, 1.f, 18.f), 191.f);
+  TestEqual(TEXT("절반은 가운데"), UDrUISlider::FillEnd(200.f, .5f, 18.f), 100.f);
+  return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIGlyphTrimTest, "DrUIKit.Core.Glyph.Trim", DrUIKitTestFlags)
 bool FDrUIGlyphTrimTest::RunTest(const FString&) {
   const TArray<FVector2f> Line = {{0.f, 0.f}, {1.f, 0.f}, {1.f, 1.f}};

@@ -28,16 +28,20 @@ public:
   TArray<FName> GetThemeIds() const;
   EDrUISurfaceQuality GetSurfaceQuality() const { return SurfaceQuality; }
   void SetSurfaceQuality(EDrUISurfaceQuality Quality);
+  float GetSurfaceTransparency() const { return SurfaceTransparency; }
+  /** 0 불투명 ~ .5 테마 그대로 ~ 1 가장 투명. 바뀌면 다시 칠하라고 알린다. */
+  void SetSurfaceTransparency(float Transparency);
   bool IsReduceMotion() const { return bReduceMotion; }
   void SetReduceMotion(bool bReduce) { bReduceMotion = bReduce; }
 
-  /** 테마나 표면 품질이 바뀌면 알린다. DrUIKit 위젯은 이걸 받아 다시 칠한다. */
+  /** 테마나 표면 품질·투명도가 바뀌면 알린다. DrUIKit 위젯은 이걸 받아 다시 칠한다. */
   FDrUIOnThemeChanged OnThemeChanged;
 private:
   UPROPERTY(Transient) TArray<TObjectPtr<UDrUITheme>> Themes;
   UPROPERTY(Transient) TObjectPtr<UDrUITheme> Active;
   UPROPERTY(Transient) TObjectPtr<UDrUITheme> Fallback;
   EDrUISurfaceQuality SurfaceQuality = EDrUISurfaceQuality::High;
+  float SurfaceTransparency = .5f;
   bool bReduceMotion = false;
   void Broadcast();
 };

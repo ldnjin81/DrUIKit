@@ -89,6 +89,8 @@ TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Oute
     Lengths(TEXT("radius"), Theme->Radius, 1.f);
     // CSS blur(px)와 Slate 흐림 강도는 기준이 다르다. 화면 캡처로 맞출 때까지 px의 절반으로 둔다.
     Lengths(TEXT("backdrop"), Theme->Backdrops, .5f);
+    // 투명도 조절은 유리 채움만 따른다(디자인 시스템: 유리 표면 = glass, 글이 많은 유리 = glass-strong).
+    Theme->TranslucentTokens = {TEXT("glass"), TEXT("glass-strong")};
     Result.Add(Theme);
   }
   return Result;

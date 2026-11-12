@@ -24,6 +24,7 @@
 #include "Widgets/DrUIChoice.h"
 #include "Widgets/DrUIGlyph.h"
 #include "Widgets/DrUIIcon.h"
+#include "Widgets/DrUISlider.h"
 #include "Widgets/DrUISurface.h"
 #include "Widgets/DrUITabList.h"
 #include "Widgets/DrUIText.h"
@@ -33,7 +34,7 @@
 TArray<UClass*> UDrGlassGallery::CoveredClasses() {
   return {UDrUIText::StaticClass(), UDrUIIcon::StaticClass(), UDrUISurface::StaticClass(), UDrUIButton::StaticClass(),
     UDrUIGlyph::StaticClass(), UDrUICheckBox::StaticClass(), UDrUIRadio::StaticClass(), UDrUISwitch::StaticClass(),
-    UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass()};
+    UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass(), UDrUISlider::StaticClass()};
 }
 
 UDrUIText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -197,6 +198,26 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
   }
   Add(Section(LOCTEXT("SwitchTitle", "스위치(UDrUISwitch) · 손잡이가 스프링으로 미끄러진다"), Switches));
 
+  // 슬라이더: 값 글자, 4단계 눈금(StepSize .25), 비활성.
+  UWrapBox* Sliders = MakeRow();
+  for (const auto& [Value, Step, bEnabled] : TArray<TTuple<float, float, bool>>{{.35f, .05f, true}, {.5f, .25f, true}, {.7f, .05f, false}}) {
+    UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>();
+    UDrUISlider* Slider = WidgetTree->ConstructWidget<UDrUISlider>();
+    Slider->SetValue(Value);
+    Slider->SetStepSize(Step);
+    Slider->SetIsEnabled(bEnabled);
+    USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>();
+    Width->SetWidthOverride(220.f);
+    Width->AddChild(Slider);
+    if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(Width)) S->SetVerticalAlignment(VAlign_Center);
+    UDrUIText* ValueText = MakeText(FText::AsPercent(Value), TEXT("label"), TEXT("ink-muted"));
+    if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(ValueText)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(12, 0, 0, 0)); }
+    Slider->OnValueChanged.AddUniqueDynamic(this, &ThisClass::HandleSliderDemo);
+    SliderDemoValues.Add(Slider, ValueText);
+    Sliders->AddChild(Line);
+  }
+  Add(Section(LOCTEXT("SliderTitle", "슬라이더(UDrUISlider) · 엔진 USlider + 채움 트랙. 두 번째는 4단계, 세 번째는 비활성"), Sliders));
+
   // 세그먼트: 고른 값을 옆 글자로 보여 준다.
   UHorizontalBox* SegmentRow = WidgetTree->ConstructWidget<UHorizontalBox>();
   UDrUISegmented* Segmented = WidgetTree->ConstructWidget<UDrUISegmented>();
@@ -250,6 +271,15 @@ void UDrGlassGallery::HandleSegmentDemo(int32 Index) {
     SegmentDemoValue->SetText(FText::Format(LOCTEXT("SegmentValue", "고른 값: {0}"), SegmentDemoOptions[Index]));
 }
 
+void UDrGlassGallery::HandleSliderDemo(float) {
+  // 어느 슬라이더가 바뀌었는지 이벤트가 알려 주지 않으므로 전부 다시 쓴다(몇 개뿐).
+  for (const auto& [Slider, Text] : SliderDemoValues) if (Slider && Text) Text->SetText(FText::AsPercent(Slider->GetValue()));
+}
+
+void UDrGlassGallery::HandleTransparency(float Value) {
+  if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetSurfaceTransparency(Value);
+}
+
 void UDrGlassGallery::HandleThemeChoice(int32 Index) {
   static const FName Ids[] = {TEXT("glass-light"), TEXT("glass-dark")};
   if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get(); S && Index >= 0 && Index < UE_ARRAY_COUNT(Ids)) S->SetTheme(Ids[Index]);
@@ -286,6 +316,15 @@ void UDrGlassGallery::Build() {
   QualityChoice->SetOptions({LOCTEXT("High", "품질 높음"), LOCTEXT("Medium", "보통"), LOCTEXT("Low", "낮음")});
   QualityChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleQualityChoice);
   BarAdd(QualityChoice);
+  // 표면 투명도(0 불투명 ~ .5 테마 그대로 ~ 1 가장 투명). 유리 바·카드가 함께 바뀐다.
+  BarAdd(MakeText(LOCTEXT("Transparency", "투명도"), TEXT("label"), TEXT("ink-muted")));
+  UDrUISlider* Transparency = TransparencySlider = WidgetTree->ConstructWidget<UDrUISlider>();
+  Transparency->SetValue(UDrUIThemeSubsystem::Get() ? UDrUIThemeSubsystem::Get()->GetSurfaceTransparency() : .5f);
+  Transparency->OnValueChanged.AddUniqueDynamic(this, &ThisClass::HandleTransparency);
+  USizeBox* TransparencySize = WidgetTree->ConstructWidget<USizeBox>();
+  TransparencySize->SetWidthOverride(140.f);
+  TransparencySize->AddChild(Transparency);
+  BarAdd(TransparencySize);
   MotionSwitch = WidgetTree->ConstructWidget<UDrUISwitch>();
   MotionSwitch->Label = LOCTEXT("ReduceMotion", "움직임 줄이기");
   MotionSwitch->OnClicked().AddWeakLambda(this, [this] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetReduceMotion(MotionSwitch->IsOn()); });
@@ -301,7 +340,7 @@ void UDrGlassGallery::Build() {
   const TArray<TPair<FText, UWidget*>> PageList = {
     {LOCTEXT("PageFoundation", "기초: 글자·색·표면·아이콘"), BuildFoundationPage()},
     {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()},
-    {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·세그먼트·탭"), BuildSelectionPage()}};
+    {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
@@ -340,23 +379,35 @@ void UDrGlassGallery::NativeDestruct() {
 }
 
 bool UDrGlassGallery::CaptureStep(float DeltaTime) {
-  // 테마(밝게·어둡게) × 페이지마다: 적용 → 30프레임 기다림(레이아웃·글꼴 안정) → 찍기. 다 찍으면 종료.
+  // 테마(밝게·어둡게) × 페이지마다: 적용 → 30프레임 기다림(레이아웃·글꼴 안정) → 찍기.
+  // 이어서 밝은 테마 첫 페이지를 투명도 0·1로 한 장씩(투명도 조절 확인). 다 찍으면 종료.
   // 시간이 아니라 프레임으로 센다: 화면 없이 렌더링(-RenderOffscreen)하면 틱 시간이 실제와 맞지 않았다.
   static const FName ThemeIds[] = {TEXT("glass-light"), TEXT("glass-dark")};
-  const int32 Total = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
+  static const float Transparencies[] = {0.f, 1.f};
+  const int32 ThemeShots = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
+  const int32 Total = ThemeShots + UE_ARRAY_COUNT(Transparencies);
   CaptureWait -= 1.f;
   if (CaptureWait > 0.f) return true;
   if (CaptureIndex >= Total) { FPlatformMisc::RequestExit(false, TEXT("DrUIGalleryCapture")); return false; }
-  const FName Theme = ThemeIds[CaptureIndex / GetPageCount()];
-  const int32 Page = CaptureIndex % GetPageCount();
+  const bool bTransparencyShot = CaptureIndex >= ThemeShots;
+  const int32 ThemeIndex = bTransparencyShot ? 0 : CaptureIndex / GetPageCount();
+  const FName Theme = ThemeIds[ThemeIndex];
+  const int32 Page = bTransparencyShot ? 0 : CaptureIndex % GetPageCount();
+  const FString ShotName = bTransparencyShot ? FString::Printf(TEXT("DrUIGallery_transparency_%.0f"), Transparencies[CaptureIndex - ThemeShots])
+                                             : FString::Printf(TEXT("DrUIGallery_%s_%d"), *Theme.ToString(), Page);
   if (!bCaptureShotPending) {
-    if (ThemeChoice) ThemeChoice->SetSelectedIndex(CaptureIndex / GetPageCount());  // HandleThemeChoice가 테마를 바꾼다
+    if (ThemeChoice) ThemeChoice->SetSelectedIndex(ThemeIndex);  // HandleThemeChoice가 테마를 바꾼다
+    if (bTransparencyShot) {
+      const float Value = Transparencies[CaptureIndex - ThemeShots];
+      if (TransparencySlider) TransparencySlider->SetValue(Value);  // SetValue는 OnValueChanged를 부르지 않는다
+      HandleTransparency(Value);
+    }
     ShowPage(Page);
     bCaptureShotPending = true;
     CaptureWait = 30.f;
     return true;
   }
-  FScreenshotRequest::RequestScreenshot(FPaths::ScreenShotDir() / FString::Printf(TEXT("DrUIGallery_%s_%d.png"), *Theme.ToString(), Page), true, false);
+  FScreenshotRequest::RequestScreenshot(FPaths::ScreenShotDir() / (ShotName + TEXT(".png")), true, false);
   bCaptureShotPending = false;
   ++CaptureIndex;
   CaptureWait = 10.f;

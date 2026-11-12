@@ -8,13 +8,14 @@
 class UCommonAnimatedSwitcher;
 class UCommonButtonGroupBase;
 class UDrUISegmented;
+class UDrUISlider;
 class UDrUISwitch;
 class UDrUITabList;
 class UDrUIText;
 class UVerticalBox;
 
 /**
- * DrUIKit 갤러리(테스트 레벨 L_DrUIGallery가 띄운다). 위 조작 바(테마·표면 품질·움직임 줄이기) + 탭 + 페이지.
+ * DrUIKit 갤러리(테스트 레벨 L_DrUIGallery가 띄운다). 위 조작 바(테마·표면 품질·투명도·움직임 줄이기) + 탭 + 페이지.
  * 새 UI를 추가하면 같은 작업에서 페이지에 넣고 CoveredClasses()에도 올린다(DrUIGlass.Gallery.CoversAllKitWidgets가 검사).
  * -DrUIGalleryCapture로 실행하면 테마×페이지마다 화면을 찍고 끝낸다(Saved/Screenshots).
  */
@@ -35,6 +36,8 @@ private:
   UWidget* BuildButtonPage();
   UWidget* BuildSelectionPage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
+  UFUNCTION() void HandleSliderDemo(float Value);
+  UFUNCTION() void HandleTransparency(float Value);
   UFUNCTION() void HandleThemeChoice(int32 Index);
   UFUNCTION() void HandleQualityChoice(int32 Index);
   UDrUIButton* MakeButton(const FText& Label, EDrUIButtonVariant Variant = EDrUIButtonVariant::Secondary);
@@ -49,10 +52,12 @@ private:
   UPROPERTY(Transient) TObjectPtr<UDrUISegmented> ThemeChoice;
   UPROPERTY(Transient) TObjectPtr<UDrUISegmented> QualityChoice;
   UPROPERTY(Transient) TObjectPtr<UDrUISwitch> MotionSwitch;
+  UPROPERTY(Transient) TObjectPtr<UDrUISlider> TransparencySlider;
   /** 라디오 묶음(하나만 선택). 위젯이 아니라서 따로 붙잡아 둔다. */
   UPROPERTY(Transient) TArray<TObjectPtr<UCommonButtonGroupBase>> RadioGroups;
   UPROPERTY(Transient) TObjectPtr<UDrUIText> SegmentDemoValue;
   TArray<FText> SegmentDemoOptions;
+  UPROPERTY(Transient) TMap<TObjectPtr<UDrUISlider>, TObjectPtr<UDrUIText>> SliderDemoValues;
   FTSTicker::FDelegateHandle CaptureTicker;
   int32 CaptureIndex = 0;
   /** 남은 대기 프레임 수. */
