@@ -225,7 +225,7 @@ void UDrGlassGallery::NativeOnInitialized() {
   if (ThemeButtons.Num()) SelectOnly(ThemeButtons, ThemeButtons[0]);
   if (QualityButtons.Num()) SelectOnly(QualityButtons, QualityButtons[0]);
   if (FParse::Param(FCommandLine::Get(), TEXT("DrUIGalleryCapture")))
-    CaptureTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::CaptureStep), .2f);
+    CaptureTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &ThisClass::CaptureStep));
 }
 
 void UDrGlassGallery::NativeDestruct() {
@@ -234,10 +234,11 @@ void UDrGlassGallery::NativeDestruct() {
 }
 
 bool UDrGlassGallery::CaptureStep(float DeltaTime) {
-  // 테마(밝게·어둡게) × 페이지마다: 적용 → 1초 기다림(흐림·레이아웃 안정) → 찍기. 다 찍으면 종료.
+  // 테마(밝게·어둡게) × 페이지마다: 적용 → 30프레임 기다림(레이아웃·글꼴 안정) → 찍기. 다 찍으면 종료.
+  // 시간이 아니라 프레임으로 센다: 화면 없이 렌더링(-RenderOffscreen)하면 틱 시간이 실제와 맞지 않았다.
   static const FName ThemeIds[] = {TEXT("glass-light"), TEXT("glass-dark")};
   const int32 Total = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
-  CaptureWait -= DeltaTime;
+  CaptureWait -= 1.f;
   if (CaptureWait > 0.f) return true;
   if (CaptureIndex >= Total) { FPlatformMisc::RequestExit(false, TEXT("DrUIGalleryCapture")); return false; }
   const FName Theme = ThemeIds[CaptureIndex / GetPageCount()];
@@ -246,13 +247,13 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
     if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetTheme(Theme);
     ShowPage(Page);
     bCaptureShotPending = true;
-    CaptureWait = 1.f;
+    CaptureWait = 30.f;
     return true;
   }
   FScreenshotRequest::RequestScreenshot(FPaths::ScreenShotDir() / FString::Printf(TEXT("DrUIGallery_%s_%d.png"), *Theme.ToString(), Page), true, false);
   bCaptureShotPending = false;
   ++CaptureIndex;
-  CaptureWait = .5f;
+  CaptureWait = 10.f;
   return true;
 }
 

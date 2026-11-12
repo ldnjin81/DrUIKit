@@ -43,6 +43,7 @@ private:
   TArray<FText> PageNames;
   FTSTicker::FDelegateHandle CaptureTicker;
   int32 CaptureIndex = 0;
+  /** 남은 대기 프레임 수. */
   float CaptureWait = 0.f;
   bool bCaptureShotPending = false;
 };
