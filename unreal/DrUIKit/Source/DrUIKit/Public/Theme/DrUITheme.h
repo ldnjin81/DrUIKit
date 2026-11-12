@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
+#include "Fonts/CompositeFont.h"
 #include "Fonts/SlateFontInfo.h"
 #include "DrUITheme.generated.h"
 
@@ -12,8 +13,10 @@ struct DRUIKIT_API FDrUITextStyle {
   /** CSS 굵기(400 보통, 600 반굵게, 700 굵게). 글꼴의 서체 이름으로 바꿔 고른다. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") int32 Weight = 400;
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") float LetterSpacing = 0.f;
-  /** 비우면 엔진 기본 글꼴. 샘플이 한글 글꼴(복합 글꼴)을 넣는다. */
+  /** 글꼴 에셋(UFont). 비우면 테마의 RuntimeFont, 그것도 없으면 엔진 기본 글꼴. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TSoftObjectPtr<const UObject> Font;
+  /** 거짓이면 테마의 RuntimeFont를 쓰지 않는다(코드 글꼴처럼 엔진 기본을 쓸 스타일). */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") bool bUseThemeFont = true;
 };
 
 /** 그림자 토큰(CSS box-shadow 한 겹). 그리는 방법은 표면 스타일이 정한다. */
@@ -43,6 +46,9 @@ public:
   /** 뒤 흐림 강도(UBackgroundBlur BlurStrength). */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, float> Backdrops;
 
+  /** 코드로 만든 복합 글꼴(TTF 파일 경로 기반, 에셋 없음). 샘플이 넣는다. */
+  TSharedPtr<const FCompositeFont> RuntimeFont;
+
   /** 없는 토큰은 눈에 띄는 자홍색 + 경고 한 번. */
   FLinearColor GetColor(FName Token) const;
   FDrUITextStyle GetTextStyle(FName Token) const;
@@ -52,7 +58,7 @@ public:
   float GetBackdrop(FName Token) const;
   FSlateFontInfo MakeFont(FName TextToken) const;
   /** 복합 글꼴에서 CSS 굵기에 가장 가까운 서체 이름(Light·Regular·Medium·SemiBold·Bold 중 있는 것). */
-  static FName PickTypeface(const class UFont& Font, int32 Weight);
+  static FName PickTypeface(const FCompositeFont& Font, int32 Weight);
 
   /** 샘플 없이도 화면이 깨지지 않는 회색조 기본 테마. */
   static UDrUITheme* MakeDefault(UObject* Outer);

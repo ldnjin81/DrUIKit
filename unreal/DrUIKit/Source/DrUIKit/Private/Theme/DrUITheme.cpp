@@ -48,11 +48,11 @@ float UDrUITheme::GetBackdrop(FName Token) const {
   return 0.f;
 }
 
-FName UDrUITheme::PickTypeface(const UFont& Font, int32 Weight) {
+FName UDrUITheme::PickTypeface(const FCompositeFont& Font, int32 Weight) {
   // CSS 굵기 → 서체 이름. 글꼴에 있는 이름 중 가장 가까운 굵기를 고른다(같은 거리면 더 굵은 쪽).
   static const TPair<int32, FName> Names[] = {{300, TEXT("Light")}, {400, TEXT("Regular")}, {500, TEXT("Medium")}, {600, TEXT("SemiBold")}, {700, TEXT("Bold")}};
   TSet<FName> Available;
-  for (const FTypefaceEntry& Entry : Font.GetCompositeFont()->DefaultTypeface.Fonts) Available.Add(Entry.Name);
+  for (const FTypefaceEntry& Entry : Font.DefaultTypeface.Fonts) Available.Add(Entry.Name);
   FName Best = NAME_None;
   int32 BestDistance = MAX_int32;
   for (const auto& [Value, Name] : Names) {
@@ -60,7 +60,7 @@ FName UDrUITheme::PickTypeface(const UFont& Font, int32 Weight) {
     const int32 Distance = FMath::Abs(Value - Weight) * 2 - (Value > Weight ? 1 : 0);
     if (Distance < BestDistance) { BestDistance = Distance; Best = Name; }
   }
-  return Best.IsNone() && Font.GetCompositeFont()->DefaultTypeface.Fonts.Num() ? Font.GetCompositeFont()->DefaultTypeface.Fonts[0].Name : Best;
+  return Best.IsNone() && Font.DefaultTypeface.Fonts.Num() ? Font.DefaultTypeface.Fonts[0].Name : Best;
 }
 
 FSlateFontInfo UDrUITheme::MakeFont(FName TextToken) const {
@@ -70,7 +70,9 @@ FSlateFontInfo UDrUITheme::MakeFont(FName TextToken) const {
   FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(EngineTypeface, FMath::RoundToInt(Style.Size));
   if (const UFont* Custom = Cast<UFont>(Style.Font.LoadSynchronous())) {
     Font.FontObject = Custom;
-    Font.TypefaceFontName = PickTypeface(*Custom, Style.Weight);
+    Font.TypefaceFontName = PickTypeface(*Custom->GetCompositeFont(), Style.Weight);
+  } else if (RuntimeFont && Style.bUseThemeFont) {
+    Font = FSlateFontInfo(RuntimeFont, FMath::RoundToInt(Style.Size), PickTypeface(*RuntimeFont, Style.Weight));
   }
   Font.LetterSpacing = FMath::RoundToInt(Style.LetterSpacing * 1000.f);
   return Font;

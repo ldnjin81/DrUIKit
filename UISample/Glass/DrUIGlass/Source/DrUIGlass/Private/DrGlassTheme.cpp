@@ -1,7 +1,9 @@
 #include "DrGlassTheme.h"
 #include "Dom/JsonObject.h"
 #include "Interfaces/IPluginManager.h"
+#include "Fonts/CompositeFont.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Theme/DrUITheme.h"
@@ -72,8 +74,8 @@ TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Oute
           Style.Weight = int32(StyleJson->GetNumberField(TEXT("fontWeight")));
           FString Spacing;
           if (StyleJson->TryGetStringField(TEXT("letterSpacing"), Spacing)) Style.LetterSpacing = (Spacing.StartsWith(TEXT("-")) ? -1.f : 1.f) * LeadingNumber(Spacing);
-          // 본문 글꼴은 Pretendard(OFL, Fonts/). 코드 글꼴(mono)은 엔진 기본.
-          if (G->AsObject()->GetStringField(TEXT("family")) == TEXT("sans")) Style.Font = TSoftObjectPtr<const UObject>(FSoftObjectPath(TEXT("/DrUIGlass/Fonts/F_Pretendard.F_Pretendard")));
+          // 본문 글꼴은 테마의 RuntimeFont(Pretendard). 코드 글꼴(mono)은 엔진 기본.
+          Style.bUseThemeFont = G->AsObject()->GetStringField(TEXT("family")) == TEXT("sans");
           Theme->TextStyles.Add(*StyleJson->GetStringField(TEXT("name")), Style);
         }
     }
@@ -92,9 +94,29 @@ TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Oute
   return Result;
 }
 
+TSharedPtr<const FCompositeFont> DrGlassTheme::MakePretendard() {
+  // TTF 파일 경로로 만드는 복합 글꼴(엔진 기본 글꼴과 같은 방식, 에셋 없음). 서체 이름 = 굵기 이름.
+  static TSharedPtr<const FCompositeFont> Shared;
+  if (Shared) return Shared;
+  const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("DrUIGlass"));
+  if (!Plugin) return nullptr;
+  TSharedRef<FStandaloneCompositeFont> Font = MakeShared<FStandaloneCompositeFont>();
+  for (const TCHAR* Weight : {TEXT("Light"), TEXT("Regular"), TEXT("Medium"), TEXT("SemiBold"), TEXT("Bold")}) {
+    const FString Path = Plugin->GetBaseDir() / TEXT("Fonts") / FString::Printf(TEXT("Pretendard-%s.ttf"), Weight);
+    if (FPaths::FileExists(Path)) Font->DefaultTypeface.AppendFont(Weight, Path, EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
+  }
+  if (Font->DefaultTypeface.Fonts.IsEmpty()) return nullptr;
+  Shared = Font;
+  return Shared;
+}
+
 TArray<UDrUITheme*> DrGlassTheme::LoadThemes(UObject* Outer, FString& OutError) {
   const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("DrUIGlass"));
   FString Json;
   if (!Plugin || !FFileHelper::LoadFileToString(Json, *(Plugin->GetBaseDir() / TEXT("Tokens/tokens.json")))) { OutError = TEXT("Tokens/tokens.json 없음"); return {}; }
-  return BuildThemes(Json, Outer, OutError);
+  TArray<UDrUITheme*> Themes = BuildThemes(Json, Outer, OutError);
+  const TSharedPtr<const FCompositeFont> Font = MakePretendard();
+  if (!Font) OutError += TEXT(" Fonts/Pretendard-*.ttf 없음(엔진 기본 글꼴로 대체)");
+  for (UDrUITheme* Theme : Themes) Theme->RuntimeFont = Font;
+  return Themes;
 }

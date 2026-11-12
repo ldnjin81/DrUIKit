@@ -21,6 +21,13 @@ bool FDrGlassThemeLoadTest::RunTest(const FString&) {
   TestEqual(TEXT("body 14px → 10.5"), Themes[0]->GetTextStyle(TEXT("body")).Size, 10.5f);
   TestEqual(TEXT("radius-xl"), Themes[0]->GetRadius(TEXT("radius-xl")), 28.f);
   TestTrue(TEXT("흐림 토큰"), Themes[0]->GetBackdrop(TEXT("backdrop-glass")) > 0.f);
+  if (TestTrue(TEXT("Pretendard 글꼴"), Themes[0]->RuntimeFont.IsValid())) {
+    TestEqual(TEXT("서체 5개"), Themes[0]->RuntimeFont->DefaultTypeface.Fonts.Num(), 5);
+    TestEqual(TEXT("600 → SemiBold"), UDrUITheme::PickTypeface(*Themes[0]->RuntimeFont, 600), FName(TEXT("SemiBold")));
+    TestEqual(TEXT("650 → Bold(같은 거리면 굵은 쪽)"), UDrUITheme::PickTypeface(*Themes[0]->RuntimeFont, 650), FName(TEXT("Bold")));
+    TestEqual(TEXT("body 글꼴은 Pretendard"), Themes[0]->MakeFont(TEXT("body")).CompositeFont, Themes[0]->RuntimeFont);
+    TestFalse(TEXT("code 글꼴은 엔진 기본"), Themes[0]->MakeFont(TEXT("code")).CompositeFont == Themes[0]->RuntimeFont);
+  }
   return true;
 }
 

@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 
 class UDrUITheme;
+struct FCompositeFont;
 
 /** 디자인 시스템 tokens.json(Dr UI 디자인 언어)을 읽어 테마(테마당 하나: glass-light, glass-dark)를 만든다. */
 namespace DrGlassTheme {
@@ -11,6 +12,8 @@ DRUIGLASS_API bool ParseCssColor(const FString& Text, FLinearColor& Out);
 DRUIGLASS_API float PxToFontSize(float Px);
 /** JSON 문자열에서 테마들을 만든다. 테마 id 앞에 "glass-"를 붙인다. */
 DRUIGLASS_API TArray<UDrUITheme*> BuildThemes(const FString& Json, UObject* Outer, FString& OutError);
-/** 플러그인 Tokens/tokens.json을 읽어 만든다. */
+/** 플러그인 Fonts/Pretendard-*.ttf로 만든 복합 글꼴(OFL). 파일이 없으면 nullptr. */
+DRUIGLASS_API TSharedPtr<const FCompositeFont> MakePretendard();
+/** 플러그인 Tokens/tokens.json을 읽어 만든다(글꼴은 MakePretendard). */
 DRUIGLASS_API TArray<UDrUITheme*> LoadThemes(UObject* Outer, FString& OutError);
 }
