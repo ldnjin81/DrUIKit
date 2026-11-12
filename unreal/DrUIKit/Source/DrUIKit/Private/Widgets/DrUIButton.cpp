@@ -115,6 +115,7 @@ void UDrUIButton::ApplyVisualState() {
     // 스피너 조각은 기본 이미지를 쓰므로 글자색으로 칠한다.
     FSlateBrush Piece = Spinner->GetImage();
     Piece.TintColor = FSlateColor(UDrUIThemeSubsystem::Current().GetColor(Ink));
+    Piece.ImageSize = FVector2D(3.f);  // 기본 조각은 커서 반경 7에서 서로 겹쳐 덩어리로 보인다.
     Spinner->SetImage(Piece);
   }
 }
