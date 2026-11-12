@@ -1,0 +1,16 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIGlass",
+  "Description": "DrUIKit 스타일 샘플 — Dr UI 디자인 언어(리퀴드 글래스) 테마와 갤러리",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": true,
+  "Modules": [
+    { "Name": "DrUIGlass", "Type": "Runtime", "LoadingPhase": "Default" }
+  ],
+  "Plugins": [
+    { "Name": "DrUIKit", "Enabled": true }
+  ]
+}

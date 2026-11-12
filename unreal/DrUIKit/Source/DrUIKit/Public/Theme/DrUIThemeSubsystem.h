@@ -21,8 +21,10 @@ public:
   const UDrUITheme& GetTheme() const;
   /** ThemeId로 전환. 없는 Id면 false. */
   bool SetTheme(FName ThemeId);
-  /** 설정에 없는 테마(샘플·테스트가 만든 것)를 직접 넣는다. */
+  /** 설정에 없는 테마(샘플·테스트가 만든 것)를 직접 넣고 바로 쓴다. */
   void SetThemeObject(UDrUITheme* Theme);
+  /** 테마를 목록에만 더한다(같은 ThemeId는 교체). 지금 테마가 코어 기본이면 이것으로 바꾼다. */
+  void AddTheme(UDrUITheme* Theme);
   TArray<FName> GetThemeIds() const;
   EDrUISurfaceQuality GetSurfaceQuality() const { return SurfaceQuality; }
   void SetSurfaceQuality(EDrUISurfaceQuality Quality);

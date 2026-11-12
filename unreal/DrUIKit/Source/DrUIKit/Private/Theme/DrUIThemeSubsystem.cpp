@@ -40,6 +40,13 @@ void UDrUIThemeSubsystem::SetThemeObject(UDrUITheme* Theme) {
   Broadcast();
 }
 
+void UDrUIThemeSubsystem::AddTheme(UDrUITheme* Theme) {
+  if (!Theme) return;
+  Themes.RemoveAll([Theme](const TObjectPtr<UDrUITheme>& Existing) { return Existing && Existing->ThemeId == Theme->ThemeId; });
+  Themes.Add(Theme);
+  if (Active == Fallback) { Active = Theme; Broadcast(); }
+}
+
 TArray<FName> UDrUIThemeSubsystem::GetThemeIds() const {
   TArray<FName> Ids;
   for (const UDrUITheme* Theme : Themes) if (Theme) Ids.Add(Theme->ThemeId);

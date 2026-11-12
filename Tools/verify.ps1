@@ -10,7 +10,7 @@ New-Item -ItemType Directory -Force $Saved | Out-Null
 "build=$LASTEXITCODE"
 if ($LASTEXITCODE -ne 0) { Get-Content "$Saved\verify-build.txt" | Select-String 'error ' | Select -First 20; exit 1 }
 $Log = "$Saved\verify-tests.txt"
-& "$EngineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" $Project '-ExecCmds=Automation RunTests DrUIKit' '-TestExit=Automation Test Queue Empty' -nullrhi -unattended -nosplash -stdout *> $Log
+& "$EngineRoot\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" $Project '-ExecCmds=Automation RunTests DrUIKit+DrUIGlass' '-TestExit=Automation Test Queue Empty' -nullrhi -unattended -nosplash -stdout *> $Log
 $Lines = Get-Content $Log
 $Ok = ($Lines | Select-String 'Result=\{Success\}').Count
 $Fail = ($Lines | Select-String 'Result=\{Fail').Count
