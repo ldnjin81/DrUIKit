@@ -118,8 +118,9 @@ TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Oute
     };
     Lengths(TEXT("spacing"), Theme->Spacing, 1.f);
     Lengths(TEXT("radius"), Theme->Radius, 1.f);
-    // CSS blur(px)와 Slate 흐림 강도는 기준이 다르다. 화면 캡처로 맞출 때까지 px의 절반으로 둔다.
-    Lengths(TEXT("backdrop"), Theme->Backdrops, .5f);
+    // CSS blur(r)의 r은 가우스 표준편차, SBackgroundBlur 강도도 표준편차(커널 = 3σ, 엔진 소스 확인)라 1:1.
+    // saturate(160%)는 Slate 흐림에 없어 버린다.
+    Lengths(TEXT("backdrop"), Theme->Backdrops, 1.f);
     // 그림자: 테마별 CSS box-shadow 문자열.
     const TSharedPtr<FJsonObject>* Shadows;
     if (Root->TryGetObjectField(TEXT("shadow"), Shadows))

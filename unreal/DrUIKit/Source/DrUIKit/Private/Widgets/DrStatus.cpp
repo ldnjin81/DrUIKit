@@ -204,6 +204,7 @@ public:
   FLinearColor TrackColor = FLinearColor::Gray, FillColor = FLinearColor::Blue;
   bool bIndeterminate = false;
   FDrUISpring Shown;
+  FSlateRoundedBoxBrush Cap = PillBrush(FLinearColor::White);
 
   virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(Size); }
   virtual int32 OnPaint(const FPaintArgs&, const FGeometry& Geometry, const FSlateRect&, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style, bool) const override {
@@ -218,9 +219,15 @@ public:
       Start = FMath::Fractional(float(FSlateApplication::Get().GetCurrentTime()));
       Sweep = .25f;
     }
-    if (Sweep > 0.f)
-      FSlateDrawElement::MakeLines(Out, LayerId + 1, Geometry.ToPaintGeometry(), DrProgressRing::ArcPoints(Center, Radius, Start, Sweep), ESlateDrawEffect::None, FillColor * Tint, true, Thickness);
-    return LayerId + 1;
+    if (Sweep > 0.f) {
+      const TArray<FVector2f> Arc = DrProgressRing::ArcPoints(Center, Radius, Start, Sweep);
+      FSlateDrawElement::MakeLines(Out, LayerId + 1, Geometry.ToPaintGeometry(), Arc, ESlateDrawEffect::None, FillColor * Tint, true, Thickness);
+      // 호 끝을 둥글게(진행 막대·알약과 같은 마감). 다 찬 원에는 끝이 없다.
+      if (Sweep < .999f && Arc.Num() > 1)
+        for (const FVector2f& End : {Arc[0], Arc.Last()})
+          FSlateDrawElement::MakeBox(Out, LayerId + 2, Geometry.ToPaintGeometry(FVector2f(Thickness), FSlateLayoutTransform(End - FVector2f(Thickness * .5f))), &Cap, ESlateDrawEffect::None, FillColor * Tint);
+    }
+    return LayerId + 2;
   }
 private:
   EActiveTimerReturnType Animate(double, float DeltaTime) {
