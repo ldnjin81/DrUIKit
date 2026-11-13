@@ -1,6 +1,7 @@
 #include "Widgets/DrInput.h"
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateColorBrush.h"
+#include "Components/Border.h"
 #include "Components/EditableText.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
@@ -265,8 +266,13 @@ UDrDropdownMenu::UDrDropdownMenu(const FObjectInitializer& Initializer) : Super(
 
 void UDrDropdownMenu::EnsureTree() {
   if (!WidgetTree || WidgetTree->RootWidget) return;
+  // 팝업 창이 내용 크기에 딱 맞아 그림자가 잘리므로 투명 여백(아래가 더 넓음)을 둔다.
+  UBorder* Margin = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ShadowMargin"));
+  Margin->SetBrush(FSlateNoResource());
+  Margin->SetPadding(FMargin(0.f, 0.f, 14.f, 22.f));  // 왼쪽·위는 0: 팝업이 누른 위젯 왼쪽 아래에 맞춰 뜨므로(그림자는 아래로 진다)
+  WidgetTree->RootWidget = Margin;
   Frame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Frame"));
-  WidgetTree->RootWidget = Frame;
+  Margin->SetContent(Frame);
   Surface = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Surface"));
   Surface->FillToken = DrUITokens::GlassStrong;
   Surface->BackdropToken = DrUITokens::BackdropSoft;

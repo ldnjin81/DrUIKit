@@ -5,6 +5,7 @@
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/MenuAnchor.h"
 #include "Components/Overlay.h"
+#include "Components/ScrollBox.h"
 #include "Components/OverlaySlot.h"
 #include "Components/SizeBox.h"
 #include "Components/Spacer.h"
@@ -438,6 +439,10 @@ void UDrCoachMark::Finish(bool bSkipped) {
 void UDrCoachMark::ShowStep() {
   if (!Steps.IsValidIndex(StepIndex)) return;
   const FStep& Step = Steps[StepIndex];
+  // 대상이 스크롤 상자 안에서 화면 밖이면 보이게 굴린다(밖에 있는 위젯은 위치가 갱신되지 않는다).
+  if (UWidget* Target = Step.Target.Get())
+    for (UWidget* Parent = Target->GetParent(); Parent; Parent = Parent->GetParent())
+      if (UScrollBox* Scroll = Cast<UScrollBox>(Parent)) { Scroll->ScrollWidgetIntoView(Target, !IsOverlayReduceMotion(), EDescendantScrollDestination::Center); break; }
   if (StepText) StepText->SetText(FText::Format(NSLOCTEXT("DrCoachMark", "Step", "{0} / {1}"), FText::AsNumber(StepIndex + 1), FText::AsNumber(Steps.Num())));
   if (TitleText) TitleText->SetText(Step.Title);
   if (BodyText) BodyText->SetText(Step.Body);
@@ -480,6 +485,11 @@ UDrPopoverPanel::UDrPopoverPanel(const FObjectInitializer& Initializer) : Super(
 
 TSharedRef<SWidget> UDrPopoverPanel::RebuildWidget() {
   if (WidgetTree && !WidgetTree->RootWidget) {
+    // 팝업 창은 내용 크기에 딱 맞으므로, 판 바깥으로 그리는 그림자가 잘리지 않게 투명 여백을 둔다.
+    UBorder* Margin = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ShadowMargin"));
+    Margin->SetBrush(FSlateNoResource());
+    Margin->SetPadding(FMargin(0.f, 0.f, 14.f, 22.f));  // 왼쪽·위는 0: 팝업이 누른 위젯 왼쪽 아래에 맞춰 뜨므로(그림자는 아래로 진다)
+    WidgetTree->RootWidget = Margin;
     Surface = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Surface"));
     Surface->FillToken = DrUITokens::GlassStrong;
     Surface->BackdropToken = DrUITokens::BackdropSoft;
@@ -488,7 +498,7 @@ TSharedRef<SWidget> UDrPopoverPanel::RebuildWidget() {
     Surface->PaddingToken = NAME_None;
     Surface->SetPadding(FMargin(14.f));
     Surface->SetElevation(DrUITokens::ShadowFloat);
-    WidgetTree->RootWidget = Surface;
+    Margin->SetContent(Surface);
     if (PendingBody) Surface->SetContent(PendingBody);
   }
   return Super::RebuildWidget();
