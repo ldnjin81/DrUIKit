@@ -34,8 +34,8 @@ public:
   static float Fraction(float Remaining, float Total) { return Total > 0.f ? FMath::Clamp(Remaining / Total, 0.f, 1.f) : 0.f; }
   /** 남은 시간 글: 10초 이상은 올림 정수("12"), 미만은 소수 한 자리("3.2"), 끝나면 빈 글. */
   static FText FormatRemaining(float Remaining);
-  /** 사각형(크기 Size) 안에서 12시부터 시계 방향 Fraction만큼 덮는 부채꼴 꼭짓점(가운데 + 테두리 위 점들). */
-  static TArray<FVector2f> SweepPolygon(FVector2f Size, float Fraction);
+  /** 둥근 사각형(크기 Size, 모서리 Radius) 안에서 남은 Fraction만큼(12시까지 시계 방향 끝부분) 덮는 부채꼴 꼭짓점(가운데 + 테두리 위 점들). */
+  static TArray<FVector2f> SweepPolygon(FVector2f Size, float Fraction, float Radius = 0.f);
   void ApplyTheme();
 protected:
   virtual TSharedRef<SWidget> RebuildWidget() override;

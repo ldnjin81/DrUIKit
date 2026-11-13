@@ -16,21 +16,31 @@ FText UDrCooldown::FormatRemaining(float Remaining) {
   return FText::AsNumber(Remaining, &Format);
 }
 
-TArray<FVector2f> UDrCooldown::SweepPolygon(FVector2f Size, float InFraction) {
+TArray<FVector2f> UDrCooldown::SweepPolygon(FVector2f Size, float InFraction, float Radius) {
   TArray<FVector2f> Points;
   const float F = FMath::Clamp(InFraction, 0.f, 1.f);
   if (F <= 0.f) return Points;
-  const FVector2f Center = Size * .5f;
+  const FVector2f Center = Size * .5f, Half = Size * .5f;
+  const float R = FMath::Clamp(Radius, 0.f, FMath::Min(Half.X, Half.Y));
   Points.Add(Center);
-  // 남은 부분 = 지금 각도(1 - F 바퀴)부터 한 바퀴 끝(12시)까지. 각도마다 중심에서 쏜 선이 사각형 변과 만나는 점.
-  const int32 Steps = FMath::Max(2, FMath::CeilToInt(F * 64.f));
+  // 남은 부분 = 지금 각도(1 - F 바퀴)부터 한 바퀴 끝(12시)까지. 각도마다 중심에서 쏜 선이 둥근 사각형 테두리와 만나는 점.
+  const int32 Steps = FMath::Max(2, FMath::CeilToInt(F * 96.f));
   for (int32 I = 0; I <= Steps; ++I) {
     const float Turn = (1.f - F) + F * I / Steps;
     const float Angle = 2.f * PI * Turn - .5f * PI;
     const FVector2f Dir(FMath::Cos(Angle), FMath::Sin(Angle));
-    const float Tx = FMath::Abs(Dir.X) > 1e-5f ? Center.X / FMath::Abs(Dir.X) : TNumericLimits<float>::Max();
-    const float Ty = FMath::Abs(Dir.Y) > 1e-5f ? Center.Y / FMath::Abs(Dir.Y) : TNumericLimits<float>::Max();
-    Points.Add(Center + Dir * FMath::Min(Tx, Ty));
+    const float Tx = FMath::Abs(Dir.X) > 1e-5f ? Half.X / FMath::Abs(Dir.X) : TNumericLimits<float>::Max();
+    const float Ty = FMath::Abs(Dir.Y) > 1e-5f ? Half.Y / FMath::Abs(Dir.Y) : TNumericLimits<float>::Max();
+    FVector2f P = Dir * FMath::Min(Tx, Ty);  // 중심 기준
+    // 모서리 둥근 부분에 걸리면 그 모서리 원과 만나는 점으로 당긴다.
+    const FVector2f Corner(FMath::Sign(P.X) * (Half.X - R), FMath::Sign(P.Y) * (Half.Y - R));
+    if (R > 0.f && FMath::Abs(P.X) > Half.X - R && FMath::Abs(P.Y) > Half.Y - R) {
+      // |t·Dir - Corner|² = R² 의 큰 근.
+      const float B = FVector2f::DotProduct(Dir, Corner), C = Corner.SizeSquared() - R * R;
+      const float Disc = FMath::Max(0.f, B * B - C);
+      P = Dir * (B + FMath::Sqrt(Disc));
+    }
+    Points.Add(Center + P);
   }
   return Points;
 }
@@ -60,7 +70,7 @@ public:
     const float F = UDrCooldown::Fraction(Remaining, Total);
     if (F > 0.f) {
       // 부채꼴(가운데에서 부채살) 삼각형 팬.
-      const TArray<FVector2f> Poly = UDrCooldown::SweepPolygon(Size, F);
+      const TArray<FVector2f> Poly = UDrCooldown::SweepPolygon(Size, F, Radius);
       TArray<FLinearColor> Colors;
       Colors.Init(Scrim * Tint, Poly.Num());
       TArray<SlateIndex> Indices;
