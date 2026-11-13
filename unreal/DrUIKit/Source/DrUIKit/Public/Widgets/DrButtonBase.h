@@ -45,6 +45,7 @@ protected:
   EDrUIState VisualState = EDrUIState::Default;
   FDrUISpring Scale;
 
+  virtual void InitializeNativeClassData() override;
   virtual TSharedRef<SWidget> RebuildWidget() override;
   virtual void NativeOnInitialized() override;
   virtual void NativeDestruct() override;

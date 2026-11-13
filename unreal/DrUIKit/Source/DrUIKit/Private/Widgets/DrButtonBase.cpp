@@ -14,9 +14,19 @@ UDrButtonBase::UDrButtonBase(const FObjectInitializer& Initializer) : Super(Init
   Scale.Snap(1.f);
 }
 
+void UDrButtonBase::InitializeNativeClassData() {
+  Super::InitializeNativeClassData();
+  // CommonUI는 Initialize에서 그때의 루트를 내부 버튼으로 감싸고 누름·포커스를 잇는다. C++ 기본 구성은 그보다 먼저 있어야 한다
+  // (RebuildWidget에서 만들면 내부 버튼 없이 그려져 마우스 누름이 닿지 않는다). 블루프린트 클래스는 여기를 지나지 않는다.
+  if (!WidgetTree) WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"), RF_Transient);
+  if (!WidgetTree->RootWidget) BuildDefaultTree();
+}
+
 TSharedRef<SWidget> UDrButtonBase::RebuildWidget() {
-  // NativeOnInitialized의 첫 칠하기는 기본 구성이 생기기 전이라 비어 있다. 구성을 만든 뒤 한 번 더 칠한다.
-  if (WidgetTree && !WidgetTree->RootWidget) { BuildDefaultTree(); ApplyVisualState(); }
+  // 루트가 빈 위젯 블루프린트만 여기서 기본 구성을 만든다(내부 버튼으로 감싸지지 않아 마우스로는 눌리지 않는다).
+  if (WidgetTree && !WidgetTree->RootWidget) BuildDefaultTree();
+  // 만든 뒤에 정한 속성(라벨·변형 등)은 Initialize 때의 첫 칠하기에 없었다. 처음 그리기 전에 다시 칠한다.
+  ApplyVisualState();
   return Super::RebuildWidget();
 }
 

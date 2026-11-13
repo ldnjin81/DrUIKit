@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
+// 상태 판정, C++ 버튼이 CommonUI 내부 버튼으로 감싸지는지(마우스 누름), 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIStagger.h"
@@ -23,6 +23,8 @@
 #include "Widgets/DrStatus.h"
 #include "Widgets/DrTextReveal.h"
 #include "Widgets/DrSurface.h"
+#include "Blueprint/WidgetTree.h"
+#include "UObject/UObjectIterator.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
@@ -361,4 +363,21 @@ bool FDrConfirmDialogTest::RunTest(const FString&) {
   TestFalse(TEXT("첫 결정(취소)이 남는다"), bLast);
   return true;
 }
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrButtonWrappedTest, "DrUIKit.Core.Button.WrappedForMouse", DrUIKitTestFlags)
+bool FDrButtonWrappedTest::RunTest(const FString&) {
+  // C++ 기본 구성이 CommonUI 내부 버튼 안에 있어야 마우스 누름이 닿는다(11/13: 갤러리에서 슬라이더 말고는 눌리지 않았다).
+  int32 Checked = 0;
+  for (TObjectIterator<UClass> It; It; ++It) {
+    UClass* Class = *It;
+    if (!Class->IsChildOf(UDrButtonBase::StaticClass()) || Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) || !Class->IsNative()) continue;
+    UDrButtonBase* Button = NewObject<UDrButtonBase>(GetTransientPackage(), Class);
+    Button->Initialize();
+    const UWidget* Root = Button->WidgetTree ? Button->WidgetTree->RootWidget.Get() : nullptr;
+    TestTrue(FString::Printf(TEXT("%s 루트가 내부 버튼"), *Class->GetName()), Root && Root->IsA<UCommonButtonInternalBase>());
+    ++Checked;
+  }
+  TestTrue(TEXT("검사한 버튼 클래스가 있다"), Checked > 5);
+  return true;
+}
+
 #endif
