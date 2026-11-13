@@ -9,6 +9,7 @@
 #include "Widgets/DrUISurface.h"
 #include "Widgets/DrUIText.h"
 #include "Widgets/SLeafWidget.h"
+#include "Widgets/SOverlay.h"
 
 namespace {
 bool IsReduceMotion() {
@@ -103,6 +104,38 @@ void UDrUIBadge::ApplyTheme() {
 
 // ---------------------------------------------------------------- 진행 막대
 
+float UDrUIProgressBar::MarqueeStart(double Seconds) {
+  // 0 → .7 → 0 을 1.6초에 왕복(이즈 인·아웃 사인).
+  const float Phase = float(FMath::Fmod(Seconds, 1.6) / 1.6);
+  return .7f * (.5f - .5f * FMath::Cos(2.f * PI * Phase));
+}
+
+/** 끝없는 진행: 막대 위를 오가는 짧은 알약. */
+class SDrUIProgressMarquee : public SLeafWidget {
+public:
+  SLATE_BEGIN_ARGS(SDrUIProgressMarquee) {}
+  SLATE_END_ARGS()
+  void Construct(const FArguments&) { RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SDrUIProgressMarquee::Animate)); }
+  FSlateRoundedBoxBrush Brush = PillBrush(FLinearColor::White);
+  FLinearColor Color = FLinearColor::Blue;
+  float Thickness = 6.f;
+  /** 엔진 UProgressBar의 끝없는 진행 여부(SetIsMarquee는 다시 칠하라는 알림이 없어 매번 읽는다). */
+  TAttribute<bool> Active = false;
+  virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D(0.f, Thickness); }
+  virtual int32 OnPaint(const FPaintArgs&, const FGeometry& Geometry, const FSlateRect&, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style, bool) const override {
+    if (!Active.Get()) return LayerId;
+    const FVector2f Size = Geometry.GetLocalSize();
+    const float X = UDrUIProgressBar::MarqueeStart(FSlateApplication::Get().GetCurrentTime()) * Size.X;
+    FSlateDrawElement::MakeBox(Out, LayerId, Geometry.ToPaintGeometry(FVector2f(Size.X * .3f, Size.Y), FSlateLayoutTransform(FVector2f(X, 0.f))), &Brush, ESlateDrawEffect::None, Color * Style.GetColorAndOpacityTint());
+    return LayerId;
+  }
+private:
+  EActiveTimerReturnType Animate(double, float) {
+    if (Active.Get()) Invalidate(EInvalidateWidgetReason::Paint);
+    return EActiveTimerReturnType::Continue;
+  }
+};
+
 UDrUIProgressBar::UDrUIProgressBar() { SetBorderPadding(FVector2D::ZeroVector); }
 
 void UDrUIProgressBar::ApplyTheme() {
@@ -111,24 +144,37 @@ void UDrUIProgressBar::ApplyTheme() {
   FProgressBarStyle Style = GetWidgetStyle();
   Style.SetBackgroundImage(PillBrush(Theme.GetColor(TrackToken), FVector2D(Thickness)))
     .SetFillImage(PillBrush(Fill, FVector2D(Thickness)))
-    .SetMarqueeImage(PillBrush(Fill, FVector2D(Thickness * 8.f, Thickness)))
+    .SetMarqueeImage(FSlateNoResource())  // 끝없는 진행은 SDrUIProgressMarquee가 그린다
     // 엔진의 채움 움직임을 쓴다. 움직임 줄이기면 바로 맞춘다.
     .SetEnableFillAnimation(!IsReduceMotion());
   SetWidgetStyle(Style);
   SetFillColorAndOpacity(FLinearColor::White);
+  if (Marquee) {
+    Marquee->Color = Fill;
+    Marquee->Thickness = Thickness;
+    Marquee->Invalidate(EInvalidateWidgetReason::Paint);
+  }
 }
 
 TSharedRef<SWidget> UDrUIProgressBar::RebuildWidget() {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get(); Subsystem && !ThemeHandle.IsValid())
     ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyTheme(); });
-  return Super::RebuildWidget();
+  TSharedRef<SWidget> Bar = Super::RebuildWidget();
+  SAssignNew(Marquee, SDrUIProgressMarquee);
+  Marquee->Active = TAttribute<bool>::CreateWeakLambda(this, [this] { return UseMarquee(); });
+  ApplyTheme();
+  return SNew(SOverlay) + SOverlay::Slot()[Bar] + SOverlay::Slot().VAlign(VAlign_Center)[Marquee.ToSharedRef()];
 }
 
-void UDrUIProgressBar::SynchronizeProperties() { ApplyTheme(); Super::SynchronizeProperties(); }
+void UDrUIProgressBar::SynchronizeProperties() {
+  Super::SynchronizeProperties();
+  ApplyTheme();
+}
 
 void UDrUIProgressBar::ReleaseSlateResources(bool bReleaseChildren) {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
   ThemeHandle.Reset();
+  Marquee.Reset();
   Super::ReleaseSlateResources(bReleaseChildren);
 }
 
@@ -281,14 +327,14 @@ void UDrUISkeleton::ReleaseSlateResources(bool bReleaseChildren) {
 // ---------------------------------------------------------------- 스피너
 
 UDrUISpinner::UDrUISpinner(const FObjectInitializer& Initializer) : Super(Initializer) {
-  SetNumberOfPieces(6);
+  SetNumberOfPieces(8);
   SetRadius(8.f);
 }
 
 void UDrUISpinner::ApplyTheme() {
   FSlateBrush Piece = GetImage();
   Piece.TintColor = FSlateColor(UDrUIThemeSubsystem::Current().GetColor(ColorToken));
-  Piece.ImageSize = FVector2D(PieceSize);  // 기본 조각은 커서 작은 반경에서 서로 겹쳐 덩어리로 보인다.
+  Piece.ImageSize = FVector2D(PieceSize > 0.f ? PieceSize : AutoPieceSize(GetRadius()));  // 기본 조각은 커서 작은 반경에서 서로 겹쳐 덩어리로 보인다.
   SetImage(Piece);
 }
 

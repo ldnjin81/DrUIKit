@@ -6,6 +6,7 @@
 #include "Components/Widget.h"
 #include "DrUIStatus.generated.h"
 
+class SDrUIProgressMarquee;
 class SDrUIProgressRing;
 class SDrUISkeleton;
 class UDrUISurface;
@@ -51,7 +52,10 @@ private:
   FDelegateHandle ThemeHandle;
 };
 
-/** 진행 막대. 엔진 UProgressBar(채움 움직임·끝없는 진행 포함)에 둥근 트랙·채움을 토큰으로 칠한다. */
+/**
+ * 진행 막대. 엔진 UProgressBar(채움 움직임 포함)에 둥근 트랙·채움을 토큰으로 칠한다.
+ * 끝없는 진행(marquee)은 엔진이 이미지를 반복해 그려 둥근 브러시가 막대 전체를 덮으므로, 짧은 알약이 오가는 것을 직접 그린다.
+ */
 UCLASS()
 class DRUIKIT_API UDrUIProgressBar : public UProgressBar {
   GENERATED_BODY()
@@ -60,12 +64,15 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName TrackToken = TEXT("hairline");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName FillToken = TEXT("accent");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float Thickness = 6.f;
+  /** 끝없는 진행 알약의 왼쪽 위치 비율(0~1-길이, 1.6초 왕복). 길이는 막대의 30%. */
+  static float MarqueeStart(double Seconds);
   void ApplyTheme();
 protected:
   virtual TSharedRef<SWidget> RebuildWidget() override;
   virtual void SynchronizeProperties() override;
   virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 private:
+  TSharedPtr<SDrUIProgressMarquee> Marquee;
   FDelegateHandle ThemeHandle;
 };
 
@@ -125,8 +132,9 @@ class DRUIKIT_API UDrUISpinner : public UCircularThrobber {
 public:
   UDrUISpinner(const FObjectInitializer& Initializer);
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName ColorToken = TEXT("ink");
-  /** 조각 지름(px). */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float PieceSize = 3.f;
+  /** 조각 지름(px). 0이면 반경에 맞춘다(반경의 40%, 2.5~6). */
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float PieceSize = 0.f;
+  static float AutoPieceSize(float Radius) { return FMath::Clamp(Radius * .4f, 2.5f, 6.f); }
   void SetColorToken(FName Token) { ColorToken = Token; ApplyTheme(); }
   void ApplyTheme();
 protected:

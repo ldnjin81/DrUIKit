@@ -157,6 +157,10 @@ bool FDrUIStatusMathTest::RunTest(const FString&) {
   TestEqual(TEXT("길이 0이면 점 없음"), DrUIProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, 0.f).Num(), 0);
   float Low = 1.f, High = 0.f;
   for (double T = 0.0; T < 2.4; T += .05) { Low = FMath::Min(Low, UDrUISkeleton::PulseAlpha(T)); High = FMath::Max(High, UDrUISkeleton::PulseAlpha(T)); }
+  TestEqual(TEXT("끝없는 진행은 왼쪽에서 시작"), UDrUIProgressBar::MarqueeStart(0.0), 0.f);
+  TestTrue(TEXT("끝없는 진행 절반 시점은 오른쪽 끝(.7)"), FMath::IsNearlyEqual(UDrUIProgressBar::MarqueeStart(.8), .7f, 1e-4f));
+  TestEqual(TEXT("작은 스피너 조각은 최소 2.5"), UDrUISpinner::AutoPieceSize(4.f), 2.5f);
+  TestEqual(TEXT("큰 스피너 조각은 최대 6"), UDrUISpinner::AutoPieceSize(30.f), 6.f);
   TestTrue(TEXT("스켈레톤 불투명도 .18~.32"), Low >= .179f && High <= .321f && High - Low > .1f);
   return true;
 }
