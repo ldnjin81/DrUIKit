@@ -1323,8 +1323,13 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
     {TEXT("popover"), [this](bool bOn) { if (PopoverDemo) { if (bOn) PopoverDemo->Open(); else PopoverDemo->Close(); } }},
     {TEXT("confirm"), [this](bool bOn) {
        UDrUIFlowSubsystem* Flow = UDrUIFlowSubsystem::Get(this);
-       if (!Flow) return;
-       if (bOn) CaptureDialog = Flow->ShowConfirm(LOCTEXT("CapConfirm", "슬롯 2를 삭제할까요?"), LOCTEXT("CapConfirmBody", "삭제한 저장 데이터는 되돌릴 수 없어요."), LOCTEXT("CapDel", "삭제"), FText::GetEmpty(), true);
+       if (!Flow) { UE_LOG(LogTemp, Display, TEXT("DrUIGalleryCapture confirm: no flow subsystem")); return; }
+       if (bOn) {
+         CaptureDialog = Flow->ShowConfirm(LOCTEXT("CapConfirm", "슬롯 2를 삭제할까요?"), LOCTEXT("CapConfirmBody", "삭제한 저장 데이터는 되돌릴 수 없어요."), LOCTEXT("CapDel", "삭제"), FText::GetEmpty(), true);
+         UDrUIRootLayout* Root = Flow->GetRootLayout();
+         UE_LOG(LogTemp, Display, TEXT("DrUIGalleryCapture confirm: root=%d inViewport=%d dialog=%d active=%d vis=%d"), Root != nullptr, Root && Root->IsInViewport(), CaptureDialog != nullptr,
+           CaptureDialog && CaptureDialog->IsActivated(), CaptureDialog ? int32(CaptureDialog->GetVisibility()) : -1);
+       }
        else if (CaptureDialog) { CaptureDialog->Resolve(false); CaptureDialog = nullptr; }
      }}};
   const int32 ThemeShots = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
