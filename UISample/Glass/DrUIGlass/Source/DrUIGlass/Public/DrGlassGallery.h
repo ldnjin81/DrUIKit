@@ -43,6 +43,7 @@ private:
   UWidget* BuildNoticePage();
   UWidget* BuildInputPage();
   UWidget* BuildGamePage();
+  UWidget* BuildNavigationPage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);

@@ -34,6 +34,7 @@
 #include "Widgets/DrSurface.h"
 #include "Widgets/DrTabList.h"
 #include "Widgets/DrText.h"
+#include "Widgets/DrTooltip.h"
 
 #define LOCTEXT_NAMESPACE "DrGlassGallery"
 
@@ -44,7 +45,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrBadge::StaticClass(), UDrProgressBar::StaticClass(), UDrProgressRing::StaticClass(), UDrSkeleton::StaticClass(), UDrSpinner::StaticClass(),
     UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
     UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
-    UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass()};
+    UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
+    UDrTooltip::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -547,6 +549,35 @@ void UDrGlassGallery::HandleRadialCancelled() {
   if (Toasts) Toasts->Push(LOCTEXT("RadialCancelled", "파이 메뉴 취소"), EDrNoticeTone::Info, 1.5f);
 }
 
+UWidget* UDrGlassGallery::BuildNavigationPage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+
+  // 툴팁: 버튼에 마우스를 올리면 뜬다(엔진 툴팁 창). 아래는 같은 툴팁을 그대로 놓은 견본.
+  UVerticalBox* TooltipDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  UWrapBox* Hovers = WidgetTree->ConstructWidget<UWrapBox>();
+  Hovers->SetInnerSlotPadding(FVector2D(12, 12));
+  struct FTipDemo { FText Label, Title, Body; };
+  const FTipDemo Tips[] = {
+    {LOCTEXT("TipSave", "저장"), LOCTEXT("TipSaveTitle", "저장 (Ctrl+S)"), LOCTEXT("TipSaveBody", "지금 진행을 슬롯 1에 저장합니다.")},
+    {LOCTEXT("TipShort", "설명만"), FText::GetEmpty(), LOCTEXT("TipShortBody", "제목 없이 한 줄 설명")},
+    {LOCTEXT("TipLong", "긴 설명"), LOCTEXT("TipLongTitle", "표면 품질"), LOCTEXT("TipLongBody", "낮음으로 바꾸면 뒤 흐림을 끄고 불투명하게 칠합니다. 저사양 기기나 글이 많은 화면에서 글자 대비를 지키려고 씁니다.")}};
+  UWrapBox* Samples = WidgetTree->ConstructWidget<UWrapBox>();
+  Samples->SetInnerSlotPadding(FVector2D(16, 12));
+  for (const FTipDemo& Tip : Tips) {
+    UDrButton* Button = MakeButton(Tip.Label);
+    UDrTooltip::Attach(this, Button, Tip.Title, Tip.Body);
+    Hovers->AddChild(Button);
+    UDrTooltip* Sample = WidgetTree->ConstructWidget<UDrTooltip>();
+    Sample->SetContent(Tip.Title, Tip.Body);
+    Samples->AddChild(Sample);
+  }
+  if (UVerticalBoxSlot* S = TooltipDemo->AddChildToVerticalBox(Hovers)) S->SetPadding(FMargin(0, 0, 0, 16));
+  TooltipDemo->AddChildToVerticalBox(Samples);
+  Add(Section(LOCTEXT("TooltipTitle", "툴팁(UDrTooltip) · 버튼에 마우스를 올려 보기. 아래는 견본(제목+설명, 설명만, 긴 글 줄바꿈)"), TooltipDemo));
+  return Page;
+}
+
 void UDrGlassGallery::HandleUndo(int32) {
   if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
@@ -634,7 +665,8 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()},
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
-    {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()}};
+    {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
+    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁"), BuildNavigationPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
