@@ -170,8 +170,9 @@ TSharedRef<SWidget> UDrSlider::RebuildWidget() {
 }
 
 void UDrSlider::SynchronizeProperties() {
-  ApplyTheme();
+  // 엔진이 단계·범위를 Slate 슬라이더에 넘긴 뒤에 칠한다(GetStepSize 등이 Slate 값을 읽으므로 먼저 칠하면 눈금이 옛 단계로 계산됨).
   Super::SynchronizeProperties();
+  ApplyTheme();
 }
 
 void UDrSlider::ReleaseSlateResources(bool bReleaseChildren) {
