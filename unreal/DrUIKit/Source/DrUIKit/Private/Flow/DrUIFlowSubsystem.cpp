@@ -44,13 +44,14 @@ void UDrUIFlowSubsystem::HandleControllerChanged(APlayerController* Controller) 
   // 컨트롤러가 막 정해진 때는 아직 BeginPlay 전이다. 다음 틱에 화면 층을 붙인다.
   TWeakObjectPtr<APlayerController> Weak(Controller);
   FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [this, Weak](float) {
-    if (APlayerController* PC = Weak.Get(); PC && GetLocalPlayer() && GetLocalPlayer()->PlayerController == PC && !Root) Setup(PC);
+    if (APlayerController* PC = Weak.Get(); PC && GetLocalPlayer() && GetLocalPlayer()->PlayerController == PC && !Owner.IsValid()) Setup(PC);
     return false;
   }));
 }
 
 void UDrUIFlowSubsystem::EnsureSetup() {
-  if (Root || !GetDefault<UDrUIKitSettings>()->bAutoCreateRootLayout) return;
+  // 화면을 그리지 않는 실행(-nullrhi)에서는 화면 층이 없으므로 준비 여부는 Owner로 본다.
+  if (Owner.IsValid() || !GetDefault<UDrUIKitSettings>()->bAutoCreateRootLayout) return;
   if (ULocalPlayer* Player = GetLocalPlayer(); Player && Player->PlayerController) Setup(Player->PlayerController);
 }
 
