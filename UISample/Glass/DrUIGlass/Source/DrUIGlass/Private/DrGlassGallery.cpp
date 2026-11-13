@@ -15,6 +15,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
+#include "Components/WidgetSwitcher.h"
 #include "DrGlassBackdrop.h"
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
@@ -31,6 +32,7 @@
 #include "Widgets/DrInput.h"
 #include "Widgets/DrListRow.h"
 #include "Widgets/DrNotice.h"
+#include "Widgets/DrPageIndicator.h"
 #include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
@@ -49,7 +51,7 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
     UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
     UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
-    UDrTooltip::StaticClass(), UDrListRow::StaticClass()};
+    UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -548,6 +550,11 @@ void UDrGlassGallery::HandleRadialSelected(int32 Index) {
     Toasts->Push(FText::Format(LOCTEXT("RadialPicked", "고름: {0}"), RadialDemo->Items[Index]), EDrNoticeTone::Success, 1.5f);
 }
 
+void UDrGlassGallery::ShowCarouselPage(int32 Page) {
+  if (CarouselPages) CarouselPages->SetActiveWidgetIndex(Page);
+  if (CarouselDots) CarouselDots->SetCurrent(Page);
+}
+
 void UDrGlassGallery::HandleRadialCancelled() {
   if (Toasts) Toasts->Push(LOCTEXT("RadialCancelled", "파이 메뉴 취소"), EDrNoticeTone::Info, 1.5f);
 }
@@ -611,6 +618,36 @@ UWidget* UDrGlassGallery::BuildNavigationPage() {
   LoneSize->AddChild(Lone);
   if (UHorizontalBoxSlot* S = ListDemo->AddChildToHorizontalBox(LoneSize)) { S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(32, 0, 0, 0)); }
   Add(Section(LOCTEXT("ListTitle", "목록 행(UDrListRow) · 호버 렌즈, 선택(accent-soft), 패드·화살표로 이동. 긴 목록은 UCommonListView 항목(위젯 블루프린트 부모)으로. 오른쪽은 비활성"), ListDemo));
+
+  // 페이지 인디케이터: 넘기는 카드 + 이전·다음 버튼, 점을 눌러도 이동.
+  UVerticalBox* Carousel = WidgetTree->ConstructWidget<UVerticalBox>();
+  CarouselPages = WidgetTree->ConstructWidget<UWidgetSwitcher>();
+  for (const FText& Body : {LOCTEXT("Card1", "1 · 환영합니다"), LOCTEXT("Card2", "2 · 조작법"), LOCTEXT("Card3", "3 · 저장과 불러오기"), LOCTEXT("Card4", "4 · 설정"), LOCTEXT("Card5", "5 · 시작하기")}) {
+    UDrSurface* Card = WidgetTree->ConstructWidget<UDrSurface>();
+    Card->FillToken = TEXT("hairline"); Card->FillStrongToken = NAME_None; Card->BackdropToken = NAME_None; Card->StrokeToken = NAME_None;
+    Card->RadiusToken = TEXT("radius-lg"); Card->PaddingToken = TEXT("space-6");
+    Card->SetContent(MakeText(Body, TEXT("title")));
+    CarouselPages->AddChild(Card);
+  }
+  USizeBox* CardSize = WidgetTree->ConstructWidget<USizeBox>();
+  CardSize->SetWidthOverride(420.f);
+  CardSize->SetHeightOverride(96.f);
+  CardSize->AddChild(CarouselPages);
+  if (UVerticalBoxSlot* S = Carousel->AddChildToVerticalBox(CardSize)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 12)); }
+  UHorizontalBox* Controls = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrButton* Prev = MakeButton(LOCTEXT("PrevPage", "이전"), EDrButtonVariant::Ghost);
+  CarouselDots = WidgetTree->ConstructWidget<UDrPageIndicator>();
+  CarouselDots->PageCount = 5;
+  CarouselDots->OnPageClicked.AddUniqueDynamic(this, &ThisClass::ShowCarouselPage);
+  UDrButton* NextButton = MakeButton(LOCTEXT("NextPage", "다음"), EDrButtonVariant::Ghost);
+  Prev->OnClicked().AddWeakLambda(this, [this] { if (CarouselDots) ShowCarouselPage(FMath::Max(0, CarouselDots->Current - 1)); });
+  NextButton->OnClicked().AddWeakLambda(this, [this] { if (CarouselDots) ShowCarouselPage(FMath::Min(CarouselDots->PageCount - 1, CarouselDots->Current + 1)); });
+  Controls->AddChildToHorizontalBox(Prev);
+  if (UHorizontalBoxSlot* S = Controls->AddChildToHorizontalBox(CarouselDots)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(16, 0)); }
+  Controls->AddChildToHorizontalBox(NextButton);
+  Carousel->AddChildToVerticalBox(Controls);
+  ShowCarouselPage(2);
+  Add(Section(LOCTEXT("PageDotsTitle", "페이지 인디케이터(UDrPageIndicator) · 지금 점이 알약으로 늘어나 옆으로 미끄러짐. 점을 눌러도 이동"), Carousel));
   return Page;
 }
 
@@ -702,7 +739,7 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
     {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
-    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록 행"), BuildNavigationPage()}};
+    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록 행·페이지 점"), BuildNavigationPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);

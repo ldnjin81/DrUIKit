@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치를 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
@@ -8,6 +8,7 @@
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
+#include "Widgets/DrPageIndicator.h"
 #include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
@@ -246,6 +247,19 @@ bool FDrRadialSectorTest::RunTest(const FString&) {
   TestTrue(TEXT("5에서 0으로는 6으로(앞으로 한 칸)"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(5.f, 0, 6), 6.f));
   TestTrue(TEXT("0에서 5로는 -1로(뒤로 한 칸)"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(0.f, 5, 6), -1.f));
   TestTrue(TEXT("가까우면 그대로"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(1.f, 2, 6), 2.f));
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrPageIndicatorLayoutTest, "DrUIKit.Core.PageIndicator.Layout", DrUIKitTestFlags)
+bool FDrPageIndicatorLayoutTest::RunTest(const FString&) {
+  using namespace DrPageIndicatorLayout;
+  TestEqual(TEXT("지금 페이지 점은 늘어남"), DotWidth(2, 2.f, 8.f, 22.f), 22.f);
+  TestEqual(TEXT("먼 점은 그대로"), DotWidth(0, 2.f, 8.f, 22.f), 8.f);
+  TestEqual(TEXT("옮겨 가는 중간이면 두 점이 반씩"), DotWidth(1, 1.5f, 8.f, 22.f), 15.f);
+  TestEqual(TEXT("전체 너비"), TotalWidth(5, 8.f, 22.f, 8.f), 4.f * 16.f + 22.f);
+  float Sum = 0.f;
+  for (int32 I = 0; I < 5; ++I) Sum += DotWidth(I, 1.5f, 8.f, 22.f) + (I < 4 ? 8.f : 0.f);
+  TestTrue(TEXT("옮겨 가는 중에도 전체 너비가 같음(흔들리지 않음)"), FMath::IsNearlyEqual(Sum, TotalWidth(5, 8.f, 22.f, 8.f)));
+  TestEqual(TEXT("점이 없으면 0"), TotalWidth(0, 8.f, 22.f, 8.f), 0.f);
   return true;
 }
 #endif
