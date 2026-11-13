@@ -1,25 +1,25 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Widgets/DrUIButtonBase.h"
-#include "DrUIButton.generated.h"
+#include "Widgets/DrButtonBase.h"
+#include "DrButton.generated.h"
 
-class UDrUISurface;
-class UDrUIText;
-class UDrUISpinner;
+class UDrSurface;
+class UDrText;
+class UDrSpinner;
 
 UENUM(BlueprintType)
-enum class EDrUIButtonVariant : uint8 { Primary, Secondary, Ghost, Destructive };
+enum class EDrButtonVariant : uint8 { Primary, Secondary, Ghost, Destructive };
 
 /**
- * 버튼(디자인 시스템 '버튼 상태 9가지'). 공통 상태 판정은 UDrUIButtonBase, 여기서는 로딩·성공·오류와 4종 칠하기를 더한다.
+ * 버튼(디자인 시스템 '버튼 상태 9가지'). 공통 상태 판정은 UDrButtonBase, 여기서는 로딩·성공·오류와 4종 칠하기를 더한다.
  * 하위 부품은 BindWidgetOptional: 위젯 블루프린트가 같은 이름으로 두면 그걸 쓰고, 없으면 C++가 기본 구성을 만든다.
  */
 UCLASS()
-class DRUIKIT_API UDrUIButton : public UDrUIButtonBase {
+class DRUIKIT_API UDrButton : public UDrButtonBase {
   GENERATED_BODY()
 public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FText Label;
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrUIButtonVariant Variant = EDrUIButtonVariant::Primary;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrButtonVariant Variant = EDrButtonVariant::Primary;
   /** 성공 상태가 기본으로 돌아가기까지(초). */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float SuccessHoldSeconds = 1.5f;
 
@@ -33,9 +33,9 @@ public:
   virtual FDrUIStateInputs GetStateInputs() const override;
 
 protected:
-  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISurface> Surface;
-  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUIText> LabelText;
-  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrUISpinner> Spinner;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Surface;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> LabelText;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSpinner> Spinner;
 
   virtual void BuildDefaultTree() override;
   virtual void ApplyVisualState() override;

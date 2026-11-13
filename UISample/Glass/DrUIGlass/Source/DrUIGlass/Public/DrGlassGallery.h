@@ -2,18 +2,18 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Containers/Ticker.h"
-#include "Widgets/DrUIButton.h"
+#include "Widgets/DrButton.h"
 #include "DrGlassGallery.generated.h"
 
 class UCommonAnimatedSwitcher;
 class UCommonButtonGroupBase;
-class UDrUISegmented;
-class UDrUISlider;
-class UDrUISnackbar;
-class UDrUISwitch;
-class UDrUITabList;
-class UDrUIToastStack;
-class UDrUIText;
+class UDrSegmentedControl;
+class UDrSlider;
+class UDrSnackbar;
+class UDrSwitch;
+class UDrTabList;
+class UDrToastStack;
+class UDrText;
 class UVerticalBox;
 
 /**
@@ -46,28 +46,28 @@ private:
   UFUNCTION() void HandleQualityChoice(int32 Index);
   UFUNCTION() void HandleUndo(int32 RequestId);
   UFUNCTION() void HandleSampleSnackbar(int32 RequestId);
-  UDrUIButton* MakeButton(const FText& Label, EDrUIButtonVariant Variant = EDrUIButtonVariant::Secondary);
-  UDrUIText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
+  UDrButton* MakeButton(const FText& Label, EDrButtonVariant Variant = EDrButtonVariant::Secondary);
+  UDrText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
   UWidget* Section(const FText& Title, UWidget* Body);
   bool CaptureStep(float DeltaTime);
 
   static FName PageId(int32 Index) { return FName(TEXT("Page"), Index + 1); }
 
   UPROPERTY(Transient) TObjectPtr<UCommonAnimatedSwitcher> Pages;
-  UPROPERTY(Transient) TObjectPtr<UDrUITabList> PageTabs;
-  UPROPERTY(Transient) TObjectPtr<UDrUISegmented> ThemeChoice;
-  UPROPERTY(Transient) TObjectPtr<UDrUISegmented> QualityChoice;
-  UPROPERTY(Transient) TObjectPtr<UDrUISwitch> MotionSwitch;
-  UPROPERTY(Transient) TObjectPtr<UDrUISlider> TransparencySlider;
+  UPROPERTY(Transient) TObjectPtr<UDrTabList> PageTabs;
+  UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> ThemeChoice;
+  UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> QualityChoice;
+  UPROPERTY(Transient) TObjectPtr<UDrSwitch> MotionSwitch;
+  UPROPERTY(Transient) TObjectPtr<UDrSlider> TransparencySlider;
   /** 화면 위 가운데 토스트, 아래 가운데 스낵바(갤러리 전체 위에 뜬다). */
-  UPROPERTY(Transient) TObjectPtr<UDrUIToastStack> Toasts;
-  UPROPERTY(Transient) TObjectPtr<UDrUISnackbar> Snackbar;
-  UPROPERTY(Transient) TObjectPtr<UDrUISnackbar> SampleSnackbar;
+  UPROPERTY(Transient) TObjectPtr<UDrToastStack> Toasts;
+  UPROPERTY(Transient) TObjectPtr<UDrSnackbar> Snackbar;
+  UPROPERTY(Transient) TObjectPtr<UDrSnackbar> SampleSnackbar;
   /** 라디오 묶음(하나만 선택). 위젯이 아니라서 따로 붙잡아 둔다. */
   UPROPERTY(Transient) TArray<TObjectPtr<UCommonButtonGroupBase>> RadioGroups;
-  UPROPERTY(Transient) TObjectPtr<UDrUIText> SegmentDemoValue;
+  UPROPERTY(Transient) TObjectPtr<UDrText> SegmentDemoValue;
   TArray<FText> SegmentDemoOptions;
-  UPROPERTY(Transient) TMap<TObjectPtr<UDrUISlider>, TObjectPtr<UDrUIText>> SliderDemoValues;
+  UPROPERTY(Transient) TMap<TObjectPtr<UDrSlider>, TObjectPtr<UDrText>> SliderDemoValues;
   FTSTicker::FDelegateHandle CaptureTicker;
   int32 CaptureIndex = 0;
   /** 남은 대기 프레임 수. */

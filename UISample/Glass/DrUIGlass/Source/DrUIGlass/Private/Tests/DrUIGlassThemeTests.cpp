@@ -32,7 +32,7 @@ bool FDrGlassThemeLoadTest::RunTest(const FString&) {
 }
 
 #include "Theme/DrUIThemeSubsystem.h"
-#include "Widgets/DrUIText.h"
+#include "Widgets/DrText.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGlassThemeSwitchTextTest, "DrUIGlass.Theme.TextFollowsThemeSwitch", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDrGlassThemeSwitchTextTest::RunTest(const FString&) {
@@ -41,7 +41,7 @@ bool FDrGlassThemeSwitchTextTest::RunTest(const FString&) {
   const TArray<UDrUITheme*> Themes = DrGlassTheme::LoadThemes(GetTransientPackage(), Error);
   if (!TestNotNull(TEXT("서브시스템"), Subsystem) || !TestEqual(TEXT("테마 2개"), Themes.Num(), 2)) return false;
   TestEqual(TEXT("어두운 on-accent 값"), Themes[1]->GetColor(TEXT("on-accent")).ToFColor(true), FColor(0x0b, 0x14, 0x30));
-  UDrUIText* Text = NewObject<UDrUIText>();
+  UDrText* Text = NewObject<UDrText>();
   Text->ColorToken = TEXT("on-accent");
   Subsystem->SetThemeObject(Themes[0]);
   Text->ApplyTheme();

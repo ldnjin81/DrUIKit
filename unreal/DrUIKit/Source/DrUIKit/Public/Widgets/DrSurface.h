@@ -1,7 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/Border.h"
-#include "DrUISurface.generated.h"
+#include "DrSurface.generated.h"
 
 class SBackgroundBlur;
 
@@ -11,10 +11,10 @@ class SBackgroundBlur;
  * 표면 품질이 낮음이면 흐림을 끄고 FillStrongToken으로 칠한다(글자 대비 유지).
  */
 UCLASS()
-class DRUIKIT_API UDrUISurface : public UBorder {
+class DRUIKIT_API UDrSurface : public UBorder {
   GENERATED_BODY()
 public:
-  UDrUISurface();
+  UDrSurface();
   /** 비우면 투명(테두리만). */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName FillToken = TEXT("glass");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName FillStrongToken = TEXT("glass-strong");

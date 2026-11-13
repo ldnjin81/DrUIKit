@@ -1,16 +1,16 @@
-#include "Widgets/DrUISurface.h"
+#include "Widgets/DrSurface.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/Layout/SBackgroundBlur.h"
 
-UDrUISurface::UDrUISurface() { SetHorizontalAlignment(HAlign_Fill); SetVerticalAlignment(VAlign_Fill); }
+UDrSurface::UDrSurface() { SetHorizontalAlignment(HAlign_Fill); SetVerticalAlignment(VAlign_Fill); }
 
 static EDrUISurfaceQuality CurrentQuality() {
   const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
   return Subsystem ? Subsystem->GetSurfaceQuality() : GetDefault<UDrUIKitSettings>()->SurfaceQuality;
 }
 
-FLinearColor UDrUISurface::ResolveFill() const {
+FLinearColor UDrSurface::ResolveFill() const {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   const bool bNoBlur = BackdropToken.IsNone() || CurrentQuality() == EDrUISurfaceQuality::Low;
   const FName Token = bNoBlur && !FillStrongToken.IsNone() ? FillStrongToken : FillToken;
@@ -23,7 +23,7 @@ FLinearColor UDrUISurface::ResolveFill() const {
   return Color;
 }
 
-float UDrUISurface::ResolveBlur() const {
+float UDrSurface::ResolveBlur() const {
   if (BackdropToken.IsNone()) return 0.f;
   const EDrUISurfaceQuality Quality = CurrentQuality();
   if (Quality == EDrUISurfaceQuality::Low) return 0.f;
@@ -31,7 +31,7 @@ float UDrUISurface::ResolveBlur() const {
   return Quality == EDrUISurfaceQuality::Medium ? Strength * .5f : Strength;
 }
 
-void UDrUISurface::ApplyTheme() {
+void UDrSurface::ApplyTheme() {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   const float Radius = RadiusToken.IsNone() ? 0.f : Theme.GetRadius(RadiusToken);
   const FLinearColor Stroke = StrokeToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(StrokeToken);
@@ -49,9 +49,9 @@ void UDrUISurface::ApplyTheme() {
   }
 }
 
-void UDrUISurface::SynchronizeProperties() { ApplyTheme(); Super::SynchronizeProperties(); }
+void UDrSurface::SynchronizeProperties() { ApplyTheme(); Super::SynchronizeProperties(); }
 
-TSharedRef<SWidget> UDrUISurface::RebuildWidget() {
+TSharedRef<SWidget> UDrSurface::RebuildWidget() {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get(); Subsystem && !ThemeHandle.IsValid())
     ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyTheme(); });
   TSharedRef<SWidget> Inner = Super::RebuildWidget();
@@ -60,7 +60,7 @@ TSharedRef<SWidget> UDrUISurface::RebuildWidget() {
   return Blur.ToSharedRef();
 }
 
-void UDrUISurface::ReleaseSlateResources(bool bReleaseChildren) {
+void UDrSurface::ReleaseSlateResources(bool bReleaseChildren) {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
   ThemeHandle.Reset();
   Blur.Reset();

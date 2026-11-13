@@ -1,19 +1,19 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/Slider.h"
-#include "DrUISlider.generated.h"
+#include "DrSlider.generated.h"
 
-class SDrUISliderTrack;
+class SDrSliderTrack;
 
 /**
  * 슬라이더. 끌기·키보드·패드 조작은 엔진 USlider가 맡고, 여기서는 둥근 트랙과 채워진 부분(값까지 accent),
  * 테두리 있는 손잡이를 토큰으로 칠한다. 엔진 슬라이더 막대는 그리지 않고 그 뒤에 트랙을 직접 그린다.
  */
 UCLASS()
-class DRUIKIT_API UDrUISlider : public USlider {
+class DRUIKIT_API UDrSlider : public USlider {
   GENERATED_BODY()
 public:
-  UDrUISlider();
+  UDrSlider();
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName TrackToken = TEXT("hairline");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName FillToken = TEXT("accent");
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName ThumbToken = TEXT("on-accent");
@@ -30,6 +30,6 @@ protected:
   virtual void SynchronizeProperties() override;
   virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 private:
-  TSharedPtr<SDrUISliderTrack> Track;
+  TSharedPtr<SDrSliderTrack> Track;
   FDelegateHandle ThemeHandle;
 };

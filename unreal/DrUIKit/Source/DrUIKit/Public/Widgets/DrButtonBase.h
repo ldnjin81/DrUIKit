@@ -3,14 +3,14 @@
 #include "CommonButtonBase.h"
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
-#include "DrUIButtonBase.generated.h"
+#include "DrButtonBase.generated.h"
 
 /** 그리지 않는 버튼 스타일. 모양은 DrUIKit 부품이 칠한다. */
 UCLASS()
-class DRUIKIT_API UDrUIButtonStyle : public UCommonButtonStyle {
+class DRUIKIT_API UDrButtonStyle : public UCommonButtonStyle {
   GENERATED_BODY()
 public:
-  UDrUIButtonStyle();
+  UDrButtonStyle();
 };
 
 /**
@@ -19,10 +19,10 @@ public:
  * 파생은 BuildDefaultTree(기본 구성)와 ApplyVisualState(칠하기)만 채운다.
  */
 UCLASS(Abstract)
-class DRUIKIT_API UDrUIButtonBase : public UCommonButtonBase {
+class DRUIKIT_API UDrButtonBase : public UCommonButtonBase {
   GENERATED_BODY()
 public:
-  UDrUIButtonBase(const FObjectInitializer& Initializer);
+  UDrButtonBase(const FObjectInitializer& Initializer);
 
   EDrUIState GetVisualState() const { return VisualState; }
   virtual FDrUIStateInputs GetStateInputs() const;

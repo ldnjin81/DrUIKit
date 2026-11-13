@@ -1,4 +1,4 @@
-#include "Widgets/DrUITabList.h"
+#include "Widgets/DrTabList.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
@@ -8,13 +8,13 @@
 #include "Components/UniformGridPanel.h"
 #include "Components/UniformGridSlot.h"
 #include "Theme/DrUIThemeSubsystem.h"
-#include "Widgets/DrUISurface.h"
-#include "Widgets/DrUIText.h"
+#include "Widgets/DrSurface.h"
+#include "Widgets/DrText.h"
 
-void UDrUITabButton::SetLabel(const FText& InLabel) { Label = InLabel; ApplyVisualState(); }
+void UDrTabButton::SetLabel(const FText& InLabel) { Label = InLabel; ApplyVisualState(); }
 
-void UDrUITabButton::BuildDefaultTree() {
-  Surface = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Surface"));
+void UDrTabButton::BuildDefaultTree() {
+  Surface = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Surface"));
   Surface->FillToken = NAME_None;
   Surface->FillStrongToken = NAME_None;
   Surface->BackdropToken = NAME_None;
@@ -24,12 +24,12 @@ void UDrUITabButton::BuildDefaultTree() {
   Surface->SetHorizontalAlignment(HAlign_Center);
   Surface->SetVerticalAlignment(VAlign_Center);
   WidgetTree->RootWidget = Surface;
-  LabelText = WidgetTree->ConstructWidget<UDrUIText>(UDrUIText::StaticClass(), TEXT("LabelText"));
+  LabelText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("LabelText"));
   LabelText->TextStyle = TEXT("label");
   Surface->SetContent(LabelText);
 }
 
-void UDrUITabButton::ApplyVisualState() {
+void UDrTabButton::ApplyVisualState() {
   const bool bRing = bFocusedNow && DrUIState::IsFocusRingVisible(GetStateInputs());
   if (Surface) {
     // 선택 탭은 인디케이터가 칠하므로 바탕이 없다. 호버만 옅게.
@@ -46,20 +46,20 @@ void UDrUITabButton::ApplyVisualState() {
   }
 }
 
-UDrUITabList::UDrUITabList(const FObjectInitializer& Initializer) : Super(Initializer) {
-  TabButtonClass = UDrUITabButton::StaticClass();
+UDrTabList::UDrTabList(const FObjectInitializer& Initializer) : Super(Initializer) {
+  TabButtonClass = UDrTabButton::StaticClass();
 }
 
-void UDrUITabList::EnsureTree() {
+void UDrTabList::EnsureTree() {
   if (!WidgetTree || WidgetTree->RootWidget) return;
-  Track = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Track"));
+  Track = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Track"));
   Track->RadiusToken = TEXT("radius-pill");
   Track->PaddingToken = NAME_None;
   WidgetTree->RootWidget = Track;
   UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>();
   Track->SetContent(Layers);
   IndicatorBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("IndicatorBox"));
-  Indicator = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Indicator"));
+  Indicator = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Indicator"));
   Indicator->PaddingToken = NAME_None;
   Indicator->BackdropToken = NAME_None;
   Indicator->StrokeToken = NAME_None;
@@ -73,8 +73,8 @@ void UDrUITabList::EnsureTree() {
   ApplyTheme();
 }
 
-void UDrUITabList::ApplyTheme() {
-  const bool bPill = Style == EDrUITabStyle::Pill;
+void UDrTabList::ApplyTheme() {
+  const bool bPill = Style == EDrTabStyle::Pill;
   if (Track) {
     Track->FillToken = bPill ? FName(TEXT("glass")) : NAME_None;
     Track->FillStrongToken = bPill ? FName(TEXT("glass-strong")) : NAME_None;
@@ -95,35 +95,35 @@ void UDrUITabList::ApplyTheme() {
   }
 }
 
-TSharedRef<SWidget> UDrUITabList::RebuildWidget() {
+TSharedRef<SWidget> UDrTabList::RebuildWidget() {
   EnsureTree();
   return Super::RebuildWidget();
 }
 
-void UDrUITabList::NativeOnInitialized() {
+void UDrTabList::NativeOnInitialized() {
   Super::NativeOnInitialized();
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get())
     ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyTheme(); });
 }
 
-void UDrUITabList::NativeDestruct() {
+void UDrTabList::NativeDestruct() {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
   ThemeHandle.Reset();
   Super::NativeDestruct();
 }
 
-bool UDrUITabList::AddTab(FName TabId, const FText& TabLabel, UWidget* Content) {
+bool UDrTabList::AddTab(FName TabId, const FText& TabLabel, UWidget* Content) {
   EnsureTree();
   PendingLabels.Add(TabId, TabLabel);
-  const bool bAdded = RegisterTab(TabId, TabButtonClass ? TSubclassOf<UCommonButtonBase>(TabButtonClass) : TSubclassOf<UCommonButtonBase>(UDrUITabButton::StaticClass()), Content);
+  const bool bAdded = RegisterTab(TabId, TabButtonClass ? TSubclassOf<UCommonButtonBase>(TabButtonClass) : TSubclassOf<UCommonButtonBase>(UDrTabButton::StaticClass()), Content);
   PendingLabels.Remove(TabId);
   return bAdded;
 }
 
-void UDrUITabList::HandleTabCreation_Implementation(FName TabNameID, UCommonButtonBase* TabButton) {
+void UDrTabList::HandleTabCreation_Implementation(FName TabNameID, UCommonButtonBase* TabButton) {
   EnsureTree();
-  if (UDrUITabButton* Button = Cast<UDrUITabButton>(TabButton)) {
-    Button->SelectedInk = Style == EDrUITabStyle::Pill ? TEXT("on-chip") : TEXT("ink");
+  if (UDrTabButton* Button = Cast<UDrTabButton>(TabButton)) {
+    Button->SelectedInk = Style == EDrTabStyle::Pill ? TEXT("on-chip") : TEXT("ink");
     if (const FText* Found = PendingLabels.Find(TabNameID)) Button->SetLabel(*Found);
   }
   if (UUniformGridPanel* Grid = Cast<UUniformGridPanel>(Row)) {
@@ -133,7 +133,7 @@ void UDrUITabList::HandleTabCreation_Implementation(FName TabNameID, UCommonButt
   }
 }
 
-void UDrUITabList::HandleTabRemoval_Implementation(FName TabNameID, UCommonButtonBase* TabButton) {
+void UDrTabList::HandleTabRemoval_Implementation(FName TabNameID, UCommonButtonBase* TabButton) {
   if (!Row || !TabButton) return;
   Row->RemoveChild(TabButton);
   // 균등 격자는 칸 번호가 비지 않게 다시 매긴다.
@@ -141,12 +141,12 @@ void UDrUITabList::HandleTabRemoval_Implementation(FName TabNameID, UCommonButto
     if (UUniformGridSlot* S = Cast<UUniformGridSlot>(Row->GetChildAt(I)->Slot)) S->SetColumn(I);
 }
 
-void UDrUITabList::NativeTick(const FGeometry& Geometry, float DeltaTime) {
+void UDrTabList::NativeTick(const FGeometry& Geometry, float DeltaTime) {
   Super::NativeTick(Geometry, DeltaTime);
   UpdateIndicator(DeltaTime);
 }
 
-void UDrUITabList::UpdateIndicator(float DeltaTime) {
+void UDrTabList::UpdateIndicator(float DeltaTime) {
   if (!Row || !IndicatorBox) return;
   const UCommonButtonBase* Target = GetTabButtonBaseByID(GetSelectedTabId());
   if (!Target) { IndicatorBox->SetVisibility(ESlateVisibility::Hidden); bIndicatorPlaced = false; return; }
@@ -173,14 +173,14 @@ void UDrUITabList::UpdateIndicator(float DeltaTime) {
   IndicatorBox->SetVisibility(ESlateVisibility::HitTestInvisible);
 }
 
-UDrUISegmented::UDrUISegmented(const FObjectInitializer& Initializer) : Super(Initializer) { bEqualWidth = true; }
+UDrSegmentedControl::UDrSegmentedControl(const FObjectInitializer& Initializer) : Super(Initializer) { bEqualWidth = true; }
 
-void UDrUISegmented::NativeOnInitialized() {
+void UDrSegmentedControl::NativeOnInitialized() {
   Super::NativeOnInitialized();
   OnTabSelected.AddUniqueDynamic(this, &ThisClass::HandleTabSelected);
 }
 
-void UDrUISegmented::ApplyTheme() {
+void UDrSegmentedControl::ApplyTheme() {
   Super::ApplyTheme();
   // 세그먼트는 카드·패널 위에 놓이므로 흐림 없이 옅은 홈으로 둔다.
   if (Track) {
@@ -193,21 +193,21 @@ void UDrUISegmented::ApplyTheme() {
   }
 }
 
-void UDrUISegmented::SetOptions(const TArray<FText>& Options) {
+void UDrSegmentedControl::SetOptions(const TArray<FText>& Options) {
   RemoveAllTabs();
   for (int32 I = 0; I < Options.Num(); ++I) AddTab(OptionId(I), Options[I]);
 }
 
-void UDrUISegmented::SetSelectedIndex(int32 Index) {
+void UDrSegmentedControl::SetSelectedIndex(int32 Index) {
   if (Index >= 0 && Index < GetTabCount()) SelectTabByID(OptionId(Index), true);
 }
 
-int32 UDrUISegmented::GetSelectedIndex() const {
+int32 UDrSegmentedControl::GetSelectedIndex() const {
   const FName Selected = GetSelectedTabId();
   for (int32 I = 0; I < GetTabCount(); ++I) if (GetTabIdAtIndex(I) == Selected) return I;
   return INDEX_NONE;
 }
 
-void UDrUISegmented::HandleTabSelected(FName TabId) {
+void UDrSegmentedControl::HandleTabSelected(FName TabId) {
   for (int32 I = 0; I < GetTabCount(); ++I) if (GetTabIdAtIndex(I) == TabId) { OnSelectionChanged.Broadcast(I); return; }
 }

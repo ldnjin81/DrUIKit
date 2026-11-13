@@ -1,11 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "CommonTextBlock.h"
-#include "DrUIText.generated.h"
+#include "DrText.generated.h"
 
 /** 텍스트. 글자 스타일 토큰(body, label …)과 색 토큰(ink …)으로 칠한다. */
 UCLASS()
-class DRUIKIT_API UDrUIText : public UCommonTextBlock {
+class DRUIKIT_API UDrText : public UCommonTextBlock {
   GENERATED_BODY()
 public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName TextStyle = TEXT("body");

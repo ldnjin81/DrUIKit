@@ -1,11 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Components/Image.h"
-#include "DrUIIcon.generated.h"
+#include "DrIcon.generated.h"
 
 /** 아이콘. 단색 이미지를 색 토큰으로 칠한다(SVG 대신 단색 텍스처·머티리얼). */
 UCLASS()
-class DRUIKIT_API UDrUIIcon : public UImage {
+class DRUIKIT_API UDrIcon : public UImage {
   GENERATED_BODY()
 public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FName ColorToken = TEXT("ink");

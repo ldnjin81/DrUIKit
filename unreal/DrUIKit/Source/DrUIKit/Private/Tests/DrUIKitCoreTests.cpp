@@ -4,12 +4,12 @@
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
 #include "Theme/DrUIThemeSubsystem.h"
-#include "Widgets/DrUIChoice.h"
-#include "Widgets/DrUIGlyph.h"
-#include "Widgets/DrUINotice.h"
-#include "Widgets/DrUISlider.h"
-#include "Widgets/DrUIStatus.h"
-#include "Widgets/DrUISurface.h"
+#include "Widgets/DrToggle.h"
+#include "Widgets/DrGlyph.h"
+#include "Widgets/DrNotice.h"
+#include "Widgets/DrSlider.h"
+#include "Widgets/DrStatus.h"
+#include "Widgets/DrSurface.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 
@@ -94,7 +94,7 @@ bool FDrUISurfaceQualityTest::RunTest(const FString&) {
   Theme->Backdrops.Add(DrUITokens::BackdropGlass, 20.f);
   const EDrUISurfaceQuality Before = Subsystem->GetSurfaceQuality();
   Subsystem->SetThemeObject(Theme);
-  UDrUISurface* Surface = NewObject<UDrUISurface>();
+  UDrSurface* Surface = NewObject<UDrSurface>();
   Subsystem->SetSurfaceQuality(EDrUISurfaceQuality::High);
   TestEqual(TEXT("높음: 흐림 그대로"), Surface->ResolveBlur(), 20.f);
   TestEqual(TEXT("높음: 반투명 채움"), Surface->ResolveFill().A, .5f);
@@ -124,8 +124,8 @@ bool FDrUISurfaceTransparencyTest::RunTest(const FString&) {
   const EDrUISurfaceQuality QualityBefore = Subsystem->GetSurfaceQuality();
   Subsystem->SetThemeObject(Theme);
   Subsystem->SetSurfaceQuality(EDrUISurfaceQuality::High);
-  UDrUISurface* Glass = NewObject<UDrUISurface>();
-  UDrUISurface* Solid = NewObject<UDrUISurface>();
+  UDrSurface* Glass = NewObject<UDrSurface>();
+  UDrSurface* Solid = NewObject<UDrSurface>();
   Solid->FillToken = DrUITokens::Accent;
   Subsystem->SetSurfaceTransparency(0.f);
   TestEqual(TEXT("유리는 불투명해짐"), Glass->ResolveFill().A, 1.f);
@@ -140,28 +140,28 @@ bool FDrUISurfaceTransparencyTest::RunTest(const FString&) {
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISliderFillTest, "DrUIKit.Core.Slider.FillEnd", DrUIKitTestFlags)
 bool FDrUISliderFillTest::RunTest(const FString&) {
-  TestEqual(TEXT("0이면 손잡이 반지름까지"), UDrUISlider::FillEnd(200.f, 0.f, 18.f), 9.f);
-  TestEqual(TEXT("1이면 끝에서 반지름 안쪽"), UDrUISlider::FillEnd(200.f, 1.f, 18.f), 191.f);
-  TestEqual(TEXT("절반은 가운데"), UDrUISlider::FillEnd(200.f, .5f, 18.f), 100.f);
+  TestEqual(TEXT("0이면 손잡이 반지름까지"), UDrSlider::FillEnd(200.f, 0.f, 18.f), 9.f);
+  TestEqual(TEXT("1이면 끝에서 반지름 안쪽"), UDrSlider::FillEnd(200.f, 1.f, 18.f), 191.f);
+  TestEqual(TEXT("절반은 가운데"), UDrSlider::FillEnd(200.f, .5f, 18.f), 100.f);
   return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIStatusMathTest, "DrUIKit.Core.Status.Math", DrUIKitTestFlags)
 bool FDrUIStatusMathTest::RunTest(const FString&) {
-  TestTrue(TEXT("배지 0은 빈 글자(숨김)"), UDrUIBadge::FormatCount(0, 99).IsEmpty());
-  TestEqual(TEXT("배지 12"), UDrUIBadge::FormatCount(12, 99).ToString(), FString(TEXT("12")));
-  TestEqual(TEXT("배지 최댓값 넘으면 99+"), UDrUIBadge::FormatCount(120, 99).ToString(), FString(TEXT("99+")));
-  const TArray<FVector2f> Quarter = DrUIProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, .25f, 64);
+  TestTrue(TEXT("배지 0은 빈 글자(숨김)"), UDrBadge::FormatCount(0, 99).IsEmpty());
+  TestEqual(TEXT("배지 12"), UDrBadge::FormatCount(12, 99).ToString(), FString(TEXT("12")));
+  TestEqual(TEXT("배지 최댓값 넘으면 99+"), UDrBadge::FormatCount(120, 99).ToString(), FString(TEXT("99+")));
+  const TArray<FVector2f> Quarter = DrProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, .25f, 64);
   TestTrue(TEXT("원호는 12시에서 시작"), Quarter[0].Equals(FVector2f(0.f, -10.f), 1e-3f));
   TestTrue(TEXT("1/4 바퀴는 3시(시계 방향)"), Quarter.Last().Equals(FVector2f(10.f, 0.f), 1e-3f));
   TestEqual(TEXT("1/4 바퀴 조각 16개"), Quarter.Num(), 17);
-  TestEqual(TEXT("길이 0이면 점 없음"), DrUIProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, 0.f).Num(), 0);
+  TestEqual(TEXT("길이 0이면 점 없음"), DrProgressRing::ArcPoints(FVector2f(0.f), 10.f, 0.f, 0.f).Num(), 0);
   float Low = 1.f, High = 0.f;
-  for (double T = 0.0; T < 2.4; T += .05) { Low = FMath::Min(Low, UDrUISkeleton::PulseAlpha(T)); High = FMath::Max(High, UDrUISkeleton::PulseAlpha(T)); }
-  TestEqual(TEXT("끝없는 진행은 왼쪽에서 시작"), UDrUIProgressBar::MarqueeStart(0.0), 0.f);
-  TestTrue(TEXT("끝없는 진행 절반 시점은 오른쪽 끝(.7)"), FMath::IsNearlyEqual(UDrUIProgressBar::MarqueeStart(.8), .7f, 1e-4f));
-  TestEqual(TEXT("작은 스피너 조각은 최소 2.5"), UDrUISpinner::AutoPieceSize(4.f), 2.5f);
-  TestEqual(TEXT("큰 스피너 조각은 최대 6"), UDrUISpinner::AutoPieceSize(30.f), 6.f);
+  for (double T = 0.0; T < 2.4; T += .05) { Low = FMath::Min(Low, UDrSkeleton::PulseAlpha(T)); High = FMath::Max(High, UDrSkeleton::PulseAlpha(T)); }
+  TestEqual(TEXT("끝없는 진행은 왼쪽에서 시작"), UDrProgressBar::MarqueeStart(0.0), 0.f);
+  TestTrue(TEXT("끝없는 진행 절반 시점은 오른쪽 끝(.7)"), FMath::IsNearlyEqual(UDrProgressBar::MarqueeStart(.8), .7f, 1e-4f));
+  TestEqual(TEXT("작은 스피너 조각은 최소 2.5"), UDrSpinner::AutoPieceSize(4.f), 2.5f);
+  TestEqual(TEXT("큰 스피너 조각은 최대 6"), UDrSpinner::AutoPieceSize(30.f), 6.f);
   TestTrue(TEXT("스켈레톤 불투명도 .18~.32"), Low >= .179f && High <= .321f && High - Low > .1f);
   return true;
 }
@@ -169,24 +169,24 @@ bool FDrUIStatusMathTest::RunTest(const FString&) {
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIGlyphTrimTest, "DrUIKit.Core.Glyph.Trim", DrUIKitTestFlags)
 bool FDrUIGlyphTrimTest::RunTest(const FString&) {
   const TArray<FVector2f> Line = {{0.f, 0.f}, {1.f, 0.f}, {1.f, 1.f}};
-  TestEqual(TEXT("0이면 아무것도 그리지 않음"), DrUIGlyph::Trim(Line, 0.f).Num(), 0);
-  TestEqual(TEXT("1이면 그대로"), DrUIGlyph::Trim(Line, 1.f).Num(), 3);
-  const TArray<FVector2f> Half = DrUIGlyph::Trim(Line, .5f);
+  TestEqual(TEXT("0이면 아무것도 그리지 않음"), DrGlyph::Trim(Line, 0.f).Num(), 0);
+  TestEqual(TEXT("1이면 그대로"), DrGlyph::Trim(Line, 1.f).Num(), 3);
+  const TArray<FVector2f> Half = DrGlyph::Trim(Line, .5f);
   TestEqual(TEXT("절반은 첫 획 끝까지"), Half.Num(), 2);
   TestTrue(TEXT("절반 끝점 (1,0)"), Half.Last().Equals(FVector2f(1.f, 0.f), 1e-4f));
-  const TArray<FVector2f> ThreeQuarter = DrUIGlyph::Trim(Line, .75f);
+  const TArray<FVector2f> ThreeQuarter = DrGlyph::Trim(Line, .75f);
   TestTrue(TEXT("3/4 끝점 (1,.5)"), ThreeQuarter.Last().Equals(FVector2f(1.f, .5f), 1e-4f));
-  TestEqual(TEXT("체크는 획 하나"), DrUIGlyph::Strokes(EDrUIGlyphShape::Check).Num(), 1);
-  TestEqual(TEXT("닫기는 획 둘"), DrUIGlyph::Strokes(EDrUIGlyphShape::Close).Num(), 2);
-  TestEqual(TEXT("점은 획 없음(원)"), DrUIGlyph::Strokes(EDrUIGlyphShape::Dot).Num(), 0);
+  TestEqual(TEXT("체크는 획 하나"), DrGlyph::Strokes(EDrGlyphShape::Check).Num(), 1);
+  TestEqual(TEXT("닫기는 획 둘"), DrGlyph::Strokes(EDrGlyphShape::Close).Num(), 2);
+  TestEqual(TEXT("점은 획 없음(원)"), DrGlyph::Strokes(EDrGlyphShape::Dot).Num(), 0);
   return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISwitchThumbTest, "DrUIKit.Core.Switch.ThumbTravel", DrUIKitTestFlags)
 bool FDrUISwitchThumbTest::RunTest(const FString&) {
-  TestEqual(TEXT("꺼짐은 왼쪽"), UDrUISwitch::ThumbTravel(0.f), 0.f);
-  TestEqual(TEXT("켜짐은 트랙 끝에서 여백만큼 안쪽"), UDrUISwitch::ThumbTravel(1.f), DrUISwitchSize::TrackWidth - DrUISwitchSize::ThumbSize - 2.f * DrUISwitchSize::Inset);
-  TestEqual(TEXT("스프링이 넘쳐도 트랙 밖으로 안 나감"), UDrUISwitch::ThumbTravel(1.2f), UDrUISwitch::ThumbTravel(1.f));
+  TestEqual(TEXT("꺼짐은 왼쪽"), UDrSwitch::ThumbTravel(0.f), 0.f);
+  TestEqual(TEXT("켜짐은 트랙 끝에서 여백만큼 안쪽"), UDrSwitch::ThumbTravel(1.f), DrSwitchSize::TrackWidth - DrSwitchSize::ThumbSize - 2.f * DrSwitchSize::Inset);
+  TestEqual(TEXT("스프링이 넘쳐도 트랙 밖으로 안 나감"), UDrSwitch::ThumbTravel(1.2f), UDrSwitch::ThumbTravel(1.f));
   return true;
 }
 
@@ -196,7 +196,7 @@ bool FDrUISnackbarQueueTest::RunTest(const FString&) {
   if (!TestNotNull(TEXT("테마 서브시스템"), Subsystem)) return false;
   const bool bWasReduce = Subsystem->IsReduceMotion();
   Subsystem->SetReduceMotion(true);  // 움직임 없이 바로 나타나고 바로 사라지게
-  UDrUISnackbar* Bar = NewObject<UDrUISnackbar>(GetTransientPackage());
+  UDrSnackbar* Bar = NewObject<UDrSnackbar>(GetTransientPackage());
   const int32 First = Bar->Show(FText::FromString(TEXT("첫째")), FText::FromString(TEXT("되돌리기")), 4.f);
   const int32 Second = Bar->Show(FText::FromString(TEXT("둘째")), FText::GetEmpty(), 0.f);
   TestTrue(TEXT("요청 번호는 차례로"), Second == First + 1);
@@ -209,15 +209,15 @@ bool FDrUISnackbarQueueTest::RunTest(const FString&) {
   TestFalse(TEXT("다 닫으면 숨김"), Bar->IsShown());
   Subsystem->SetReduceMotion(bWasReduce);
 
-  TSet<EDrUIGlyphShape> Shapes;
-  for (const EDrUINoticeTone Tone : {EDrUINoticeTone::Info, EDrUINoticeTone::Success, EDrUINoticeTone::Warning, EDrUINoticeTone::Danger}) {
-    EDrUIGlyphShape Shape;
+  TSet<EDrGlyphShape> Shapes;
+  for (const EDrNoticeTone Tone : {EDrNoticeTone::Info, EDrNoticeTone::Success, EDrNoticeTone::Warning, EDrNoticeTone::Danger}) {
+    EDrGlyphShape Shape;
     FName Color;
-    UDrUIToast::ToneGlyph(Tone, Shape, Color);
+    UDrToast::ToneGlyph(Tone, Shape, Color);
     Shapes.Add(Shape);
   }
   TestEqual(TEXT("토스트 색 4종은 모양도 모두 다름(색만으로 구분하지 않음)"), Shapes.Num(), 4);
-  TestEqual(TEXT("느낌표는 획 둘"), DrUIGlyph::Strokes(EDrUIGlyphShape::Alert).Num(), 2);
+  TestEqual(TEXT("느낌표는 획 둘"), DrGlyph::Strokes(EDrGlyphShape::Alert).Num(), 2);
   return true;
 }
 #endif

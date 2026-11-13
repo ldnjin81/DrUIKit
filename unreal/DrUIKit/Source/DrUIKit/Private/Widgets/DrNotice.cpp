@@ -1,4 +1,4 @@
-#include "Widgets/DrUINotice.h"
+#include "Widgets/DrNotice.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
@@ -7,9 +7,9 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Containers/Ticker.h"
 #include "Theme/DrUIThemeSubsystem.h"
-#include "Widgets/DrUIButton.h"
-#include "Widgets/DrUISurface.h"
-#include "Widgets/DrUIText.h"
+#include "Widgets/DrButton.h"
+#include "Widgets/DrSurface.h"
+#include "Widgets/DrText.h"
 
 namespace {
 bool IsNoticeReduceMotion() {
@@ -20,14 +20,14 @@ bool IsNoticeReduceMotion() {
 
 // ---------------------------------------------------------------- 공통 틀
 
-TSharedRef<SWidget> UDrUINoticeBase::RebuildWidget() {
+TSharedRef<SWidget> UDrNoticeBase::RebuildWidget() {
   // 내용(Show·SetContent)은 트리보다 먼저 들어올 수 있으므로 ApplyTheme이 보관한 값으로 다시 쓴다.
   if (WidgetTree && !WidgetTree->RootWidget) { BuildDefaultTree(); ApplyTheme(); }
   ApplyPresence();
   return Super::RebuildWidget();
 }
 
-void UDrUINoticeBase::NativeOnInitialized() {
+void UDrNoticeBase::NativeOnInitialized() {
   Super::NativeOnInitialized();
   Presence.Stiffness = 320.f;
   Presence.Damping = 30.f;
@@ -36,13 +36,13 @@ void UDrUINoticeBase::NativeOnInitialized() {
   ApplyTheme();
 }
 
-void UDrUINoticeBase::NativeDestruct() {
+void UDrNoticeBase::NativeDestruct() {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
   ThemeHandle.Reset();
   Super::NativeDestruct();
 }
 
-void UDrUINoticeBase::Enter(float Seconds) {
+void UDrNoticeBase::Enter(float Seconds) {
   Remaining = Seconds;
   if (!bShown) Presence.Snap(0.f);
   bShown = true;
@@ -51,7 +51,7 @@ void UDrUINoticeBase::Enter(float Seconds) {
   ApplyPresence();
 }
 
-void UDrUINoticeBase::Leave() {
+void UDrNoticeBase::Leave() {
   if (!bShown) return;
   Remaining = 0.f;
   Presence.Target = 0.f;
@@ -60,7 +60,7 @@ void UDrUINoticeBase::Leave() {
   if (Presence.IsSettled()) { bShown = false; ApplyPresence(); HandleLeft(); }
 }
 
-void UDrUINoticeBase::ApplyPresence() {
+void UDrNoticeBase::ApplyPresence() {
   SetRenderOpacity(FMath::Clamp(Presence.Value, 0.f, 1.f));
   FWidgetTransform Transform = GetRenderTransform();
   Transform.Translation = EnterOffset * (1.f - Presence.Value);  // 스프링이 넘치면 살짝 지나쳤다 돌아온다
@@ -68,7 +68,7 @@ void UDrUINoticeBase::ApplyPresence() {
   SetVisibility(!bShown ? ESlateVisibility::Collapsed : IsLeaving() ? ESlateVisibility::HitTestInvisible : ShownVisibility());
 }
 
-void UDrUINoticeBase::NativeTick(const FGeometry& Geometry, float DeltaTime) {
+void UDrNoticeBase::NativeTick(const FGeometry& Geometry, float DeltaTime) {
   Super::NativeTick(Geometry, DeltaTime);
   if (!bShown) return;
   if (Remaining > 0.f && !IsLeaving() && !bHoldTimer) {
@@ -85,27 +85,27 @@ void UDrUINoticeBase::NativeTick(const FGeometry& Geometry, float DeltaTime) {
 
 // ---------------------------------------------------------------- 토스트
 
-void UDrUIToast::ToneGlyph(EDrUINoticeTone InTone, EDrUIGlyphShape& OutShape, FName& OutColor) {
+void UDrToast::ToneGlyph(EDrNoticeTone InTone, EDrGlyphShape& OutShape, FName& OutColor) {
   // 색만으로 구분하지 않도록 모양도 다르게(디자인 시스템: 아이콘·문구를 함께).
   switch (InTone) {
-  case EDrUINoticeTone::Success: OutShape = EDrUIGlyphShape::Check; OutColor = DrUITokens::Success; break;
-  case EDrUINoticeTone::Warning: OutShape = EDrUIGlyphShape::Alert; OutColor = DrUITokens::Warning; break;
-  case EDrUINoticeTone::Danger: OutShape = EDrUIGlyphShape::Close; OutColor = DrUITokens::Danger; break;
-  default: OutShape = EDrUIGlyphShape::Dot; OutColor = DrUITokens::Accent; break;
+  case EDrNoticeTone::Success: OutShape = EDrGlyphShape::Check; OutColor = DrUITokens::Success; break;
+  case EDrNoticeTone::Warning: OutShape = EDrGlyphShape::Alert; OutColor = DrUITokens::Warning; break;
+  case EDrNoticeTone::Danger: OutShape = EDrGlyphShape::Close; OutColor = DrUITokens::Danger; break;
+  default: OutShape = EDrGlyphShape::Dot; OutColor = DrUITokens::Accent; break;
   }
 }
 
-void UDrUIToast::SetContent(const FText& InMessage, EDrUINoticeTone InTone) {
+void UDrToast::SetContent(const FText& InMessage, EDrNoticeTone InTone) {
   Message = InMessage;
   Tone = InTone;
   ApplyTheme();
 }
 
-void UDrUIToast::BuildDefaultTree() {
+void UDrToast::BuildDefaultTree() {
   USizeBox* Frame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Frame"));
   Frame->SetMaxDesiredWidth(420.f);
   WidgetTree->RootWidget = Frame;
-  Surface = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Surface"));
+  Surface = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Surface"));
   Surface->FillToken = DrUITokens::GlassStrong;
   Surface->BackdropToken = DrUITokens::BackdropSoft;
   Surface->RadiusToken = DrUITokens::RadiusPill;
@@ -114,19 +114,19 @@ void UDrUIToast::BuildDefaultTree() {
   Frame->AddChild(Surface);
   UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
   Surface->SetContent(Row);
-  Icon = WidgetTree->ConstructWidget<UDrUIGlyph>(UDrUIGlyph::StaticClass(), TEXT("Icon"));
+  Icon = WidgetTree->ConstructWidget<UDrGlyph>(UDrGlyph::StaticClass(), TEXT("Icon"));
   Icon->GlyphSize = 18.f;
   Icon->Thickness = 2.4f;
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(Icon)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 8, 0)); }
   // 토스트는 한 줄 알림이다. 자동 줄바꿈은 줄 상자(WrapBox 등) 안에서 첫 프레임 폭으로 접혀 짧은 글도 두 줄이 되었다.
-  MessageText = WidgetTree->ConstructWidget<UDrUIText>(UDrUIText::StaticClass(), TEXT("MessageText"));
+  MessageText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("MessageText"));
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(MessageText)) S->SetVerticalAlignment(VAlign_Center);
 }
 
-void UDrUIToast::ApplyTheme() {
+void UDrToast::ApplyTheme() {
   if (Surface) Surface->ApplyTheme();
   if (Icon) {
-    EDrUIGlyphShape Shape;
+    EDrGlyphShape Shape;
     FName Color;
     ToneGlyph(Tone, Shape, Color);
     Icon->SetShape(Shape);
@@ -140,7 +140,7 @@ void UDrUIToast::ApplyTheme() {
 
 // ---------------------------------------------------------------- 토스트 쌓개
 
-TSharedRef<SWidget> UDrUIToastStack::RebuildWidget() {
+TSharedRef<SWidget> UDrToastStack::RebuildWidget() {
   if (WidgetTree && !WidgetTree->RootWidget) {
     Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Stack"));
     WidgetTree->RootWidget = Stack;
@@ -150,25 +150,25 @@ TSharedRef<SWidget> UDrUIToastStack::RebuildWidget() {
   return Super::RebuildWidget();
 }
 
-int32 UDrUIToastStack::GetActiveCount() const {
+int32 UDrToastStack::GetActiveCount() const {
   int32 Count = 0;
   if (Stack)
     for (UWidget* Child : Stack->GetAllChildren())
-      if (const UDrUIToast* Toast = Cast<UDrUIToast>(Child); Toast && Toast->IsShown() && !Toast->IsLeaving()) ++Count;
+      if (const UDrToast* Toast = Cast<UDrToast>(Child); Toast && Toast->IsShown() && !Toast->IsLeaving()) ++Count;
   return Count;
 }
 
-UDrUIToast* UDrUIToastStack::Push(const FText& Message, EDrUINoticeTone Tone, float Seconds) {
+UDrToast* UDrToastStack::Push(const FText& Message, EDrNoticeTone Tone, float Seconds) {
   if (!Stack) TakeWidget();  // 아직 화면에 붙기 전이면 기본 구성을 먼저 만든다
   if (!Stack) return nullptr;
-  UDrUIToast* Toast = CreateWidget<UDrUIToast>(this, ToastClass ? ToastClass.Get() : UDrUIToast::StaticClass());
+  UDrToast* Toast = CreateWidget<UDrToast>(this, ToastClass ? ToastClass.Get() : UDrToast::StaticClass());
   if (!Toast) return nullptr;
   Toast->SetContent(Message, Tone);
   if (UVerticalBoxSlot* S = Stack->AddChildToVerticalBox(Toast)) { S->SetHorizontalAlignment(HAlign_Center); S->SetPadding(FMargin(0, 0, 0, Gap)); }
   // 다 사라진 토스트는 다음 틱에 치운다(토스트 자신의 틱 안에서 부모를 바꾸지 않도록).
-  Toast->OnLeft.AddWeakLambda(this, [this, Weak = TWeakObjectPtr<UDrUIToast>(Toast)] {
+  Toast->OnLeft.AddWeakLambda(this, [this, Weak = TWeakObjectPtr<UDrToast>(Toast)] {
     FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [Weak](float) {
-      if (UDrUIToast* Done = Weak.Get(); Done && !Done->IsShown()) Done->RemoveFromParent();
+      if (UDrToast* Done = Weak.Get(); Done && !Done->IsShown()) Done->RemoveFromParent();
       return false;
     }));
   });
@@ -176,7 +176,7 @@ UDrUIToast* UDrUIToastStack::Push(const FText& Message, EDrUINoticeTone Tone, fl
   int32 Over = GetActiveCount() - (MaxVisible - 1);
   for (UWidget* Child : Stack->GetAllChildren()) {
     if (Over <= 0) break;
-    if (UDrUIToast* Old = Cast<UDrUIToast>(Child); Old && Old != Toast && Old->IsShown() && !Old->IsLeaving()) { Old->Leave(); --Over; }
+    if (UDrToast* Old = Cast<UDrToast>(Child); Old && Old != Toast && Old->IsShown() && !Old->IsLeaving()) { Old->Leave(); --Over; }
   }
   Toast->Enter(Seconds);
   return Toast;
@@ -184,22 +184,22 @@ UDrUIToast* UDrUIToastStack::Push(const FText& Message, EDrUINoticeTone Tone, fl
 
 // ---------------------------------------------------------------- 스낵바
 
-UDrUISnackbar::UDrUISnackbar(const FObjectInitializer& Initializer) : Super(Initializer) {
+UDrSnackbar::UDrSnackbar(const FObjectInitializer& Initializer) : Super(Initializer) {
   EnterOffset = FVector2D(0.f, 16.f);  // 아래에서 올라온다
 }
 
-void UDrUISnackbar::NativeOnInitialized() {
+void UDrSnackbar::NativeOnInitialized() {
   // 위젯 블루프린트가 ActionButton을 두었으면 여기서 잇는다(기본 구성은 BuildDefaultTree에서).
   if (ActionButton) ActionButton->OnClicked().AddUObject(this, &ThisClass::HandleActionClicked);
   Super::NativeOnInitialized();
 }
 
-void UDrUISnackbar::BuildDefaultTree() {
+void UDrSnackbar::BuildDefaultTree() {
   USizeBox* Frame = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Frame"));
   Frame->SetMinDesiredWidth(320.f);
   Frame->SetMaxDesiredWidth(560.f);
   WidgetTree->RootWidget = Frame;
-  Surface = WidgetTree->ConstructWidget<UDrUISurface>(UDrUISurface::StaticClass(), TEXT("Surface"));
+  Surface = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Surface"));
   // 진한 알약(chip): 유리 위 어디서나 눈에 띄고 투명도 설정을 따르지 않는다.
   Surface->FillToken = DrUITokens::Chip;
   Surface->FillStrongToken = NAME_None;
@@ -211,16 +211,16 @@ void UDrUISnackbar::BuildDefaultTree() {
   Frame->AddChild(Surface);
   UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
   Surface->SetContent(Row);
-  MessageText = WidgetTree->ConstructWidget<UDrUIText>(UDrUIText::StaticClass(), TEXT("MessageText"));
+  MessageText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("MessageText"));
   MessageText->SetAutoWrapText(true);
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(MessageText)) { S->SetVerticalAlignment(VAlign_Center); S->SetSize(FSlateChildSize(ESlateSizeRule::Fill)); S->SetPadding(FMargin(0, 6, 12, 6)); }
-  ActionButton = WidgetTree->ConstructWidget<UDrUIButton>(UDrUIButton::StaticClass(), TEXT("ActionButton"));
-  ActionButton->Variant = EDrUIButtonVariant::Primary;  // accent 채움 + on-accent 글자: chip 위에서 밝은·어두운 테마 모두 읽힌다
+  ActionButton = WidgetTree->ConstructWidget<UDrButton>(UDrButton::StaticClass(), TEXT("ActionButton"));
+  ActionButton->Variant = EDrButtonVariant::Primary;  // accent 채움 + on-accent 글자: chip 위에서 밝은·어두운 테마 모두 읽힌다
   ActionButton->OnClicked().AddUObject(this, &ThisClass::HandleActionClicked);
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(ActionButton)) S->SetVerticalAlignment(VAlign_Center);
 }
 
-void UDrUISnackbar::ApplyTheme() {
+void UDrSnackbar::ApplyTheme() {
   if (Surface) Surface->ApplyTheme();
   if (MessageText) {
     MessageText->SetTokens(DrUITokens::Body, DrUITokens::OnChip);
@@ -232,7 +232,7 @@ void UDrUISnackbar::ApplyTheme() {
   }
 }
 
-int32 UDrUISnackbar::Show(const FText& Message, const FText& ActionLabel, float Seconds) {
+int32 UDrSnackbar::Show(const FText& Message, const FText& ActionLabel, float Seconds) {
   FRequest Request;
   Request.Id = NextId++;
   Request.Message = Message;
@@ -243,7 +243,7 @@ int32 UDrUISnackbar::Show(const FText& Message, const FText& ActionLabel, float 
   return Request.Id;
 }
 
-void UDrUISnackbar::Present(const FRequest& Request) {
+void UDrSnackbar::Present(const FRequest& Request) {
   Current = Request;
   bByAction = false;
   bHoldTimer = false;
@@ -251,9 +251,9 @@ void UDrUISnackbar::Present(const FRequest& Request) {
   Enter(Request.Seconds);
 }
 
-void UDrUISnackbar::Dismiss() { Leave(); }
+void UDrSnackbar::Dismiss() { Leave(); }
 
-void UDrUISnackbar::HandleLeft() {
+void UDrSnackbar::HandleLeft() {
   const int32 Id = Current.Id;
   const bool bWasAction = bByAction;
   Current = FRequest();
@@ -268,19 +268,19 @@ void UDrUISnackbar::HandleLeft() {
   OnDismissed.Broadcast(Id, bWasAction);
 }
 
-void UDrUISnackbar::HandleActionClicked() {
+void UDrSnackbar::HandleActionClicked() {
   if (!IsShown() || IsLeaving()) return;
   bByAction = true;
   OnAction.Broadcast(Current.Id);
   Leave();
 }
 
-void UDrUISnackbar::NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event) {
+void UDrSnackbar::NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event) {
   Super::NativeOnMouseEnter(Geometry, Event);
   bHoldTimer = true;  // 읽는 중에는 사라지지 않는다
 }
 
-void UDrUISnackbar::NativeOnMouseLeave(const FPointerEvent& Event) {
+void UDrSnackbar::NativeOnMouseLeave(const FPointerEvent& Event) {
   Super::NativeOnMouseLeave(Event);
   bHoldTimer = false;
 }

@@ -15,15 +15,17 @@
 
 ## 지금 있는 것
 
+이름: 부품은 `UDr<부품>`(`UDrButton`), 부품이 아닌 기반 시스템은 `UDrUI<…>`(`UDrUITheme`).
+
 | 영역 | 클래스 |
 | --- | --- |
 | 테마 | `UDrUITheme`(토큰 묶음 데이터 에셋, 회색조 기본 테마), `UDrUIThemeSubsystem`(현재 테마·전환·표면 품질·표면 투명도·움직임 줄이기), `UDrUIKitSettings` |
 | 상태·움직임 | `EDrUIState`·`DrUIState::Resolve`(9상태 우선순위), `DrUIMotion`(이즈 인·아웃 cubic-bezier, 순차 등장), `FDrUISpring` |
-| 기초 부품 | `UDrUIText`(UCommonTextBlock), `UDrUIIcon`(UImage), `UDrUIGlyph`(선으로 그리는 표시: 체크·점·더하기·닫기·화살표·느낌표), `UDrUISurface`(UBorder + 뒤 흐림, 채움 토큰이 비면 투명) |
-| 누르는 부품 | `UDrUIButtonBase`(공통 상태 판정 틀, 추상), `UDrUIButton`(9상태·변형 4종) |
-| 선택 부품 | `UDrUICheckBox`(체크 그리기), `UDrUIRadio`(+ `UCommonButtonGroupBase`로 하나만 선택), `UDrUISwitch`(스프링 손잡이), `UDrUITabList`·`UDrUITabButton`(UCommonTabListWidgetBase, 알약·밑줄 인디케이터가 미끄러짐), `UDrUISegmented`(값 하나 고르기), `UDrUISlider`(USlider + 채움 트랙) |
-| 상태 표시 | `UDrUIBadge`(숫자·99+·점, 색 6종), `UDrUIProgressBar`(UProgressBar, 둥근 트랙·채움 움직임·끝없는 진행), `UDrUIProgressRing`(원형 진행률, 스프링·끝없는 회전), `UDrUISkeleton`(불러오는 중 자리 표시), `UDrUISpinner`(UCircularThrobber, 토큰 색) |
-| 알림 | `UDrUINoticeBase`(떴다 사라지는 부품 공통 틀, 추상), `UDrUIToast`(유리 알약 + 색·모양 표시 4종), `UDrUIToastStack`(토스트 쌓기, 최대 개수 넘으면 오래된 것부터 물러남), `UDrUISnackbar`(진한 알약 + 행동 버튼, 한 번에 하나·차례 줄, 호버 중 시간 멈춤) |
+| 기초 부품 | `UDrText`(UCommonTextBlock), `UDrIcon`(UImage), `UDrGlyph`(선으로 그리는 표시: 체크·점·더하기·닫기·화살표·느낌표), `UDrSurface`(UBorder + 뒤 흐림, 채움 토큰이 비면 투명) |
+| 누르는 부품 | `UDrButtonBase`(공통 상태 판정 틀, 추상), `UDrButton`(9상태·변형 4종) |
+| 선택 부품 | `UDrToggleBase`(켜고 끄는 부품 공통 틀, 추상), `UDrCheckBox`(체크 그리기), `UDrRadio`(+ `UCommonButtonGroupBase`로 하나만 선택), `UDrSwitch`(스프링 손잡이), `UDrTabList`·`UDrTabButton`(UCommonTabListWidgetBase, 알약·밑줄 인디케이터가 미끄러짐), `UDrSegmentedControl`(값 하나 고르기), `UDrSlider`(USlider + 채움 트랙) |
+| 상태 표시 | `UDrBadge`(숫자·99+·점, 색 6종), `UDrProgressBar`(UProgressBar, 둥근 트랙·채움 움직임·끝없는 진행), `UDrProgressRing`(원형 진행률, 스프링·끝없는 회전), `UDrSkeleton`(불러오는 중 자리 표시), `UDrSpinner`(UCircularThrobber, 토큰 색) |
+| 알림 | `UDrNoticeBase`(떴다 사라지는 부품 공통 틀, 추상), `UDrToast`(유리 알약 + 색·모양 표시 4종), `UDrToastStack`(토스트 쌓기, 최대 개수 넘으면 오래된 것부터 물러남), `UDrSnackbar`(진한 알약 + 행동 버튼, 한 번에 하나·차례 줄, 호버 중 시간 멈춤) |
 
 ## 갤러리
 

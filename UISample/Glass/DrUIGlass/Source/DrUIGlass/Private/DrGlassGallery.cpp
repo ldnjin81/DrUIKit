@@ -22,43 +22,43 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "TimerManager.h"
 #include "UnrealClient.h"
-#include "Widgets/DrUIChoice.h"
-#include "Widgets/DrUIGlyph.h"
-#include "Widgets/DrUIIcon.h"
-#include "Widgets/DrUINotice.h"
-#include "Widgets/DrUISlider.h"
-#include "Widgets/DrUIStatus.h"
-#include "Widgets/DrUISurface.h"
-#include "Widgets/DrUITabList.h"
-#include "Widgets/DrUIText.h"
+#include "Widgets/DrToggle.h"
+#include "Widgets/DrGlyph.h"
+#include "Widgets/DrIcon.h"
+#include "Widgets/DrNotice.h"
+#include "Widgets/DrSlider.h"
+#include "Widgets/DrStatus.h"
+#include "Widgets/DrSurface.h"
+#include "Widgets/DrTabList.h"
+#include "Widgets/DrText.h"
 
 #define LOCTEXT_NAMESPACE "DrGlassGallery"
 
 TArray<UClass*> UDrGlassGallery::CoveredClasses() {
-  return {UDrUIText::StaticClass(), UDrUIIcon::StaticClass(), UDrUISurface::StaticClass(), UDrUIButton::StaticClass(),
-    UDrUIGlyph::StaticClass(), UDrUICheckBox::StaticClass(), UDrUIRadio::StaticClass(), UDrUISwitch::StaticClass(),
-    UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass(), UDrUISlider::StaticClass(),
-    UDrUIBadge::StaticClass(), UDrUIProgressBar::StaticClass(), UDrUIProgressRing::StaticClass(), UDrUISkeleton::StaticClass(), UDrUISpinner::StaticClass(),
-    UDrUIToast::StaticClass(), UDrUIToastStack::StaticClass(), UDrUISnackbar::StaticClass()};
+  return {UDrText::StaticClass(), UDrIcon::StaticClass(), UDrSurface::StaticClass(), UDrButton::StaticClass(),
+    UDrGlyph::StaticClass(), UDrCheckBox::StaticClass(), UDrRadio::StaticClass(), UDrSwitch::StaticClass(),
+    UDrTabButton::StaticClass(), UDrTabList::StaticClass(), UDrSegmentedControl::StaticClass(), UDrSlider::StaticClass(),
+    UDrBadge::StaticClass(), UDrProgressBar::StaticClass(), UDrProgressRing::StaticClass(), UDrSkeleton::StaticClass(), UDrSpinner::StaticClass(),
+    UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass()};
 }
 
-UDrUIText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
-  UDrUIText* Widget = WidgetTree->ConstructWidget<UDrUIText>();
+UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
+  UDrText* Widget = WidgetTree->ConstructWidget<UDrText>();
   Widget->TextStyle = Style;
   Widget->ColorToken = Color;
   Widget->SetText(Text);
   return Widget;
 }
 
-UDrUIButton* UDrGlassGallery::MakeButton(const FText& Label, EDrUIButtonVariant Variant) {
-  UDrUIButton* Button = WidgetTree->ConstructWidget<UDrUIButton>();
+UDrButton* UDrGlassGallery::MakeButton(const FText& Label, EDrButtonVariant Variant) {
+  UDrButton* Button = WidgetTree->ConstructWidget<UDrButton>();
   Button->Label = Label;
   Button->Variant = Variant;
   return Button;
 }
 
 UWidget* UDrGlassGallery::Section(const FText& Title, UWidget* Body) {
-  UDrUISurface* Card = WidgetTree->ConstructWidget<UDrUISurface>();
+  UDrSurface* Card = WidgetTree->ConstructWidget<UDrSurface>();
   Card->FillToken = TEXT("glass-strong");
   Card->RadiusToken = TEXT("radius-xl");
   Card->PaddingToken = TEXT("space-6");
@@ -78,13 +78,13 @@ UWidget* UDrGlassGallery::BuildFoundationPage() {
   for (const TCHAR* Style : {TEXT("display"), TEXT("title"), TEXT("heading"), TEXT("body"), TEXT("label"), TEXT("caption"), TEXT("overline"), TEXT("metric"), TEXT("code")})
     if (UVerticalBoxSlot* S = Type->AddChildToVerticalBox(MakeText(FText::Format(LOCTEXT("TypeSample", "{0} · 다시 오셨네요 ₩1,172만"), FText::FromString(Style)), Style)))
       S->SetPadding(FMargin(0, 2));
-  Add(Section(LOCTEXT("TypeTitle", "글자 스타일(UDrUIText)"), Type));
+  Add(Section(LOCTEXT("TypeTitle", "글자 스타일(UDrText)"), Type));
 
   UWrapBox* Swatches = WidgetTree->ConstructWidget<UWrapBox>();
   Swatches->SetInnerSlotPadding(FVector2D(12, 12));
   for (const TCHAR* Token : {TEXT("ground"), TEXT("glass"), TEXT("glass-strong"), TEXT("ink"), TEXT("ink-muted"), TEXT("accent"), TEXT("accent-soft"), TEXT("chip"), TEXT("ember"), TEXT("success"), TEXT("warning"), TEXT("danger")}) {
     UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>();
-    UDrUISurface* Chip = WidgetTree->ConstructWidget<UDrUISurface>();
+    UDrSurface* Chip = WidgetTree->ConstructWidget<UDrSurface>();
     Chip->FillToken = Token; Chip->FillStrongToken = NAME_None; Chip->BackdropToken = NAME_None;
     Chip->RadiusToken = TEXT("radius-md"); Chip->PaddingToken = NAME_None;
     Chip->SetContent(WidgetTree->ConstructWidget<USpacer>());
@@ -96,11 +96,11 @@ UWidget* UDrGlassGallery::BuildFoundationPage() {
     Cell->AddChildToVerticalBox(MakeText(FText::FromString(Token), TEXT("caption"), TEXT("ink-muted")));
     Swatches->AddChild(Cell);
   }
-  Add(Section(LOCTEXT("ColorTitle", "색 토큰(UDrUISurface 채움)"), Swatches));
+  Add(Section(LOCTEXT("ColorTitle", "색 토큰(UDrSurface 채움)"), Swatches));
 
   UHorizontalBox* Surfaces = WidgetTree->ConstructWidget<UHorizontalBox>();
   for (const auto& [Fill, Caption] : TArray<TPair<FName, FText>>{{TEXT("glass"), LOCTEXT("Glass", "glass + 흐림(유리 패널)")}, {TEXT("glass-strong"), LOCTEXT("Strong", "glass-strong(글이 많은 곳)")}}) {
-    UDrUISurface* Panel = WidgetTree->ConstructWidget<UDrUISurface>();
+    UDrSurface* Panel = WidgetTree->ConstructWidget<UDrSurface>();
     Panel->FillToken = Fill;
     Panel->RadiusToken = TEXT("radius-xl");
     Panel->PaddingToken = TEXT("space-5");
@@ -116,25 +116,25 @@ UWidget* UDrGlassGallery::BuildFoundationPage() {
 
   UHorizontalBox* Icons = WidgetTree->ConstructWidget<UHorizontalBox>();
   for (const TCHAR* Token : {TEXT("ink"), TEXT("ink-muted"), TEXT("accent"), TEXT("danger")}) {
-    UDrUIIcon* Icon = WidgetTree->ConstructWidget<UDrUIIcon>();
+    UDrIcon* Icon = WidgetTree->ConstructWidget<UDrIcon>();
     Icon->ColorToken = Token;
     if (UHorizontalBoxSlot* S = Icons->AddChildToHorizontalBox(Icon)) S->SetPadding(FMargin(0, 0, 12, 0));
   }
   Icons->AddChildToHorizontalBox(MakeText(LOCTEXT("IconNote", "아이콘 모양(텍스처)은 게임이 지정한다. 여기서는 색 토큰만 확인."), TEXT("caption"), TEXT("ink-muted")));
-  Add(Section(LOCTEXT("IconTitle", "아이콘(UDrUIIcon)"), Icons));
+  Add(Section(LOCTEXT("IconTitle", "아이콘(UDrIcon)"), Icons));
   return Page;
 }
 
 UWidget* UDrGlassGallery::BuildButtonPage() {
   UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
-  const TArray<TPair<EDrUIButtonVariant, FText>> Variants = {
-    {EDrUIButtonVariant::Primary, LOCTEXT("Primary", "Primary")}, {EDrUIButtonVariant::Secondary, LOCTEXT("Secondary", "Secondary")},
-    {EDrUIButtonVariant::Ghost, LOCTEXT("Ghost", "Ghost")}, {EDrUIButtonVariant::Destructive, LOCTEXT("Destructive", "Destructive")}};
+  const TArray<TPair<EDrButtonVariant, FText>> Variants = {
+    {EDrButtonVariant::Primary, LOCTEXT("Primary", "Primary")}, {EDrButtonVariant::Secondary, LOCTEXT("Secondary", "Secondary")},
+    {EDrButtonVariant::Ghost, LOCTEXT("Ghost", "Ghost")}, {EDrButtonVariant::Destructive, LOCTEXT("Destructive", "Destructive")}};
   for (const auto& [Variant, Name] : Variants) {
     UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>();
     Row->SetInnerSlotPadding(FVector2D(12, 12));
     // 1) 직접 눌러 보는 버튼: 누르면 로딩 1초 → 성공.
-    UDrUIButton* Live = MakeButton(Variant == EDrUIButtonVariant::Destructive ? LOCTEXT("Delete", "삭제") : LOCTEXT("Save", "저장"), Variant);
+    UDrButton* Live = MakeButton(Variant == EDrButtonVariant::Destructive ? LOCTEXT("Delete", "삭제") : LOCTEXT("Save", "저장"), Variant);
     Live->OnClicked().AddWeakLambda(this, [this, Live] {
       Live->SetLoading(true);
       FTimerHandle Handle;
@@ -142,10 +142,10 @@ UWidget* UDrGlassGallery::BuildButtonPage() {
     });
     Row->AddChild(Live);
     // 2) 상태 고정 견본(호버·눌림·포커스는 마우스·키보드로 직접 확인).
-    UDrUIButton* Disabled = MakeButton(LOCTEXT("DisabledLabel", "비활성"), Variant); Disabled->SetIsEnabled(false); Row->AddChild(Disabled);
-    UDrUIButton* Loading = MakeButton(LOCTEXT("LoadingLabel", "저장 중"), Variant); Row->AddChild(Loading);
-    UDrUIButton* Error = MakeButton(LOCTEXT("ErrorLabel", "오류"), Variant); Row->AddChild(Error);
-    UDrUIButton* Selected = MakeButton(LOCTEXT("SelectedLabel", "✓ 선택됨"), Variant); Selected->SetIsSelectable(true); Row->AddChild(Selected);
+    UDrButton* Disabled = MakeButton(LOCTEXT("DisabledLabel", "비활성"), Variant); Disabled->SetIsEnabled(false); Row->AddChild(Disabled);
+    UDrButton* Loading = MakeButton(LOCTEXT("LoadingLabel", "저장 중"), Variant); Row->AddChild(Loading);
+    UDrButton* Error = MakeButton(LOCTEXT("ErrorLabel", "오류"), Variant); Row->AddChild(Error);
+    UDrButton* Selected = MakeButton(LOCTEXT("SelectedLabel", "✓ 선택됨"), Variant); Selected->SetIsSelectable(true); Row->AddChild(Selected);
     Loading->SetLoading(true);
     Error->SetError(true, LOCTEXT("Retry", "다시 시도"));
     Selected->SetIsSelected(true, false);
@@ -165,13 +165,13 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
   for (const auto& [Label, bOn, bEnabled] : TArray<TTuple<FText, bool, bool>>{
          {LOCTEXT("CheckLive", "알림 받기"), false, true}, {LOCTEXT("CheckOn", "자동 저장"), true, true},
          {LOCTEXT("CheckOffDisabled", "비활성"), false, false}, {LOCTEXT("CheckOnDisabled", "비활성 켜짐"), true, false}}) {
-    UDrUICheckBox* Check = WidgetTree->ConstructWidget<UDrUICheckBox>();
+    UDrCheckBox* Check = WidgetTree->ConstructWidget<UDrCheckBox>();
     Check->Label = Label;
     Check->SetOn(bOn);
     Check->SetIsEnabled(bEnabled);
     Checks->AddChild(Check);
   }
-  Add(Section(LOCTEXT("CheckTitle", "체크박스(UDrUICheckBox) · 켜면 체크를 그린다"), Checks));
+  Add(Section(LOCTEXT("CheckTitle", "체크박스(UDrCheckBox) · 켜면 체크를 그린다"), Checks));
 
   // 라디오: CommonUI 버튼 묶음이 하나만 선택을 맡는다.
   UWrapBox* Radios = MakeRow();
@@ -179,35 +179,35 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
   Group->SetSelectionRequired(true);
   RadioGroups.Add(Group);
   for (const FText& Label : {LOCTEXT("RadioEasy", "쉬움"), LOCTEXT("RadioNormal", "보통"), LOCTEXT("RadioHard", "어려움")}) {
-    UDrUIRadio* Radio = WidgetTree->ConstructWidget<UDrUIRadio>();
+    UDrRadio* Radio = WidgetTree->ConstructWidget<UDrRadio>();
     Radio->Label = Label;
     Group->AddWidget(Radio);
     Radios->AddChild(Radio);
   }
   Group->SelectButtonAtIndex(1, false);
-  UDrUIRadio* RadioDisabled = WidgetTree->ConstructWidget<UDrUIRadio>();
+  UDrRadio* RadioDisabled = WidgetTree->ConstructWidget<UDrRadio>();
   RadioDisabled->Label = LOCTEXT("RadioDisabled", "비활성");
   RadioDisabled->SetIsEnabled(false);
   Radios->AddChild(RadioDisabled);
-  Add(Section(LOCTEXT("RadioTitle", "라디오(UDrUIRadio + UCommonButtonGroupBase) · 하나만 선택"), Radios));
+  Add(Section(LOCTEXT("RadioTitle", "라디오(UDrRadio + UCommonButtonGroupBase) · 하나만 선택"), Radios));
 
   // 스위치.
   UWrapBox* Switches = MakeRow();
   for (const auto& [Label, bOn, bEnabled] : TArray<TTuple<FText, bool, bool>>{
          {LOCTEXT("SwitchLive", "진동"), false, true}, {LOCTEXT("SwitchOn", "자막"), true, true}, {LOCTEXT("SwitchDisabled", "비활성"), true, false}}) {
-    UDrUISwitch* Switch = WidgetTree->ConstructWidget<UDrUISwitch>();
+    UDrSwitch* Switch = WidgetTree->ConstructWidget<UDrSwitch>();
     Switch->Label = Label;
     Switch->SetOn(bOn);
     Switch->SetIsEnabled(bEnabled);
     Switches->AddChild(Switch);
   }
-  Add(Section(LOCTEXT("SwitchTitle", "스위치(UDrUISwitch) · 손잡이가 스프링으로 미끄러진다"), Switches));
+  Add(Section(LOCTEXT("SwitchTitle", "스위치(UDrSwitch) · 손잡이가 스프링으로 미끄러진다"), Switches));
 
   // 슬라이더: 값 글자, 4단계 눈금(StepSize .25), 비활성.
   UWrapBox* Sliders = MakeRow();
   for (const auto& [Value, Step, bEnabled] : TArray<TTuple<float, float, bool>>{{.35f, .05f, true}, {.5f, .25f, true}, {.7f, .05f, false}}) {
     UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>();
-    UDrUISlider* Slider = WidgetTree->ConstructWidget<UDrUISlider>();
+    UDrSlider* Slider = WidgetTree->ConstructWidget<UDrSlider>();
     Slider->SetValue(Value);
     Slider->SetStepSize(Step);
     Slider->SetIsEnabled(bEnabled);
@@ -215,59 +215,59 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
     Width->SetWidthOverride(220.f);
     Width->AddChild(Slider);
     if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(Width)) S->SetVerticalAlignment(VAlign_Center);
-    UDrUIText* ValueText = MakeText(FText::AsPercent(Value), TEXT("label"), TEXT("ink-muted"));
+    UDrText* ValueText = MakeText(FText::AsPercent(Value), TEXT("label"), TEXT("ink-muted"));
     if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(ValueText)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(12, 0, 0, 0)); }
     Slider->OnValueChanged.AddUniqueDynamic(this, &ThisClass::HandleSliderDemo);
     SliderDemoValues.Add(Slider, ValueText);
     Sliders->AddChild(Line);
   }
-  Add(Section(LOCTEXT("SliderTitle", "슬라이더(UDrUISlider) · 엔진 USlider + 채움 트랙. 두 번째는 4단계, 세 번째는 비활성"), Sliders));
+  Add(Section(LOCTEXT("SliderTitle", "슬라이더(UDrSlider) · 엔진 USlider + 채움 트랙. 두 번째는 4단계, 세 번째는 비활성"), Sliders));
 
   // 세그먼트: 고른 값을 옆 글자로 보여 준다.
   UHorizontalBox* SegmentRow = WidgetTree->ConstructWidget<UHorizontalBox>();
-  UDrUISegmented* Segmented = WidgetTree->ConstructWidget<UDrUISegmented>();
+  UDrSegmentedControl* Segmented = WidgetTree->ConstructWidget<UDrSegmentedControl>();
   const TArray<FText> Ranges = {LOCTEXT("Day", "일"), LOCTEXT("Week", "주"), LOCTEXT("Month", "월"), LOCTEXT("Year", "년")};
   Segmented->SetOptions(Ranges);
   USizeBox* SegmentSize = WidgetTree->ConstructWidget<USizeBox>();
   SegmentSize->SetWidthOverride(320.f);
   SegmentSize->AddChild(Segmented);
   if (UHorizontalBoxSlot* S = SegmentRow->AddChildToHorizontalBox(SegmentSize)) S->SetVerticalAlignment(VAlign_Center);
-  UDrUIText* SegmentValue = MakeText(FText::GetEmpty(), TEXT("body"), TEXT("ink-muted"));
+  UDrText* SegmentValue = MakeText(FText::GetEmpty(), TEXT("body"), TEXT("ink-muted"));
   if (UHorizontalBoxSlot* S = SegmentRow->AddChildToHorizontalBox(SegmentValue)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(16, 0, 0, 0)); }
   Segmented->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleSegmentDemo);
   SegmentDemoValue = SegmentValue;
   SegmentDemoOptions = Ranges;
   Segmented->SetSelectedIndex(1);
-  Add(Section(LOCTEXT("SegmentTitle", "세그먼트(UDrUISegmented) · 값 하나 고르기"), SegmentRow));
+  Add(Section(LOCTEXT("SegmentTitle", "세그먼트(UDrSegmentedControl) · 값 하나 고르기"), SegmentRow));
 
   // 탭(밑줄형): 위 페이지 탭은 알약형. 밑줄형은 작은 스위처에 붙여 확인한다.
   UVerticalBox* TabDemo = WidgetTree->ConstructWidget<UVerticalBox>();
-  UDrUITabList* Underline = WidgetTree->ConstructWidget<UDrUITabList>();
-  Underline->Style = EDrUITabStyle::Underline;
+  UDrTabList* Underline = WidgetTree->ConstructWidget<UDrTabList>();
+  Underline->Style = EDrTabStyle::Underline;
   UCommonAnimatedSwitcher* TabPages = WidgetTree->ConstructWidget<UCommonAnimatedSwitcher>();
   Underline->SetLinkedSwitcher(TabPages);
   for (const auto& [Id, Label, Body] : TArray<TTuple<FName, FText, FText>>{
          {TEXT("Graphics"), LOCTEXT("TabGraphics", "그래픽"), LOCTEXT("TabGraphicsBody", "그래픽 설정 내용")},
          {TEXT("Sound"), LOCTEXT("TabSound", "소리"), LOCTEXT("TabSoundBody", "소리 설정 내용")},
          {TEXT("Controls"), LOCTEXT("TabControls", "조작"), LOCTEXT("TabControlsBody", "조작 설정 내용(패드는 탭 목록의 이전·다음 입력으로 넘긴다)")}}) {
-    UDrUIText* Content = MakeText(Body, TEXT("body"), TEXT("ink-muted"));
+    UDrText* Content = MakeText(Body, TEXT("body"), TEXT("ink-muted"));
     TabPages->AddChild(Content);
     Underline->AddTab(Id, Label, Content);
   }
   if (UVerticalBoxSlot* S = TabDemo->AddChildToVerticalBox(Underline)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 12)); }
   TabDemo->AddChildToVerticalBox(TabPages);
-  Add(Section(LOCTEXT("TabTitle", "탭(UDrUITabList, UDrUITabButton) · 밑줄형. 위 페이지 탭이 알약형"), TabDemo));
+  Add(Section(LOCTEXT("TabTitle", "탭(UDrTabList, UDrTabButton) · 밑줄형. 위 페이지 탭이 알약형"), TabDemo));
 
-  // 표시(UDrUIGlyph): 모든 모양.
+  // 표시(UDrGlyph): 모든 모양.
   UWrapBox* Glyphs = MakeRow();
-  for (const EDrUIGlyphShape Shape : {EDrUIGlyphShape::Check, EDrUIGlyphShape::Dot, EDrUIGlyphShape::Minus, EDrUIGlyphShape::Plus, EDrUIGlyphShape::Close,
-         EDrUIGlyphShape::ChevronLeft, EDrUIGlyphShape::ChevronRight, EDrUIGlyphShape::ChevronDown, EDrUIGlyphShape::Alert}) {
-    UDrUIGlyph* Glyph = WidgetTree->ConstructWidget<UDrUIGlyph>();
+  for (const EDrGlyphShape Shape : {EDrGlyphShape::Check, EDrGlyphShape::Dot, EDrGlyphShape::Minus, EDrGlyphShape::Plus, EDrGlyphShape::Close,
+         EDrGlyphShape::ChevronLeft, EDrGlyphShape::ChevronRight, EDrGlyphShape::ChevronDown, EDrGlyphShape::Alert}) {
+    UDrGlyph* Glyph = WidgetTree->ConstructWidget<UDrGlyph>();
     Glyph->Shape = Shape;
     Glyph->GlyphSize = 24.f;
     Glyphs->AddChild(Glyph);
   }
-  Add(Section(LOCTEXT("GlyphTitle", "표시(UDrUIGlyph) · 에셋 없이 선으로 그림"), Glyphs));
+  Add(Section(LOCTEXT("GlyphTitle", "표시(UDrGlyph) · 에셋 없이 선으로 그림"), Glyphs));
   return Page;
 }
 
@@ -285,30 +285,30 @@ UWidget* UDrGlassGallery::BuildStatusPage() {
 
   // 배지: 숫자·넘침·점·색 + 버튼 위에 붙인 배지(눌러서 +1).
   UWrapBox* Badges = MakeRow();
-  for (const auto& [Count, bDot, Tone] : TArray<TTuple<int32, bool, EDrUIBadgeTone>>{
-         {3, false, EDrUIBadgeTone::Alert}, {12, false, EDrUIBadgeTone::Accent}, {120, false, EDrUIBadgeTone::Danger},
-         {5, false, EDrUIBadgeTone::Success}, {8, false, EDrUIBadgeTone::Warning}, {42, false, EDrUIBadgeTone::Neutral}, {0, true, EDrUIBadgeTone::Alert}}) {
-    UDrUIBadge* Badge = WidgetTree->ConstructWidget<UDrUIBadge>();
+  for (const auto& [Count, bDot, Tone] : TArray<TTuple<int32, bool, EDrBadgeTone>>{
+         {3, false, EDrBadgeTone::Alert}, {12, false, EDrBadgeTone::Accent}, {120, false, EDrBadgeTone::Danger},
+         {5, false, EDrBadgeTone::Success}, {8, false, EDrBadgeTone::Warning}, {42, false, EDrBadgeTone::Neutral}, {0, true, EDrBadgeTone::Alert}}) {
+    UDrBadge* Badge = WidgetTree->ConstructWidget<UDrBadge>();
     Badge->Count = Count;
     Badge->bDot = bDot;
     Badge->Tone = Tone;
     Badges->AddChild(Center(Badge));
   }
   UOverlay* Inbox = WidgetTree->ConstructWidget<UOverlay>();
-  UDrUIButton* InboxButton = MakeButton(LOCTEXT("Inbox", "받은 편지함 +1"));
+  UDrButton* InboxButton = MakeButton(LOCTEXT("Inbox", "받은 편지함 +1"));
   if (UOverlaySlot* S = Inbox->AddChildToOverlay(InboxButton)) S->SetPadding(FMargin(0, 6, 8, 0));
-  UDrUIBadge* InboxBadge = WidgetTree->ConstructWidget<UDrUIBadge>();
+  UDrBadge* InboxBadge = WidgetTree->ConstructWidget<UDrBadge>();
   InboxBadge->Count = 1;
   if (UOverlaySlot* S = Inbox->AddChildToOverlay(InboxBadge)) { S->SetHorizontalAlignment(HAlign_Right); S->SetVerticalAlignment(VAlign_Top); }
   InboxButton->OnClicked().AddWeakLambda(InboxBadge, [InboxBadge] { InboxBadge->SetCount(InboxBadge->Count + 1); });
   Badges->AddChild(Inbox);
-  Add(Section(LOCTEXT("BadgeTitle", "배지(UDrUIBadge) · 숫자·99+·점, 색 6종. 오른쪽 버튼을 누르면 +1"), Badges));
+  Add(Section(LOCTEXT("BadgeTitle", "배지(UDrBadge) · 숫자·99+·점, 색 6종. 오른쪽 버튼을 누르면 +1"), Badges));
 
   // 진행 막대 + 진행 링: 한 버튼으로 같이 25%씩 채운다.
   UVerticalBox* Progress = WidgetTree->ConstructWidget<UVerticalBox>();
   auto BarLine = [&](float Percent, FName Fill, bool bMarquee, const FText& Caption) {
     UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>();
-    UDrUIProgressBar* Bar = WidgetTree->ConstructWidget<UDrUIProgressBar>();
+    UDrProgressBar* Bar = WidgetTree->ConstructWidget<UDrProgressBar>();
     Bar->FillToken = Fill;
     Bar->SetPercent(Percent);
     Bar->SetIsMarquee(bMarquee);
@@ -320,25 +320,25 @@ UWidget* UDrGlassGallery::BuildStatusPage() {
     if (UVerticalBoxSlot* S = Progress->AddChildToVerticalBox(Line)) S->SetPadding(FMargin(0, 0, 0, 10));
     return Bar;
   };
-  UDrUIProgressBar* LiveBar = BarLine(.25f, TEXT("accent"), false, LOCTEXT("BarLive", "아래 버튼으로 채움"));
+  UDrProgressBar* LiveBar = BarLine(.25f, TEXT("accent"), false, LOCTEXT("BarLive", "아래 버튼으로 채움"));
   BarLine(1.f, TEXT("success"), false, LOCTEXT("BarDone", "완료(success)"));
   BarLine(.7f, TEXT("danger"), false, LOCTEXT("BarDanger", "위험(danger)"));
   BarLine(0.f, TEXT("accent"), true, LOCTEXT("BarMarquee", "끝없는 진행(SetIsMarquee)"));
   UWrapBox* RingRow = MakeRow();
-  UDrUIProgressRing* LiveRing = WidgetTree->ConstructWidget<UDrUIProgressRing>();
+  UDrProgressRing* LiveRing = WidgetTree->ConstructWidget<UDrProgressRing>();
   LiveRing->Percent = .25f;
   RingRow->AddChild(LiveRing);
   for (const auto& [Percent, Size, Fill] : TArray<TTuple<float, float, FName>>{{.75f, 40.f, TEXT("success")}, {.4f, 24.f, TEXT("warning")}, {.9f, 56.f, TEXT("accent")}}) {
-    UDrUIProgressRing* Ring = WidgetTree->ConstructWidget<UDrUIProgressRing>();
+    UDrProgressRing* Ring = WidgetTree->ConstructWidget<UDrProgressRing>();
     Ring->Percent = Percent;
     Ring->RingSize = Size;
     Ring->FillToken = Fill;
     RingRow->AddChild(Center(Ring));
   }
-  UDrUIProgressRing* Spin = WidgetTree->ConstructWidget<UDrUIProgressRing>();
+  UDrProgressRing* Spin = WidgetTree->ConstructWidget<UDrProgressRing>();
   Spin->bIndeterminate = true;
   RingRow->AddChild(Spin);
-  UDrUIButton* Advance = MakeButton(LOCTEXT("Advance", "진행 +25%"));
+  UDrButton* Advance = MakeButton(LOCTEXT("Advance", "진행 +25%"));
   Advance->OnClicked().AddWeakLambda(this, [LiveBar, LiveRing] {
     const float Next = LiveRing->Percent >= .999f ? 0.f : LiveRing->Percent + .25f;
     LiveBar->SetPercent(Next);
@@ -346,32 +346,32 @@ UWidget* UDrGlassGallery::BuildStatusPage() {
   });
   RingRow->AddChild(Center(Advance));
   if (UVerticalBoxSlot* S = Progress->AddChildToVerticalBox(RingRow)) S->SetPadding(FMargin(0, 6, 0, 0));
-  Add(Section(LOCTEXT("ProgressTitle", "진행 막대(UDrUIProgressBar) · 진행 링(UDrUIProgressRing). 첫 막대와 첫 링은 버튼으로 함께 채움, 마지막 링은 끝없는 진행"), Progress));
+  Add(Section(LOCTEXT("ProgressTitle", "진행 막대(UDrProgressBar) · 진행 링(UDrProgressRing). 첫 막대와 첫 링은 버튼으로 함께 채움, 마지막 링은 끝없는 진행"), Progress));
 
   // 스켈레톤: 목록 행 하나를 불러오는 모양.
   UHorizontalBox* Skeleton = WidgetTree->ConstructWidget<UHorizontalBox>();
-  UDrUISkeleton* Avatar = WidgetTree->ConstructWidget<UDrUISkeleton>();
+  UDrSkeleton* Avatar = WidgetTree->ConstructWidget<UDrSkeleton>();
   Avatar->BlockSize = FVector2D(40.f);
   Avatar->RadiusToken = TEXT("radius-pill");
   if (UHorizontalBoxSlot* S = Skeleton->AddChildToHorizontalBox(Avatar)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 12, 0)); }
   UVerticalBox* Lines = WidgetTree->ConstructWidget<UVerticalBox>();
   for (const float Width : {220.f, 140.f}) {
-    UDrUISkeleton* Line = WidgetTree->ConstructWidget<UDrUISkeleton>();
+    UDrSkeleton* Line = WidgetTree->ConstructWidget<UDrSkeleton>();
     Line->BlockSize = FVector2D(Width, 12.f);
     if (UVerticalBoxSlot* S = Lines->AddChildToVerticalBox(Line)) S->SetPadding(FMargin(0, 3));
   }
   if (UHorizontalBoxSlot* S = Skeleton->AddChildToHorizontalBox(Lines)) S->SetVerticalAlignment(VAlign_Center);
-  Add(Section(LOCTEXT("SkeletonTitle", "스켈레톤(UDrUISkeleton) · 천천히 밝아졌다 어두워짐. 움직임 줄이기면 멈춤"), Skeleton));
+  Add(Section(LOCTEXT("SkeletonTitle", "스켈레톤(UDrSkeleton) · 천천히 밝아졌다 어두워짐. 움직임 줄이기면 멈춤"), Skeleton));
 
   // 스피너: 크기·색.
   UWrapBox* Spinners = MakeRow();
   for (const auto& [Radius, Color] : TArray<TPair<float, FName>>{{6.f, TEXT("ink")}, {8.f, TEXT("ink-muted")}, {12.f, TEXT("accent")}}) {
-    UDrUISpinner* Spinner = WidgetTree->ConstructWidget<UDrUISpinner>();
+    UDrSpinner* Spinner = WidgetTree->ConstructWidget<UDrSpinner>();
     Spinner->SetRadius(Radius);
     Spinner->ColorToken = Color;
     Spinners->AddChild(Center(Spinner));
   }
-  Add(Section(LOCTEXT("SpinnerTitle", "스피너(UDrUISpinner) · 엔진 UCircularThrobber를 토큰 색으로. 버튼 로딩도 이것을 쓴다"), Spinners));
+  Add(Section(LOCTEXT("SpinnerTitle", "스피너(UDrSpinner) · 엔진 UCircularThrobber를 토큰 색으로. 버튼 로딩도 이것을 쓴다"), Spinners));
   return Page;
 }
 
@@ -379,15 +379,15 @@ UWidget* UDrGlassGallery::BuildNoticePage() {
   UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
   auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
   auto MakeRow = [this] { UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>(); Row->SetInnerSlotPadding(FVector2D(12, 12)); return Row; };
-  const TArray<TPair<EDrUINoticeTone, FText>> Tones = {
-    {EDrUINoticeTone::Info, LOCTEXT("ToastInfo", "새 버전을 받을 수 있어요")}, {EDrUINoticeTone::Success, LOCTEXT("ToastSuccess", "저장했어요")},
-    {EDrUINoticeTone::Warning, LOCTEXT("ToastWarning", "연결이 불안정해요")}, {EDrUINoticeTone::Danger, LOCTEXT("ToastDanger", "보내지 못했어요")}};
+  const TArray<TPair<EDrNoticeTone, FText>> Tones = {
+    {EDrNoticeTone::Info, LOCTEXT("ToastInfo", "새 버전을 받을 수 있어요")}, {EDrNoticeTone::Success, LOCTEXT("ToastSuccess", "저장했어요")},
+    {EDrNoticeTone::Warning, LOCTEXT("ToastWarning", "연결이 불안정해요")}, {EDrNoticeTone::Danger, LOCTEXT("ToastDanger", "보내지 못했어요")}};
 
   // 토스트 견본(사라지지 않게 0초) + 직접 띄우기(화면 위 가운데 쌓개).
   UVerticalBox* ToastDemo = WidgetTree->ConstructWidget<UVerticalBox>();
   UWrapBox* Samples = MakeRow();
   for (const auto& [Tone, Message] : Tones) {
-    UDrUIToast* Toast = WidgetTree->ConstructWidget<UDrUIToast>();
+    UDrToast* Toast = WidgetTree->ConstructWidget<UDrToast>();
     Toast->SetContent(Message, Tone);
     Toast->Enter(0.f);
     Samples->AddChild(Toast);
@@ -395,40 +395,40 @@ UWidget* UDrGlassGallery::BuildNoticePage() {
   if (UVerticalBoxSlot* S = ToastDemo->AddChildToVerticalBox(Samples)) S->SetPadding(FMargin(0, 0, 0, 16));
   UWrapBox* Pushers = MakeRow();
   for (const auto& [Tone, Message] : Tones) {
-    UDrUIButton* Push = MakeButton(Message);
-    const EDrUINoticeTone PushTone = Tone;
+    UDrButton* Push = MakeButton(Message);
+    const EDrNoticeTone PushTone = Tone;
     const FText PushMessage = Message;
     Push->OnClicked().AddWeakLambda(this, [this, PushTone, PushMessage] { if (Toasts) Toasts->Push(PushMessage, PushTone); });
     Pushers->AddChild(Push);
   }
   ToastDemo->AddChildToVerticalBox(Pushers);
-  Add(Section(LOCTEXT("ToastTitle", "토스트(UDrUIToast, UDrUIToastStack) · 위는 견본, 버튼은 화면 위에 3초 띄움. 3개를 넘으면 오래된 것부터 물러남"), ToastDemo));
+  Add(Section(LOCTEXT("ToastTitle", "토스트(UDrToast, UDrToastStack) · 위는 견본, 버튼은 화면 위에 3초 띄움. 3개를 넘으면 오래된 것부터 물러남"), ToastDemo));
 
   // 스낵바: 견본(누르면 물러났다 다시 뜸) + 직접 띄우기(화면 아래 가운데).
   UVerticalBox* SnackDemo = WidgetTree->ConstructWidget<UVerticalBox>();
-  SampleSnackbar = WidgetTree->ConstructWidget<UDrUISnackbar>();
+  SampleSnackbar = WidgetTree->ConstructWidget<UDrSnackbar>();
   SampleSnackbar->Show(LOCTEXT("SnackSample", "메일 1개를 보관했어요"), LOCTEXT("Undo", "되돌리기"), 0.f);
   SampleSnackbar->OnAction.AddUniqueDynamic(this, &ThisClass::HandleSampleSnackbar);
   if (UVerticalBoxSlot* S = SnackDemo->AddChildToVerticalBox(SampleSnackbar)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
   UWrapBox* SnackButtons = MakeRow();
-  UDrUIButton* Delete = MakeButton(LOCTEXT("SnackDelete", "삭제하기(되돌리기 4초)"));
+  UDrButton* Delete = MakeButton(LOCTEXT("SnackDelete", "삭제하기(되돌리기 4초)"));
   Delete->OnClicked().AddWeakLambda(this, [this] { if (Snackbar) Snackbar->Show(LOCTEXT("SnackDeleted", "메일 1개를 삭제했어요"), LOCTEXT("Undo", "되돌리기")); });
   SnackButtons->AddChild(Delete);
-  UDrUIButton* Burst = MakeButton(LOCTEXT("SnackBurst", "연속 3개(차례대로)"));
+  UDrButton* Burst = MakeButton(LOCTEXT("SnackBurst", "연속 3개(차례대로)"));
   Burst->OnClicked().AddWeakLambda(this, [this] {
     if (!Snackbar) return;
     for (int32 I = 1; I <= 3; ++I) Snackbar->Show(FText::Format(LOCTEXT("SnackQueued", "{0}번째 알림(행동 없음, 2초)"), I), FText::GetEmpty(), 2.f);
   });
   SnackButtons->AddChild(Burst);
   SnackDemo->AddChildToVerticalBox(SnackButtons);
-  Add(Section(LOCTEXT("SnackTitle", "스낵바(UDrUISnackbar) · 한 번에 하나, 나머지는 차례. 마우스를 올리면 시간이 멈춤"), SnackDemo));
+  Add(Section(LOCTEXT("SnackTitle", "스낵바(UDrSnackbar) · 한 번에 하나, 나머지는 차례. 마우스를 올리면 시간이 멈춤"), SnackDemo));
 
   Page->AddChildToVerticalBox(MakeText(LOCTEXT("NoticeNote", "확인 대화상자는 화면 층(UI 흐름)과 함께 만든다. 움직임 줄이기를 켜면 바로 나타나고 바로 사라진다."), TEXT("caption"), TEXT("ink-muted")));
   return Page;
 }
 
 void UDrGlassGallery::HandleUndo(int32) {
-  if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrUINoticeTone::Success);
+  if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
 
 void UDrGlassGallery::HandleSampleSnackbar(int32) {
@@ -468,7 +468,7 @@ void UDrGlassGallery::Build() {
   if (UOverlaySlot* S = Root->AddChildToOverlay(Column)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); S->SetPadding(FMargin(32)); }
 
   // 위 조작 바(유리, 흐림 있음).
-  UDrUISurface* Bar = WidgetTree->ConstructWidget<UDrUISurface>();
+  UDrSurface* Bar = WidgetTree->ConstructWidget<UDrSurface>();
   Bar->RadiusToken = TEXT("radius-pill");
   Bar->PaddingToken = TEXT("space-3");
   UHorizontalBox* BarRow = WidgetTree->ConstructWidget<UHorizontalBox>();
@@ -478,31 +478,31 @@ void UDrGlassGallery::Build() {
   };
   BarAdd(MakeText(LOCTEXT("GalleryTitle", "DrUIKit 갤러리"), TEXT("heading")));
   BarAdd(WidgetTree->ConstructWidget<USpacer>(), true);
-  ThemeChoice = WidgetTree->ConstructWidget<UDrUISegmented>();
+  ThemeChoice = WidgetTree->ConstructWidget<UDrSegmentedControl>();
   ThemeChoice->SetOptions({LOCTEXT("Light", "밝게"), LOCTEXT("Dark", "어둡게")});
   ThemeChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleThemeChoice);
   BarAdd(ThemeChoice);
-  QualityChoice = WidgetTree->ConstructWidget<UDrUISegmented>();
+  QualityChoice = WidgetTree->ConstructWidget<UDrSegmentedControl>();
   QualityChoice->SetOptions({LOCTEXT("High", "품질 높음"), LOCTEXT("Medium", "보통"), LOCTEXT("Low", "낮음")});
   QualityChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleQualityChoice);
   BarAdd(QualityChoice);
   // 표면 투명도(0 불투명 ~ .5 테마 그대로 ~ 1 가장 투명). 유리 바·카드가 함께 바뀐다.
   BarAdd(MakeText(LOCTEXT("Transparency", "투명도"), TEXT("label"), TEXT("ink-muted")));
-  UDrUISlider* Transparency = TransparencySlider = WidgetTree->ConstructWidget<UDrUISlider>();
+  UDrSlider* Transparency = TransparencySlider = WidgetTree->ConstructWidget<UDrSlider>();
   Transparency->SetValue(UDrUIThemeSubsystem::Get() ? UDrUIThemeSubsystem::Get()->GetSurfaceTransparency() : .5f);
   Transparency->OnValueChanged.AddUniqueDynamic(this, &ThisClass::HandleTransparency);
   USizeBox* TransparencySize = WidgetTree->ConstructWidget<USizeBox>();
   TransparencySize->SetWidthOverride(140.f);
   TransparencySize->AddChild(Transparency);
   BarAdd(TransparencySize);
-  MotionSwitch = WidgetTree->ConstructWidget<UDrUISwitch>();
+  MotionSwitch = WidgetTree->ConstructWidget<UDrSwitch>();
   MotionSwitch->Label = LOCTEXT("ReduceMotion", "움직임 줄이기");
   MotionSwitch->OnClicked().AddWeakLambda(this, [this] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetReduceMotion(MotionSwitch->IsOn()); });
   BarAdd(MotionSwitch);
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Bar)) S->SetPadding(FMargin(0, 0, 0, 16));
 
-  // 탭(알약형 UDrUITabList) + 페이지(UCommonAnimatedSwitcher).
-  PageTabs = WidgetTree->ConstructWidget<UDrUITabList>();
+  // 탭(알약형 UDrTabList) + 페이지(UCommonAnimatedSwitcher).
+  PageTabs = WidgetTree->ConstructWidget<UDrTabList>();
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(PageTabs)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
   Pages = WidgetTree->ConstructWidget<UCommonAnimatedSwitcher>();
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
@@ -521,9 +521,9 @@ void UDrGlassGallery::Build() {
   }
 
   // 떠 있는 층: 토스트는 위 가운데, 스낵바는 아래 가운데(갤러리 전체 위).
-  Toasts = WidgetTree->ConstructWidget<UDrUIToastStack>();
+  Toasts = WidgetTree->ConstructWidget<UDrToastStack>();
   if (UOverlaySlot* S = Root->AddChildToOverlay(Toasts)) { S->SetHorizontalAlignment(HAlign_Center); S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, 24, 0, 0)); }
-  Snackbar = WidgetTree->ConstructWidget<UDrUISnackbar>();
+  Snackbar = WidgetTree->ConstructWidget<UDrSnackbar>();
   Snackbar->OnAction.AddUniqueDynamic(this, &ThisClass::HandleUndo);
   if (UOverlaySlot* S = Root->AddChildToOverlay(Snackbar)) { S->SetHorizontalAlignment(HAlign_Center); S->SetVerticalAlignment(VAlign_Bottom); S->SetPadding(FMargin(0, 0, 0, 32)); }
 }
