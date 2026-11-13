@@ -100,7 +100,7 @@ UDrUITheme* UDrUITheme::MakeDefault(UObject* Outer) {
     {DrUITokens::Body, Text(11, 400)}, {DrUITokens::Label, Text(10, 500)}, {DrUITokens::Caption, Text(9, 400)}};
   Theme->Spacing = {{TEXT("space-1"), 4}, {DrUITokens::Space2, 8}, {DrUITokens::Space3, 12}, {DrUITokens::Space4, 16}, {TEXT("space-6"), 24}};
   Theme->Radius = {{DrUITokens::RadiusXs, 4}, {DrUITokens::RadiusSm, 6}, {DrUITokens::RadiusMd, 8}, {DrUITokens::RadiusLg, 10}, {DrUITokens::RadiusXl, 12}, {DrUITokens::RadiusPill, 999}};
-  Theme->Backdrops = {{DrUITokens::BackdropGlass, 0.f}};
+  Theme->Backdrops = {{DrUITokens::BackdropGlass, 0.f}, {DrUITokens::BackdropSoft, 0.f}};
   Theme->TranslucentTokens = {DrUITokens::Glass, DrUITokens::GlassStrong};
   Theme->Shadows = {{DrUITokens::ShadowGlass, FDrUIShadow()}, {DrUITokens::ShadowFloat, FDrUIShadow()}};
   return Theme;

@@ -9,8 +9,10 @@ class UCommonAnimatedSwitcher;
 class UCommonButtonGroupBase;
 class UDrUISegmented;
 class UDrUISlider;
+class UDrUISnackbar;
 class UDrUISwitch;
 class UDrUITabList;
+class UDrUIToastStack;
 class UDrUIText;
 class UVerticalBox;
 
@@ -36,11 +38,14 @@ private:
   UWidget* BuildButtonPage();
   UWidget* BuildSelectionPage();
   UWidget* BuildStatusPage();
+  UWidget* BuildNoticePage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);
   UFUNCTION() void HandleThemeChoice(int32 Index);
   UFUNCTION() void HandleQualityChoice(int32 Index);
+  UFUNCTION() void HandleUndo(int32 RequestId);
+  UFUNCTION() void HandleSampleSnackbar(int32 RequestId);
   UDrUIButton* MakeButton(const FText& Label, EDrUIButtonVariant Variant = EDrUIButtonVariant::Secondary);
   UDrUIText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
   UWidget* Section(const FText& Title, UWidget* Body);
@@ -54,6 +59,10 @@ private:
   UPROPERTY(Transient) TObjectPtr<UDrUISegmented> QualityChoice;
   UPROPERTY(Transient) TObjectPtr<UDrUISwitch> MotionSwitch;
   UPROPERTY(Transient) TObjectPtr<UDrUISlider> TransparencySlider;
+  /** 화면 위 가운데 토스트, 아래 가운데 스낵바(갤러리 전체 위에 뜬다). */
+  UPROPERTY(Transient) TObjectPtr<UDrUIToastStack> Toasts;
+  UPROPERTY(Transient) TObjectPtr<UDrUISnackbar> Snackbar;
+  UPROPERTY(Transient) TObjectPtr<UDrUISnackbar> SampleSnackbar;
   /** 라디오 묶음(하나만 선택). 위젯이 아니라서 따로 붙잡아 둔다. */
   UPROPERTY(Transient) TArray<TObjectPtr<UCommonButtonGroupBase>> RadioGroups;
   UPROPERTY(Transient) TObjectPtr<UDrUIText> SegmentDemoValue;

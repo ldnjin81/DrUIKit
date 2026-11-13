@@ -25,6 +25,7 @@
 #include "Widgets/DrUIChoice.h"
 #include "Widgets/DrUIGlyph.h"
 #include "Widgets/DrUIIcon.h"
+#include "Widgets/DrUINotice.h"
 #include "Widgets/DrUISlider.h"
 #include "Widgets/DrUIStatus.h"
 #include "Widgets/DrUISurface.h"
@@ -37,7 +38,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
   return {UDrUIText::StaticClass(), UDrUIIcon::StaticClass(), UDrUISurface::StaticClass(), UDrUIButton::StaticClass(),
     UDrUIGlyph::StaticClass(), UDrUICheckBox::StaticClass(), UDrUIRadio::StaticClass(), UDrUISwitch::StaticClass(),
     UDrUITabButton::StaticClass(), UDrUITabList::StaticClass(), UDrUISegmented::StaticClass(), UDrUISlider::StaticClass(),
-    UDrUIBadge::StaticClass(), UDrUIProgressBar::StaticClass(), UDrUIProgressRing::StaticClass(), UDrUISkeleton::StaticClass(), UDrUISpinner::StaticClass()};
+    UDrUIBadge::StaticClass(), UDrUIProgressBar::StaticClass(), UDrUIProgressRing::StaticClass(), UDrUISkeleton::StaticClass(), UDrUISpinner::StaticClass(),
+    UDrUIToast::StaticClass(), UDrUIToastStack::StaticClass(), UDrUISnackbar::StaticClass()};
 }
 
 UDrUIText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -259,7 +261,7 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
   // 표시(UDrUIGlyph): 모든 모양.
   UWrapBox* Glyphs = MakeRow();
   for (const EDrUIGlyphShape Shape : {EDrUIGlyphShape::Check, EDrUIGlyphShape::Dot, EDrUIGlyphShape::Minus, EDrUIGlyphShape::Plus, EDrUIGlyphShape::Close,
-         EDrUIGlyphShape::ChevronLeft, EDrUIGlyphShape::ChevronRight, EDrUIGlyphShape::ChevronDown}) {
+         EDrUIGlyphShape::ChevronLeft, EDrUIGlyphShape::ChevronRight, EDrUIGlyphShape::ChevronDown, EDrUIGlyphShape::Alert}) {
     UDrUIGlyph* Glyph = WidgetTree->ConstructWidget<UDrUIGlyph>();
     Glyph->Shape = Shape;
     Glyph->GlyphSize = 24.f;
@@ -373,6 +375,67 @@ UWidget* UDrGlassGallery::BuildStatusPage() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildNoticePage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+  auto MakeRow = [this] { UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>(); Row->SetInnerSlotPadding(FVector2D(12, 12)); return Row; };
+  const TArray<TPair<EDrUINoticeTone, FText>> Tones = {
+    {EDrUINoticeTone::Info, LOCTEXT("ToastInfo", "새 버전을 받을 수 있어요")}, {EDrUINoticeTone::Success, LOCTEXT("ToastSuccess", "저장했어요")},
+    {EDrUINoticeTone::Warning, LOCTEXT("ToastWarning", "연결이 불안정해요")}, {EDrUINoticeTone::Danger, LOCTEXT("ToastDanger", "보내지 못했어요")}};
+
+  // 토스트 견본(사라지지 않게 0초) + 직접 띄우기(화면 위 가운데 쌓개).
+  UVerticalBox* ToastDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  UWrapBox* Samples = MakeRow();
+  for (const auto& [Tone, Message] : Tones) {
+    UDrUIToast* Toast = WidgetTree->ConstructWidget<UDrUIToast>();
+    Toast->SetContent(Message, Tone);
+    Toast->Enter(0.f);
+    Samples->AddChild(Toast);
+  }
+  if (UVerticalBoxSlot* S = ToastDemo->AddChildToVerticalBox(Samples)) S->SetPadding(FMargin(0, 0, 0, 16));
+  UWrapBox* Pushers = MakeRow();
+  for (const auto& [Tone, Message] : Tones) {
+    UDrUIButton* Push = MakeButton(Message);
+    const EDrUINoticeTone PushTone = Tone;
+    const FText PushMessage = Message;
+    Push->OnClicked().AddWeakLambda(this, [this, PushTone, PushMessage] { if (Toasts) Toasts->Push(PushMessage, PushTone); });
+    Pushers->AddChild(Push);
+  }
+  ToastDemo->AddChildToVerticalBox(Pushers);
+  Add(Section(LOCTEXT("ToastTitle", "토스트(UDrUIToast, UDrUIToastStack) · 위는 견본, 버튼은 화면 위에 3초 띄움. 3개를 넘으면 오래된 것부터 물러남"), ToastDemo));
+
+  // 스낵바: 견본(누르면 물러났다 다시 뜸) + 직접 띄우기(화면 아래 가운데).
+  UVerticalBox* SnackDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  SampleSnackbar = WidgetTree->ConstructWidget<UDrUISnackbar>();
+  SampleSnackbar->Show(LOCTEXT("SnackSample", "메일 1개를 보관했어요"), LOCTEXT("Undo", "되돌리기"), 0.f);
+  SampleSnackbar->OnAction.AddUniqueDynamic(this, &ThisClass::HandleSampleSnackbar);
+  if (UVerticalBoxSlot* S = SnackDemo->AddChildToVerticalBox(SampleSnackbar)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
+  UWrapBox* SnackButtons = MakeRow();
+  UDrUIButton* Delete = MakeButton(LOCTEXT("SnackDelete", "삭제하기(되돌리기 4초)"));
+  Delete->OnClicked().AddWeakLambda(this, [this] { if (Snackbar) Snackbar->Show(LOCTEXT("SnackDeleted", "메일 1개를 삭제했어요"), LOCTEXT("Undo", "되돌리기")); });
+  SnackButtons->AddChild(Delete);
+  UDrUIButton* Burst = MakeButton(LOCTEXT("SnackBurst", "연속 3개(차례대로)"));
+  Burst->OnClicked().AddWeakLambda(this, [this] {
+    if (!Snackbar) return;
+    for (int32 I = 1; I <= 3; ++I) Snackbar->Show(FText::Format(LOCTEXT("SnackQueued", "{0}번째 알림(행동 없음, 2초)"), I), FText::GetEmpty(), 2.f);
+  });
+  SnackButtons->AddChild(Burst);
+  SnackDemo->AddChildToVerticalBox(SnackButtons);
+  Add(Section(LOCTEXT("SnackTitle", "스낵바(UDrUISnackbar) · 한 번에 하나, 나머지는 차례. 마우스를 올리면 시간이 멈춤"), SnackDemo));
+
+  Page->AddChildToVerticalBox(MakeText(LOCTEXT("NoticeNote", "확인 대화상자는 화면 층(UI 흐름)과 함께 만든다. 움직임 줄이기를 켜면 바로 나타나고 바로 사라진다."), TEXT("caption"), TEXT("ink-muted")));
+  return Page;
+}
+
+void UDrGlassGallery::HandleUndo(int32) {
+  if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrUINoticeTone::Success);
+}
+
+void UDrGlassGallery::HandleSampleSnackbar(int32) {
+  // 견본은 물러난 뒤 같은 내용으로 다시 뜬다(차례 줄에 들어가 있다가).
+  if (SampleSnackbar) SampleSnackbar->Show(LOCTEXT("SnackSample", "메일 1개를 보관했어요"), LOCTEXT("Undo", "되돌리기"), 0.f);
+}
+
 void UDrGlassGallery::HandleSegmentDemo(int32 Index) {
   if (SegmentDemoValue && SegmentDemoOptions.IsValidIndex(Index))
     SegmentDemoValue->SetText(FText::Format(LOCTEXT("SegmentValue", "고른 값: {0}"), SegmentDemoOptions[Index]));
@@ -448,13 +511,21 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageFoundation", "기초: 글자·색·표면·아이콘"), BuildFoundationPage()},
     {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()},
     {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()},
-    {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()}};
+    {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()},
+    {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
     Pages->AddChild(Scroll);
     PageTabs->AddTab(PageId(I), PageList[I].Key, Scroll);
   }
+
+  // 떠 있는 층: 토스트는 위 가운데, 스낵바는 아래 가운데(갤러리 전체 위).
+  Toasts = WidgetTree->ConstructWidget<UDrUIToastStack>();
+  if (UOverlaySlot* S = Root->AddChildToOverlay(Toasts)) { S->SetHorizontalAlignment(HAlign_Center); S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, 24, 0, 0)); }
+  Snackbar = WidgetTree->ConstructWidget<UDrUISnackbar>();
+  Snackbar->OnAction.AddUniqueDynamic(this, &ThisClass::HandleUndo);
+  if (UOverlaySlot* S = Root->AddChildToOverlay(Snackbar)) { S->SetHorizontalAlignment(HAlign_Center); S->SetVerticalAlignment(VAlign_Bottom); S->SetPadding(FMargin(0, 0, 0, 32)); }
 }
 
 int32 UDrGlassGallery::GetPageCount() const { return Pages ? Pages->GetNumWidgets() : 0; }

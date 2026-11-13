@@ -7,7 +7,7 @@ class SDrUIGlyph;
 
 /** 코드로 그리는 기본 표시. 체크박스의 체크, 라디오의 점, 선택기의 화살표처럼 부품이 공통으로 쓴다. */
 UENUM(BlueprintType)
-enum class EDrUIGlyphShape : uint8 { Check, Dot, Minus, Plus, Close, ChevronLeft, ChevronRight, ChevronDown };
+enum class EDrUIGlyphShape : uint8 { Check, Dot, Minus, Plus, Close, ChevronLeft, ChevronRight, ChevronDown, Alert };
 
 namespace DrUIGlyph {
 /** 모양의 획들. 좌표는 0~1 정사각형 안. Dot은 획이 없다(원으로 칠한다). */

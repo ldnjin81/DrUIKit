@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례를 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
@@ -6,6 +6,7 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrUIChoice.h"
 #include "Widgets/DrUIGlyph.h"
+#include "Widgets/DrUINotice.h"
 #include "Widgets/DrUISlider.h"
 #include "Widgets/DrUIStatus.h"
 #include "Widgets/DrUISurface.h"
@@ -186,6 +187,37 @@ bool FDrUISwitchThumbTest::RunTest(const FString&) {
   TestEqual(TEXT("꺼짐은 왼쪽"), UDrUISwitch::ThumbTravel(0.f), 0.f);
   TestEqual(TEXT("켜짐은 트랙 끝에서 여백만큼 안쪽"), UDrUISwitch::ThumbTravel(1.f), DrUISwitchSize::TrackWidth - DrUISwitchSize::ThumbSize - 2.f * DrUISwitchSize::Inset);
   TestEqual(TEXT("스프링이 넘쳐도 트랙 밖으로 안 나감"), UDrUISwitch::ThumbTravel(1.2f), UDrUISwitch::ThumbTravel(1.f));
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISnackbarQueueTest, "DrUIKit.Core.Notice.SnackbarQueue", DrUIKitTestFlags)
+bool FDrUISnackbarQueueTest::RunTest(const FString&) {
+  UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
+  if (!TestNotNull(TEXT("테마 서브시스템"), Subsystem)) return false;
+  const bool bWasReduce = Subsystem->IsReduceMotion();
+  Subsystem->SetReduceMotion(true);  // 움직임 없이 바로 나타나고 바로 사라지게
+  UDrUISnackbar* Bar = NewObject<UDrUISnackbar>(GetTransientPackage());
+  const int32 First = Bar->Show(FText::FromString(TEXT("첫째")), FText::FromString(TEXT("되돌리기")), 4.f);
+  const int32 Second = Bar->Show(FText::FromString(TEXT("둘째")), FText::GetEmpty(), 0.f);
+  TestTrue(TEXT("요청 번호는 차례로"), Second == First + 1);
+  TestTrue(TEXT("첫째가 보임"), Bar->IsShown() && Bar->GetCurrentId() == First);
+  TestEqual(TEXT("둘째는 기다림"), Bar->GetQueuedCount(), 1);
+  Bar->Dismiss();
+  TestEqual(TEXT("닫으면 다음 요청"), Bar->GetCurrentId(), Second);
+  TestEqual(TEXT("줄이 빔"), Bar->GetQueuedCount(), 0);
+  Bar->Dismiss();
+  TestFalse(TEXT("다 닫으면 숨김"), Bar->IsShown());
+  Subsystem->SetReduceMotion(bWasReduce);
+
+  TSet<EDrUIGlyphShape> Shapes;
+  for (const EDrUINoticeTone Tone : {EDrUINoticeTone::Info, EDrUINoticeTone::Success, EDrUINoticeTone::Warning, EDrUINoticeTone::Danger}) {
+    EDrUIGlyphShape Shape;
+    FName Color;
+    UDrUIToast::ToneGlyph(Tone, Shape, Color);
+    Shapes.Add(Shape);
+  }
+  TestEqual(TEXT("토스트 색 4종은 모양도 모두 다름(색만으로 구분하지 않음)"), Shapes.Num(), 4);
+  TestEqual(TEXT("느낌표는 획 둘"), DrUIGlyph::Strokes(EDrUIGlyphShape::Alert).Num(), 2);
   return true;
 }
 #endif
