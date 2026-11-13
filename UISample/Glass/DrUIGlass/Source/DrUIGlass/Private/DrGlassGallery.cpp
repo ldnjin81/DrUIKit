@@ -322,28 +322,28 @@ UWidget* UDrGlassGallery::BuildStatusPage() {
   BarLine(1.f, TEXT("success"), false, LOCTEXT("BarDone", "완료(success)"));
   BarLine(.7f, TEXT("danger"), false, LOCTEXT("BarDanger", "위험(danger)"));
   BarLine(0.f, TEXT("accent"), true, LOCTEXT("BarMarquee", "끝없는 진행(엔진 marquee)"));
-  UWrapBox* Rings = MakeRow();
+  UWrapBox* RingRow = MakeRow();
   UDrUIProgressRing* LiveRing = WidgetTree->ConstructWidget<UDrUIProgressRing>();
   LiveRing->Percent = .25f;
-  Rings->AddChild(LiveRing);
+  RingRow->AddChild(LiveRing);
   for (const auto& [Percent, Size, Fill] : TArray<TTuple<float, float, FName>>{{.75f, 40.f, TEXT("success")}, {.4f, 24.f, TEXT("warning")}, {.9f, 56.f, TEXT("accent")}}) {
     UDrUIProgressRing* Ring = WidgetTree->ConstructWidget<UDrUIProgressRing>();
     Ring->Percent = Percent;
     Ring->RingSize = Size;
     Ring->FillToken = Fill;
-    Rings->AddChild(Center(Ring));
+    RingRow->AddChild(Center(Ring));
   }
   UDrUIProgressRing* Spin = WidgetTree->ConstructWidget<UDrUIProgressRing>();
   Spin->bIndeterminate = true;
-  Rings->AddChild(Spin);
+  RingRow->AddChild(Spin);
   UDrUIButton* Advance = MakeButton(LOCTEXT("Advance", "진행 +25%"));
   Advance->OnClicked().AddWeakLambda(this, [LiveBar, LiveRing] {
     const float Next = LiveRing->Percent >= .999f ? 0.f : LiveRing->Percent + .25f;
     LiveBar->SetPercent(Next);
     LiveRing->SetPercent(Next);
   });
-  Rings->AddChild(Center(Advance));
-  if (UVerticalBoxSlot* S = Progress->AddChildToVerticalBox(Rings)) S->SetPadding(FMargin(0, 6, 0, 0));
+  RingRow->AddChild(Center(Advance));
+  if (UVerticalBoxSlot* S = Progress->AddChildToVerticalBox(RingRow)) S->SetPadding(FMargin(0, 6, 0, 0));
   Add(Section(LOCTEXT("ProgressTitle", "진행 막대(UDrUIProgressBar) · 진행 링(UDrUIProgressRing). 첫 막대와 첫 링은 버튼으로 함께 채움, 마지막 링은 끝없는 진행"), Progress));
 
   // 스켈레톤: 목록 행 하나를 불러오는 모양.
