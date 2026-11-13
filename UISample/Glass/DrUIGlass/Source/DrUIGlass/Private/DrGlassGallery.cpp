@@ -321,7 +321,7 @@ UWidget* UDrGlassGallery::BuildStatusPage() {
   UDrUIProgressBar* LiveBar = BarLine(.25f, TEXT("accent"), false, LOCTEXT("BarLive", "아래 버튼으로 채움"));
   BarLine(1.f, TEXT("success"), false, LOCTEXT("BarDone", "완료(success)"));
   BarLine(.7f, TEXT("danger"), false, LOCTEXT("BarDanger", "위험(danger)"));
-  BarLine(0.f, TEXT("accent"), true, LOCTEXT("BarMarquee", "끝없는 진행(엔진 marquee)"));
+  BarLine(0.f, TEXT("accent"), true, LOCTEXT("BarMarquee", "끝없는 진행(SetIsMarquee)"));
   UWrapBox* RingRow = MakeRow();
   UDrUIProgressRing* LiveRing = WidgetTree->ConstructWidget<UDrUIProgressRing>();
   LiveRing->Percent = .25f;
