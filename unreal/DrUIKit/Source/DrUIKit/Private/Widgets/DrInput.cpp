@@ -443,8 +443,8 @@ void UDrHorizontalSelector::NativeOnClicked() {
   Super::NativeOnClicked();
   // 마우스로 누르면 왼쪽 절반은 이전, 오른쪽 절반은 다음. 패드·키보드 확인 버튼은 다음.
   const FGeometry& Geometry = GetCachedGeometry();
-  const FVector2D Cursor = FSlateApplication::Get().GetCursorPos();
-  const bool bLeft = Geometry.IsUnderLocation(Cursor) && Geometry.AbsoluteToLocal(Cursor).X < Geometry.GetLocalSize().X * .5f;
+  const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+  const bool bLeft = Geometry.IsUnderLocation(CursorPos) && Geometry.AbsoluteToLocal(CursorPos).X < Geometry.GetLocalSize().X * .5f;
   Step(bLeft ? -1 : 1);
 }
 

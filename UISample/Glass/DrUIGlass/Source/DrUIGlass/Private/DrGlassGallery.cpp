@@ -471,16 +471,17 @@ UWidget* UDrGlassGallery::BuildInputPage() {
 
   // 수평 선택기: 감쌈(끝에서 처음으로) / 멈춤(끝 화살표 흐림) / 비활성.
   UWrapBox* Selectors = MakeRow();
-  const TArray<TTuple<TArray<FText>, int32, bool, bool>> SelectorList = {
+  struct FSelectorDemo { TArray<FText> Options; int32 Selected; bool bWrapAround, bEnabled; };
+  const FSelectorDemo SelectorList[] = {
     {{LOCTEXT("Easy", "쉬움"), LOCTEXT("Normal", "보통"), LOCTEXT("Hard", "어려움"), LOCTEXT("Nightmare", "악몽")}, 1, true, true},
     {{LOCTEXT("QLow", "낮음"), LOCTEXT("QMid", "중간"), LOCTEXT("QHigh", "높음"), LOCTEXT("QEpic", "최고")}, 3, false, true},
     {{LOCTEXT("Off", "끔"), LOCTEXT("On", "켬")}, 0, true, false}};
-  for (const auto& [Options, Selected, bWrapAround, bEnabled] : SelectorList) {
+  for (const FSelectorDemo& Demo : SelectorList) {
     UDrHorizontalSelector* Selector = WidgetTree->ConstructWidget<UDrHorizontalSelector>();
-    Selector->bWrap = bWrapAround;
-    Selector->SetOptions(Options);
-    Selector->SetSelectedIndex(Selected);
-    Selector->SetIsEnabled(bEnabled);
+    Selector->bWrap = Demo.bWrapAround;
+    Selector->SetOptions(Demo.Options);
+    Selector->SetSelectedIndex(Demo.Selected);
+    Selector->SetIsEnabled(Demo.bEnabled);
     Selectors->AddChild(Selector);
   }
   Add(Section(LOCTEXT("SelectorTitle", "수평 선택기(UDrHorizontalSelector) · 패드·키보드 좌우, 마우스는 왼쪽 절반 이전·오른쪽 절반 다음. 두 번째는 끝에서 멈춤"), Selectors));
