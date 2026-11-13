@@ -26,6 +26,7 @@
 #include "TimerManager.h"
 #include "UnrealClient.h"
 #include "Widgets/DrToggle.h"
+#include "Widgets/DrButtonPrompt.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrHoldButton.h"
 #include "Widgets/DrIcon.h"
@@ -51,7 +52,7 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
     UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
     UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
-    UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass()};
+    UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass(), UDrButtonPrompt::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -648,6 +649,34 @@ UWidget* UDrGlassGallery::BuildNavigationPage() {
   Carousel->AddChildToVerticalBox(Controls);
   ShowCarouselPage(2);
   Add(Section(LOCTEXT("PageDotsTitle", "페이지 인디케이터(UDrPageIndicator) · 지금 점이 알약으로 늘어나 옆으로 미끄러짐. 점을 눌러도 이동"), Carousel));
+
+  // 버튼 프롬프트: 키보드 줄·패드 줄(고정), 자동 줄(마지막 입력 장치를 따름). 상호작용은 길게 누르기 진행 60%.
+  UVerticalBox* Prompts = WidgetTree->ConstructWidget<UVerticalBox>();
+  struct FPromptDemo { FKey Keyboard, Gamepad; FText Label; float Hold; };
+  const FPromptDemo PromptList[] = {
+    {EKeys::Enter, EKeys::Gamepad_FaceButton_Bottom, LOCTEXT("PromptConfirm", "확인"), 0.f},
+    {EKeys::Escape, EKeys::Gamepad_FaceButton_Right, LOCTEXT("PromptBack", "뒤로"), 0.f},
+    {EKeys::E, EKeys::Gamepad_FaceButton_Left, LOCTEXT("PromptInteract", "길게 눌러 열기"), .6f},
+    {EKeys::Tab, EKeys::Gamepad_RightShoulder, LOCTEXT("PromptNextTab", "다음 탭"), 0.f},
+    {EKeys::SpaceBar, EKeys::Gamepad_LeftTrigger, LOCTEXT("PromptAim", "조준"), 0.f}};
+  for (const auto& [DeviceMode, Caption] : TArray<TPair<EDrPromptDevice, FText>>{
+         {EDrPromptDevice::Keyboard, LOCTEXT("PromptRowKeyboard", "키보드")}, {EDrPromptDevice::Gamepad, LOCTEXT("PromptRowGamepad", "패드")},
+         {EDrPromptDevice::Auto, LOCTEXT("PromptRowAuto", "자동(마지막 입력)")}}) {
+    UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>();
+    USizeBox* CaptionBox = WidgetTree->ConstructWidget<USizeBox>();
+    CaptionBox->SetWidthOverride(120.f);
+    CaptionBox->AddChild(MakeText(Caption, TEXT("caption"), TEXT("ink-muted")));
+    if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(CaptionBox)) S->SetVerticalAlignment(VAlign_Center);
+    for (const FPromptDemo& Demo : PromptList) {
+      UDrButtonPrompt* Prompt = WidgetTree->ConstructWidget<UDrButtonPrompt>();
+      Prompt->SetKeys(Demo.Keyboard, Demo.Gamepad, Demo.Label);
+      Prompt->SetDevice(DeviceMode);
+      Prompt->SetHoldProgress(Demo.Hold);
+      if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(Prompt)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 24, 0)); }
+    }
+    if (UVerticalBoxSlot* S = Prompts->AddChildToVerticalBox(Line)) S->SetPadding(FMargin(0, 0, 0, 10));
+  }
+  Add(Section(LOCTEXT("PromptTitle", "버튼 프롬프트(UDrButtonPrompt) · 키캡 칩(패드 얼굴 버튼은 원) + 행동 이름. 자동 줄은 키보드·패드를 쓰면 바뀜"), Prompts));
   return Page;
 }
 
@@ -739,7 +768,7 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
     {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
-    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록 행·페이지 점"), BuildNavigationPage()}};
+    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록 행·페이지 점·프롬프트"), BuildNavigationPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);

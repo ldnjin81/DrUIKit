@@ -1,10 +1,11 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치를 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrToggle.h"
+#include "Widgets/DrButtonPrompt.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
@@ -260,6 +261,16 @@ bool FDrPageIndicatorLayoutTest::RunTest(const FString&) {
   for (int32 I = 0; I < 5; ++I) Sum += DotWidth(I, 1.5f, 8.f, 22.f) + (I < 4 ? 8.f : 0.f);
   TestTrue(TEXT("옮겨 가는 중에도 전체 너비가 같음(흔들리지 않음)"), FMath::IsNearlyEqual(Sum, TotalWidth(5, 8.f, 22.f, 8.f)));
   TestEqual(TEXT("점이 없으면 0"), TotalWidth(0, 8.f, 22.f, 8.f), 0.f);
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrButtonPromptKeyTest, "DrUIKit.Core.ButtonPrompt.KeyNames", DrUIKitTestFlags)
+bool FDrButtonPromptKeyTest::RunTest(const FString&) {
+  TestEqual(TEXT("패드 아래 얼굴 버튼은 A"), UDrButtonPrompt::ShortKeyName(EKeys::Gamepad_FaceButton_Bottom).ToString(), FString(TEXT("A")));
+  TestEqual(TEXT("왼쪽 트리거는 LT"), UDrButtonPrompt::ShortKeyName(EKeys::Gamepad_LeftTrigger).ToString(), FString(TEXT("LT")));
+  TestEqual(TEXT("Escape는 Esc"), UDrButtonPrompt::ShortKeyName(EKeys::Escape).ToString(), FString(TEXT("Esc")));
+  TestEqual(TEXT("글자 키는 엔진 표시 이름"), UDrButtonPrompt::ShortKeyName(EKeys::E).ToString(), FString(TEXT("E")));
+  TestTrue(TEXT("얼굴 버튼은 원"), UDrButtonPrompt::IsRoundKey(EKeys::Gamepad_FaceButton_Right));
+  TestFalse(TEXT("어깨 버튼은 각진 칩"), UDrButtonPrompt::IsRoundKey(EKeys::Gamepad_LeftShoulder));
   return true;
 }
 #endif
