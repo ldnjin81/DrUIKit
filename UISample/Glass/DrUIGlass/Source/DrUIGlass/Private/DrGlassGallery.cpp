@@ -799,7 +799,8 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록·페이지 점·프롬프트·순차 등장"), BuildNavigationPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
-    Scroll->AddChild(PageList[I].Value);
+    // 스크롤 상자는 내용 밖을 자른다. 카드 그림자(shadow-glass)가 잘리지 않게 양옆·아래 여백을 둔다.
+    if (UScrollBoxSlot* S = Cast<UScrollBoxSlot>(Scroll->AddChild(PageList[I].Value))) S->SetPadding(FMargin(20.f, 0.f, 20.f, 40.f));
     Pages->AddChild(Scroll);
     PageTabs->AddTab(PageId(I), PageList[I].Key, Scroll);
     PageBodies.Add(Cast<UPanelWidget>(PageList[I].Value));
