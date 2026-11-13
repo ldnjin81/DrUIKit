@@ -41,20 +41,24 @@ public:
     const FLinearColor Tint = Style.GetColorAndOpacityTint();
     if (bShadow) {
       if (Shadow.Color.A <= 0.f) return LayerId;
-      // 그림자가 표면 밖으로 번지는 거리(흐림 절반 + 퍼짐 + 오프셋). 고리 Rings개로 나눠 바깥일수록 옅게.
+      // CSS 그림자 근사: 그림자 사각형 = 표면을 Offset만큼 옮기고 Spread만큼 넓힌 것, 가장자리는 표준편차 Blur/2로 흐림.
+      // 표면 바깥 거리 D의 진하기 = A·Φ(-(D - Spread)/σ) (정규 분포 누적, 로지스틱 근사). 고리는 틈 없이 붙여 그린다.
       const FVector2f Offset(Shadow.Offset);
-      const float Extent = FMath::Max(2.f, Shadow.Blur * .5f + Shadow.Spread + Offset.Size());
-      constexpr int32 Rings = 8;
+      const float Sigma = FMath::Max(Shadow.Blur * .5f, 1.f);
+      const float Extent = FMath::Max(2.f, Shadow.Spread + 2.f * Sigma + Offset.Size() * .5f);
+      constexpr int32 Rings = 12;
       const float Width = Extent / Rings;
       for (int32 K = 0; K < Rings; ++K) {
         const float D = (K + .5f) * Width;  // 고리 띠의 가운데 거리
+        const float Alpha = Shadow.Color.A / (1.f + FMath::Exp(1.702f * (D - Shadow.Spread) / Sigma));
+        if (Alpha < .003f) continue;
         // 고리가 표면 안으로 들어가지 않을 만큼만 오프셋 방향으로 민다(바깥 띠만 그린다).
         const float Shift = FMath::Min(Offset.Size(), FMath::Max(0.f, D - Width * .5f));
         const FVector2f Move = Offset.IsNearlyZero() ? FVector2f::ZeroVector : Offset.GetSafeNormal() * Shift;
-        const float Fade = FMath::Square(1.f - (K + .5f) / Rings);
         // 둥근 상자 브러시는 채움을 그릴 때 넘기는 색으로 칠해 고리만 그릴 수 없다. 둘레를 굵은 선으로 따라간다.
+        // 계단 없이 이어지도록 안티에일리어싱은 끄고 띠 너비를 반 픽셀 겹친다.
         const TArray<FVector2f> Path = RoundedRectPath(Move - FVector2f(D), Size + FVector2f(2.f * D), R + D);
-        FSlateDrawElement::MakeLines(Out, LayerId, Geometry.ToPaintGeometry(), Path, ESlateDrawEffect::None, Shadow.Color.CopyWithNewOpacity(Shadow.Color.A * Fade * 1.6f) * Tint, true, Width);
+        FSlateDrawElement::MakeLines(Out, LayerId, Geometry.ToPaintGeometry(), Path, ESlateDrawEffect::None, Shadow.Color.CopyWithNewOpacity(Alpha) * Tint, false, Width + .5f);
       }
       return LayerId;
     }
