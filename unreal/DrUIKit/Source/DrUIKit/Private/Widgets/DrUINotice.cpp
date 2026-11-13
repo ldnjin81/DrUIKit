@@ -12,7 +12,7 @@
 #include "Widgets/DrUIText.h"
 
 namespace {
-bool IsReduceMotion() {
+bool IsNoticeReduceMotion() {
   const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
   return Subsystem && Subsystem->IsReduceMotion();
 }
@@ -46,7 +46,7 @@ void UDrUINoticeBase::Enter(float Seconds) {
   Remaining = Seconds;
   if (!bShown) Presence.Snap(0.f);
   bShown = true;
-  if (IsReduceMotion()) Presence.Snap(1.f);
+  if (IsNoticeReduceMotion()) Presence.Snap(1.f);
   else Presence.Target = 1.f;
   ApplyPresence();
 }
@@ -55,7 +55,7 @@ void UDrUINoticeBase::Leave() {
   if (!bShown) return;
   Remaining = 0.f;
   Presence.Target = 0.f;
-  if (IsReduceMotion()) Presence.Snap(0.f);
+  if (IsNoticeReduceMotion()) Presence.Snap(0.f);
   ApplyPresence();
   if (Presence.IsSettled()) { bShown = false; ApplyPresence(); HandleLeft(); }
 }
@@ -76,7 +76,7 @@ void UDrUINoticeBase::NativeTick(const FGeometry& Geometry, float DeltaTime) {
     if (Remaining <= 0.f) { Leave(); if (!bShown) return; }
   }
   if (!Presence.IsSettled()) {
-    if (IsReduceMotion()) Presence.Snap(Presence.Target);
+    if (IsNoticeReduceMotion()) Presence.Snap(Presence.Target);
     else Presence.Step(DeltaTime);
     ApplyPresence();
   }
