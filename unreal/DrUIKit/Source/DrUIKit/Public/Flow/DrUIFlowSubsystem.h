@@ -32,7 +32,8 @@ public:
   virtual void Initialize(FSubsystemCollectionBase& Collection) override;
   virtual void Deinitialize() override;
 
-  UDrUIRootLayout* GetRootLayout() const { return Root; }
+  /** 화면 층(없으면 지금 컨트롤러로 만든다). */
+  UDrUIRootLayout* GetRootLayout() { EnsureSetup(); return Root; }
   UDrUIHUDWidget* GetHUD() const { return HUD; }
   bool IsMenuInput() const { return bMenuInput; }
   bool IsPauseMenuOpen() const { return bPauseOpen; }
@@ -65,6 +66,8 @@ public:
 private:
   void HandleControllerChanged(APlayerController* Controller);
   void Setup(APlayerController* Controller);
+  /** 컨트롤러 변경 알림을 못 받았어도(맵 시작 경로에 따라 안 온다) 처음 쓸 때 화면 층을 만든다. */
+  void EnsureSetup();
   void Teardown();
   UFUNCTION() void HandlePawnChanged(APawn* OldPawn, APawn* NewPawn);
   UPROPERTY(Transient) TObjectPtr<UDrUIRootLayout> Root;

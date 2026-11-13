@@ -49,6 +49,11 @@ void UDrUIFlowSubsystem::HandleControllerChanged(APlayerController* Controller) 
   }));
 }
 
+void UDrUIFlowSubsystem::EnsureSetup() {
+  if (Root || !GetDefault<UDrUIKitSettings>()->bAutoCreateRootLayout) return;
+  if (ULocalPlayer* Player = GetLocalPlayer(); Player && Player->PlayerController) Setup(Player->PlayerController);
+}
+
 void UDrUIFlowSubsystem::Setup(APlayerController* Controller) {
   Owner = Controller;
   const UDrUIKitSettings* Settings = GetDefault<UDrUIKitSettings>();
@@ -100,6 +105,7 @@ void UDrUIFlowSubsystem::ApplyInputMode(bool bMenu) {
 }
 
 void UDrUIFlowSubsystem::EnterTitle() {
+  EnsureSetup();
   bTitle = true;
   bManagesInput = true;
   if (Root)
@@ -108,6 +114,7 @@ void UDrUIFlowSubsystem::EnterTitle() {
 }
 
 void UDrUIFlowSubsystem::EnterGame() {
+  EnsureSetup();
   bTitle = false;
   bManagesInput = true;
   if (Root && !HUD)
@@ -117,6 +124,7 @@ void UDrUIFlowSubsystem::EnterGame() {
 }
 
 bool UDrUIFlowSubsystem::OpenPauseMenu() {
+  EnsureSetup();
   APlayerController* Controller = Owner.Get();
   if (!Controller || bTitle || bPauseOpen || (CanOpenPauseMenu.IsBound() && !CanOpenPauseMenu.Execute())) return false;
   UClass* Menu = GetDefault<UDrUIKitSettings>()->PauseMenuClass.LoadSynchronous();
@@ -145,6 +153,7 @@ void UDrUIFlowSubsystem::TogglePauseMenu() {
 }
 
 void UDrUIFlowSubsystem::OpenSettings() {
+  EnsureSetup();
   if (SettingsMenu || (!bPauseOpen && !bTitle) || !Root) return;
   if (UClass* Menu = GetDefault<UDrUIKitSettings>()->SettingsMenuClass.LoadSynchronous()) {
     SettingsMenu = Root->PushMenu(Menu);
@@ -173,6 +182,7 @@ void UDrUIFlowSubsystem::Back() {
 }
 
 UCommonActivatableWidget* UDrUIFlowSubsystem::OpenMenu(TSubclassOf<UDrUIMenuWidget> MenuClass) {
+  EnsureSetup();
   if (!Root || !MenuClass) return nullptr;
   UCommonActivatableWidget* Menu = Root->PushMenu(MenuClass);
   if (Menu) ++ExtraMenus;
@@ -181,6 +191,7 @@ UCommonActivatableWidget* UDrUIFlowSubsystem::OpenMenu(TSubclassOf<UDrUIMenuWidg
 }
 
 UDrConfirmDialog* UDrUIFlowSubsystem::ShowConfirm(const FText& Title, const FText& Body, const FText& ConfirmLabel, const FText& CancelLabel, bool bDestructive, TFunction<void(bool)> Callback) {
+  EnsureSetup();
   if (!Root) return nullptr;
   UCommonActivatableWidgetStack* Stack = Root->GetStack(EDrUILayer::Modal);
   if (!Stack) return nullptr;
@@ -194,10 +205,12 @@ UDrConfirmDialog* UDrUIFlowSubsystem::ShowConfirm(const FText& Title, const FTex
 }
 
 void UDrUIFlowSubsystem::ShowToast(const FText& Message, EDrNoticeTone Tone) {
+  EnsureSetup();
   if (Root && Root->GetToasts()) Root->GetToasts()->Push(Message, Tone);
 }
 
 int32 UDrUIFlowSubsystem::ShowSnackbar(const FText& Message, const FText& ActionLabel) {
+  EnsureSetup();
   return Root && Root->GetSnackbar() ? Root->GetSnackbar()->Show(Message, ActionLabel) : 0;
 }
 
