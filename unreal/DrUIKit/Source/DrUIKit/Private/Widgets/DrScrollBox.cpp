@@ -41,6 +41,7 @@ void UDrScrollBox::ApplyTheme() {
   auto Thumb = [&](FName Token) { return FSlateRoundedBoxBrush(Theme.GetColor(Token), BarThickness * .5f, FVector2D(BarThickness)); };
   FSlateBrush None;
   None.DrawAs = ESlateBrushDrawType::NoDrawType;
+  None.SetImageSize(FVector2D::ZeroVector);  // 트랙 위·아래 이미지(SImage)의 기본 32px이 막대 폭이 되지 않게
   FScrollBarStyle Bar = GetWidgetBarStyle();
   Bar.SetVerticalBackgroundImage(None).SetHorizontalBackgroundImage(None)
     .SetVerticalTopSlotImage(None).SetVerticalBottomSlotImage(None).SetHorizontalTopSlotImage(None).SetHorizontalBottomSlotImage(None)
