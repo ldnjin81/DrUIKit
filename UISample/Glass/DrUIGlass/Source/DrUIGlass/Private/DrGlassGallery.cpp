@@ -464,10 +464,13 @@ UWidget* UDrGlassGallery::BuildInputPage() {
     Dropdown->SetIsEnabled(bEnabled);
     Dropdowns->AddChild(Sized(Dropdown, 200.f));
   }
+  // 목록 견본은 아래 줄에 따로(같은 줄이면 드롭다운이 목록 높이만큼 늘어난다).
+  UVerticalBox* DropdownDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  if (UVerticalBoxSlot* S = DropdownDemo->AddChildToVerticalBox(Dropdowns)) S->SetPadding(FMargin(0, 0, 0, 16));
   UDrDropdownMenu* MenuSample = WidgetTree->ConstructWidget<UDrDropdownMenu>();
   MenuSample->SetOptions(Regions, 1, 200.f);
-  Dropdowns->AddChild(MenuSample);
-  Add(Section(LOCTEXT("DropdownTitle", "드롭다운(UDrDropdown, UDrDropdownMenu, UDrDropdownItem) · 누르면 아래에 목록. 오른쪽은 목록 견본"), Dropdowns));
+  if (UVerticalBoxSlot* S = DropdownDemo->AddChildToVerticalBox(MenuSample)) S->SetHorizontalAlignment(HAlign_Left);
+  Add(Section(LOCTEXT("DropdownTitle", "드롭다운(UDrDropdown, UDrDropdownMenu, UDrDropdownItem) · 누르면 아래에 목록. 아래는 열린 목록 견본"), DropdownDemo));
 
   // 수평 선택기: 감쌈(끝에서 처음으로) / 멈춤(끝 화살표 흐림) / 비활성.
   UWrapBox* Selectors = MakeRow();
