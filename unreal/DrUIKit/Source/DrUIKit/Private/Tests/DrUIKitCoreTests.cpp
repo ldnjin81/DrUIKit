@@ -1,6 +1,7 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
+#include "Core/DrUIStagger.h"
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
 #include "Theme/DrUIThemeSubsystem.h"
@@ -271,6 +272,17 @@ bool FDrButtonPromptKeyTest::RunTest(const FString&) {
   TestEqual(TEXT("글자 키는 엔진 표시 이름"), UDrButtonPrompt::ShortKeyName(EKeys::E).ToString(), FString(TEXT("E")));
   TestTrue(TEXT("얼굴 버튼은 원"), UDrButtonPrompt::IsRoundKey(EKeys::Gamepad_FaceButton_Right));
   TestFalse(TEXT("어깨 버튼은 각진 칩"), UDrButtonPrompt::IsRoundKey(EKeys::Gamepad_LeftShoulder));
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrStaggerTest, "DrUIKit.Core.Motion.Stagger", DrUIKitTestFlags)
+bool FDrStaggerTest::RunTest(const FString&) {
+  using namespace DrUIMotion;
+  TestEqual(TEXT("시작 전은 0"), StaggerProgress(0.f, 0), 0.f);
+  TestEqual(TEXT("첫 항목은 길이만큼 지나면 끝"), StaggerProgress(.28f, 0), 1.f);
+  TestEqual(TEXT("두 번째는 한 단계 늦게 시작"), StaggerProgress(.04f, 1), 0.f);
+  TestTrue(TEXT("앞 항목이 늘 더 많이 진행"), StaggerProgress(.15f, 0) > StaggerProgress(.15f, 3));
+  TestEqual(TEXT("MaxItems 뒤 항목은 같은 지연"), StaggerProgress(.3f, 20), StaggerProgress(.3f, 7));
+  TestTrue(TEXT("이즈 아웃: 절반 시간에 절반보다 많이"), StaggerProgress(.14f, 0) > .5f);
   return true;
 }
 #endif

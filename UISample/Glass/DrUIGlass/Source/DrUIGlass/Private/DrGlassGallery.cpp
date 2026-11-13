@@ -16,6 +16,7 @@
 #include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
 #include "Components/WidgetSwitcher.h"
+#include "Core/DrUIStagger.h"
 #include "DrGlassBackdrop.h"
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
@@ -556,6 +557,12 @@ void UDrGlassGallery::ShowCarouselPage(int32 Page) {
   if (CarouselDots) CarouselDots->SetCurrent(Page);
 }
 
+void UDrGlassGallery::HandlePageTabSelected(FName TabId) {
+  // 페이지를 고르면 카드들이 차례로 올라오며 나타난다(DrUIMotion::PlayStagger).
+  for (int32 I = 0; I < PageBodies.Num(); ++I)
+    if (PageId(I) == TabId && PageBodies[I]) DrUIMotion::PlayStagger(PageBodies[I]);
+}
+
 void UDrGlassGallery::HandleRadialCancelled() {
   if (Toasts) Toasts->Push(LOCTEXT("RadialCancelled", "파이 메뉴 취소"), EDrNoticeTone::Info, 1.5f);
 }
@@ -677,6 +684,23 @@ UWidget* UDrGlassGallery::BuildNavigationPage() {
     if (UVerticalBoxSlot* S = Prompts->AddChildToVerticalBox(Line)) S->SetPadding(FMargin(0, 0, 0, 10));
   }
   Add(Section(LOCTEXT("PromptTitle", "버튼 프롬프트(UDrButtonPrompt) · 키캡 칩(패드 얼굴 버튼은 원) + 행동 이름. 자동 줄은 키보드·패드를 쓰면 바뀜"), Prompts));
+
+  // 순차 등장: 칩 8개 + 다시 재생. 페이지 탭을 바꿀 때도 카드들이 이렇게 나타난다.
+  UVerticalBox* StaggerDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  UWrapBox* Chips = WidgetTree->ConstructWidget<UWrapBox>();
+  Chips->SetInnerSlotPadding(FVector2D(10, 10));
+  for (int32 I = 1; I <= 8; ++I) {
+    UDrSurface* Chip = WidgetTree->ConstructWidget<UDrSurface>();
+    Chip->FillToken = TEXT("accent-soft"); Chip->FillStrongToken = NAME_None; Chip->BackdropToken = NAME_None; Chip->StrokeToken = NAME_None;
+    Chip->RadiusToken = TEXT("radius-md"); Chip->PaddingToken = TEXT("space-4");
+    Chip->SetContent(MakeText(FText::Format(LOCTEXT("StaggerChip", "항목 {0}"), I), TEXT("label")));
+    Chips->AddChild(Chip);
+  }
+  if (UVerticalBoxSlot* S = StaggerDemo->AddChildToVerticalBox(Chips)) S->SetPadding(FMargin(0, 0, 0, 12));
+  UDrButton* Replay = MakeButton(LOCTEXT("StaggerReplay", "다시 재생"));
+  Replay->OnClicked().AddWeakLambda(this, [Chips] { DrUIMotion::PlayStagger(Chips); });
+  if (UVerticalBoxSlot* S = StaggerDemo->AddChildToVerticalBox(Replay)) S->SetHorizontalAlignment(HAlign_Left);
+  Add(Section(LOCTEXT("StaggerTitle", "순차 등장(DrUIMotion::PlayStagger) · 아무 패널의 자식이 차례로 올라오며 나타남. 페이지 탭을 바꿀 때도 적용"), StaggerDemo));
   return Page;
 }
 
@@ -768,13 +792,15 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
     {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
-    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록 행·페이지 점·프롬프트"), BuildNavigationPage()}};
+    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록·페이지 점·프롬프트·순차 등장"), BuildNavigationPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
     Pages->AddChild(Scroll);
     PageTabs->AddTab(PageId(I), PageList[I].Key, Scroll);
+    PageBodies.Add(Cast<UPanelWidget>(PageList[I].Value));
   }
+  PageTabs->OnTabSelected.AddUniqueDynamic(this, &ThisClass::HandlePageTabSelected);
 
   // 떠 있는 층: 토스트는 위 가운데, 스낵바는 아래 가운데(갤러리 전체 위).
   Toasts = WidgetTree->ConstructWidget<UDrToastStack>();

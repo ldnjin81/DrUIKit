@@ -54,6 +54,7 @@ private:
   UFUNCTION() void HandleRadialSelected(int32 Index);
   UFUNCTION() void HandleRadialCancelled();
   UFUNCTION() void ShowCarouselPage(int32 Page);
+  UFUNCTION() void HandlePageTabSelected(FName TabId);
   UFUNCTION() void HandleSampleSnackbar(int32 RequestId);
   UDrButton* MakeButton(const FText& Label, EDrButtonVariant Variant = EDrButtonVariant::Secondary);
   UDrText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
@@ -63,6 +64,8 @@ private:
   static FName PageId(int32 Index) { return FName(TEXT("Page"), Index + 1); }
 
   UPROPERTY(Transient) TObjectPtr<UCommonAnimatedSwitcher> Pages;
+  /** 페이지 본문(탭을 고르면 순차 등장). */
+  UPROPERTY(Transient) TArray<TObjectPtr<class UPanelWidget>> PageBodies;
   UPROPERTY(Transient) TObjectPtr<UDrTabList> PageTabs;
   UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> ThemeChoice;
   UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> QualityChoice;
