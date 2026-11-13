@@ -108,7 +108,8 @@ void UDrSlider::HandleCaptureEnd() { bCaptured = false; BubbleUntil = FSlateAppl
 
 void UDrSlider::HandleValueChangedForBubble(float) {
   // 키보드·패드로 바꿀 때는 잡기 이벤트가 없으므로 바꾼 직후 잠깐 보인다.
-  if (!bCaptured) BubbleUntil = FSlateApplication::Get().GetCurrentTime() + .8;
+  // 코드의 SetValue도 이 이벤트를 부르므로(5.8) 슬라이더가 키보드 포커스를 가졌을 때만(사람이 조작 중일 때만).
+  if (!bCaptured && MySlider.IsValid() && MySlider->HasKeyboardFocus()) BubbleUntil = FSlateApplication::Get().GetCurrentTime() + .8;
   if (Track) Track->KeepPainting();
 }
 

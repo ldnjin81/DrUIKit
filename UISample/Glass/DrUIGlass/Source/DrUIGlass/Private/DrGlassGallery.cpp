@@ -865,7 +865,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
     if (ThemeChoice) ThemeChoice->SetSelectedIndex(ThemeIndex);  // HandleThemeChoice가 테마를 바꾼다
     if (bTransparencyShot) {
       const float Value = Transparencies[CaptureIndex - ThemeShots];
-      if (TransparencySlider) TransparencySlider->SetValue(Value);  // SetValue는 OnValueChanged를 부르지 않는다
+      if (TransparencySlider) TransparencySlider->SetValue(Value);
       HandleTransparency(Value);
     }
     ShowPage(Page);
