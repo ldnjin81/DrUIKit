@@ -46,6 +46,7 @@ private:
   UWidget* BuildNavigationPage();
   UWidget* BuildExtendedPage();
   UWidget* BuildNavigation2Page();
+  UWidget* BuildExpressionPage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);

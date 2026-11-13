@@ -8,6 +8,7 @@
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrButtonPrompt.h"
 #include "Widgets/DrCooldown.h"
+#include "Widgets/DrFeedback.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNavigation.h"
@@ -268,6 +269,12 @@ bool FDrRadialSectorTest::RunTest(const FString&) {
   TestEqual(TEXT("코치마크: 아래 자리가 있으면 구멍 아래"), UDrCoachMark::PlaceBubble(FVector2D(100, 100), FVector2D(50, 40), FVector2D(200, 100), FVector2D(800, 600)), FVector2D(100, 152));
   TestEqual(TEXT("코치마크: 아래 자리가 없으면 위"), UDrCoachMark::PlaceBubble(FVector2D(100, 520), FVector2D(50, 40), FVector2D(200, 100), FVector2D(800, 600)).Y, 408.0);
   TestEqual(TEXT("코치마크: 오른쪽 끝을 넘지 않음"), UDrCoachMark::PlaceBubble(FVector2D(700, 100), FVector2D(50, 40), FVector2D(200, 100), FVector2D(800, 600)).X, 592.0);
+  TestEqual(TEXT("단계 표시: 첫 원은 반 칸 안쪽"), UDrStepIndicator::StepCenterX(0, 4, 400.f), 50.f);
+  TestEqual(TEXT("단계 표시: 마지막 원"), UDrStepIndicator::StepCenterX(3, 4, 400.f), 350.f);
+  const FVector3f End = UDrCompletion::Timeline(2.f);
+  TestTrue(TEXT("완료 표시: 끝나면 원 1·체크 다 그림·고리 다 퍼짐"), FMath::IsNearlyEqual(End.X, 1.f) && FMath::IsNearlyEqual(End.Y, 1.f) && FMath::IsNearlyEqual(End.Z, 1.f));
+  TestTrue(TEXT("완료 표시: 원이 살짝 튐(1.1)"), FMath::IsNearlyEqual(UDrCompletion::Timeline(.22f).X, 1.1f, 1e-3f));
+  TestEqual(TEXT("완료 표시: 처음엔 체크 없음"), UDrCompletion::Timeline(.1f).Y, 0.f);
   return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrPageIndicatorLayoutTest, "DrUIKit.Core.PageIndicator.Layout", DrUIKitTestFlags)

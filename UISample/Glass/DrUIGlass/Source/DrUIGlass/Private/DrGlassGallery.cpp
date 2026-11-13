@@ -37,6 +37,7 @@
 #include "Widgets/DrOverlays.h"
 #include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrExpandableArea.h"
+#include "Widgets/DrFeedback.h"
 #include "Widgets/DrScrollBox.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrHoldButton.h"
@@ -68,7 +69,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrCooldown::StaticClass(), UDrFeed::StaticClass(), UDrFeedEntry::StaticClass(),
     UDrMorphButton::StaticClass(), UDrIconButton::StaticClass(), UDrQuantityStepper::StaticClass(), UDrChip::StaticClass(),
     UDrSidebar::StaticClass(), UDrSidebarItem::StaticClass(), UDrDock::StaticClass(), UDrDockItem::StaticClass(), UDrBottomTabBar::StaticClass(), UDrBottomTabButton::StaticClass(),
-    UDrBanner::StaticClass(), UDrBottomSheet::StaticClass(), UDrCoachMark::StaticClass(), UDrCoachScrim::StaticClass(), UDrPopover::StaticClass(), UDrPopoverPanel::StaticClass()};
+    UDrBanner::StaticClass(), UDrBottomSheet::StaticClass(), UDrCoachMark::StaticClass(), UDrCoachScrim::StaticClass(), UDrPopover::StaticClass(), UDrPopoverPanel::StaticClass(),
+    UDrStepIndicator::StaticClass(), UDrCompletion::StaticClass(), UDrEmptyState::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -1040,6 +1042,51 @@ UWidget* UDrGlassGallery::BuildNavigation2Page() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildExpressionPage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+
+  // 단계 표시: 이전·다음으로 단계를 옮긴다.
+  UVerticalBox* StepDemo = WidgetTree->ConstructWidget<UVerticalBox>();
+  UDrStepIndicator* StepsWidget = WidgetTree->ConstructWidget<UDrStepIndicator>();
+  StepsWidget->SetSteps({LOCTEXT("StepAccount", "계정"), LOCTEXT("StepChar", "캐릭터"), LOCTEXT("StepServer", "서버"), LOCTEXT("StepDone", "완료")});
+  StepsWidget->Current = 1;
+  USizeBox* StepsSize = WidgetTree->ConstructWidget<USizeBox>();
+  StepsSize->SetWidthOverride(520.f);
+  StepsSize->AddChild(StepsWidget);
+  if (UVerticalBoxSlot* S = StepDemo->AddChildToVerticalBox(StepsSize)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 12)); }
+  UHorizontalBox* StepButtons = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrButton* StepPrev = MakeButton(LOCTEXT("StepPrev", "이전"), EDrButtonVariant::Ghost);
+  StepPrev->OnClicked().AddWeakLambda(StepsWidget, [StepsWidget] { StepsWidget->SetCurrent(StepsWidget->Current - 1); });
+  UDrButton* StepNext = MakeButton(LOCTEXT("StepNext", "다음"));
+  StepNext->OnClicked().AddWeakLambda(StepsWidget, [StepsWidget] { StepsWidget->SetCurrent(StepsWidget->Current + 1); });
+  StepButtons->AddChildToHorizontalBox(StepPrev);
+  if (UHorizontalBoxSlot* S = StepButtons->AddChildToHorizontalBox(StepNext)) S->SetPadding(FMargin(8, 0, 0, 0));
+  StepDemo->AddChildToVerticalBox(StepButtons);
+  Add(Section(LOCTEXT("StepTitle", "단계 표시(UDrStepIndicator) · 끝난 단계는 체크, 지금 단계는 강조 링, 이음선이 스프링으로 차오름"), StepDemo));
+
+  // 완료 표시: 끝 모습 견본 + 다시 재생.
+  UHorizontalBox* Completions = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrCompletion* LiveMark = WidgetTree->ConstructWidget<UDrCompletion>();
+  LiveMark->bStartComplete = true;
+  Completions->AddChildToHorizontalBox(LiveMark);
+  UDrCompletion* SmallMark = WidgetTree->ConstructWidget<UDrCompletion>();
+  SmallMark->MarkSize = 32.f;
+  SmallMark->ColorToken = TEXT("accent");
+  SmallMark->bStartComplete = true;
+  if (UHorizontalBoxSlot* S = Completions->AddChildToHorizontalBox(SmallMark)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(16, 0)); }
+  UDrButton* Replay = MakeButton(LOCTEXT("ReplayDone", "다시 재생"));
+  Replay->OnClicked().AddWeakLambda(this, [LiveMark, SmallMark] { LiveMark->Play(); SmallMark->Play(); });
+  if (UHorizontalBoxSlot* S = Completions->AddChildToHorizontalBox(Replay)) S->SetVerticalAlignment(VAlign_Center);
+  Add(Section(LOCTEXT("DoneTitle", "완료 표시(UDrCompletion) · 원이 튀며 커지고 체크가 그려지며 고리가 퍼짐"), Completions));
+
+  // 빈 화면.
+  UDrEmptyState* Empty = WidgetTree->ConstructWidget<UDrEmptyState>();
+  Empty->SetContent(EDrGlyphShape::Plus, LOCTEXT("EmptyTitle", "아직 친구가 없어요"), LOCTEXT("EmptyBody", "친구를 추가하면 함께 파티를 만들고 진행을 볼 수 있어요. 친구 코드로 바로 찾을 수 있습니다."), LOCTEXT("EmptyAction", "친구 추가"), LOCTEXT("EmptySecondary", "친구 코드 보기"));
+  Add(Section(LOCTEXT("EmptyTitleSection", "빈 화면(UDrEmptyState) · 왜 비었나 + 다음 행동"), Empty));
+  return Page;
+}
+
 void UDrGlassGallery::HandleUndo(int32) {
   if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
@@ -1143,7 +1190,8 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageGame", "게임용"), BuildGamePage()},
     {LOCTEXT("PageNavigation", "탐색·표시"), BuildNavigationPage()},
     {LOCTEXT("PageExtended", "2차·확장"), BuildExtendedPage()},
-    {LOCTEXT("PageNavigation2", "2차·탐색"), BuildNavigation2Page()}};
+    {LOCTEXT("PageNavigation2", "2차·탐색"), BuildNavigation2Page()},
+    {LOCTEXT("PageExpression", "2차·표현"), BuildExpressionPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UDrScrollBox* Scroll = WidgetTree->ConstructWidget<UDrScrollBox>();  // 얇은 막대 + 가장자리 그늘
     // 스크롤 상자는 내용 밖을 자른다. 카드 그림자(shadow-glass)가 잘리지 않게 양옆·아래 여백을 둔다.
@@ -1214,13 +1262,14 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   if (CaptureIndex >= Total) {
     const int32 Extra = CaptureIndex - Total;
     if (Extra >= UE_ARRAY_COUNT(Overlays)) { FPlatformMisc::RequestExit(false, TEXT("DrUIGalleryCapture")); return false; }
+    const int32 OverlayPage = 9;  // 2차·탐색(바텀시트·코치마크·팝오버가 있는 페이지)
     if (!bCaptureShotPending) {
       if (ThemeChoice) ThemeChoice->SetSelectedIndex(0);
       HandleTransparency(.5f);
       if (TransparencySlider) TransparencySlider->SetValue(.5f);
-      ShowPage(GetPageCount() - 1);
+      ShowPage(OverlayPage);
       // 즉시 끝으로(ScrollToEnd는 다음 틱에 처리되어 코치마크의 '대상 보이게 굴리기'를 덮는다).
-      if (UScrollBox* Scroll = Cast<UScrollBox>(Pages->GetWidgetAtIndex(GetPageCount() - 1))) Scroll->SetScrollOffset(Scroll->GetScrollOffsetOfEnd());
+      if (UScrollBox* Scroll = Cast<UScrollBox>(Pages->GetWidgetAtIndex(OverlayPage))) Scroll->SetScrollOffset(Scroll->GetScrollOffsetOfEnd());
       Overlays[Extra].Toggle(true);
       bCaptureShotPending = true;
       CaptureWait = 40.f;
