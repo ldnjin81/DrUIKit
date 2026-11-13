@@ -115,11 +115,12 @@ void UDrUIToast::BuildDefaultTree() {
   UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
   Surface->SetContent(Row);
   Icon = WidgetTree->ConstructWidget<UDrUIGlyph>(UDrUIGlyph::StaticClass(), TEXT("Icon"));
-  Icon->GlyphSize = 16.f;
+  Icon->GlyphSize = 18.f;
+  Icon->Thickness = 2.4f;
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(Icon)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 8, 0)); }
+  // 토스트는 한 줄 알림이다. 자동 줄바꿈은 줄 상자(WrapBox 등) 안에서 첫 프레임 폭으로 접혀 짧은 글도 두 줄이 되었다.
   MessageText = WidgetTree->ConstructWidget<UDrUIText>(UDrUIText::StaticClass(), TEXT("MessageText"));
-  MessageText->SetAutoWrapText(true);
-  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(MessageText)) { S->SetVerticalAlignment(VAlign_Center); S->SetSize(FSlateChildSize(ESlateSizeRule::Fill)); }
+  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(MessageText)) S->SetVerticalAlignment(VAlign_Center);
 }
 
 void UDrUIToast::ApplyTheme() {

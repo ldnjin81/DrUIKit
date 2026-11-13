@@ -14,7 +14,7 @@ TArray<TArray<FVector2f>> DrUIGlyph::Strokes(EDrUIGlyphShape Shape) {
   case EDrUIGlyphShape::ChevronRight: return {{{.4f, .22f}, {.66f, .5f}, {.4f, .78f}}};
   case EDrUIGlyphShape::ChevronDown: return {{{.22f, .4f}, {.5f, .66f}, {.78f, .4f}}};
   // 느낌표: 긴 세로획 + 아래 짧은 획(점).
-  case EDrUIGlyphShape::Alert: return {{{.5f, .2f}, {.5f, .58f}}, {{.5f, .74f}, {.5f, .82f}}};
+  case EDrUIGlyphShape::Alert: return {{{.5f, .14f}, {.5f, .6f}}, {{.5f, .74f}, {.5f, .88f}}};
   default: return {};
   }
 }
