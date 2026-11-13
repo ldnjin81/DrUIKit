@@ -17,7 +17,8 @@ static TArray<FVector2f> RoundedRectPath(FVector2f Min, FVector2f Size, float Ra
       const float Angle = (-90.f + 90.f * Corner + 90.f * I / 8.f) * PI / 180.f;
       Points.Add(Centers[Corner] + R * FVector2f(FMath::Cos(Angle), FMath::Sin(Angle)));
     }
-  Points.Add(Points[0]);
+  const FVector2f First = Points[0];  // 자기 원소를 그대로 Add하면 재할당 중 참조가 깨진다(TArray 어서트)
+  Points.Add(First);
   return Points;
 }
 
