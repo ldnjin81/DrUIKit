@@ -1018,7 +1018,7 @@ UWidget* UDrGlassGallery::BuildNavigation2Page() {
   UDrButton* StartTour = MakeButton(LOCTEXT("StartTour", "코치마크 둘러보기"));
   StartTour->OnClicked().AddWeakLambda(this, [this] { if (Coach) Coach->Start(); });
   OverlayButtons->AddChild(StartTour);
-  UDrPopover* Popover = WidgetTree->ConstructWidget<UDrPopover>();
+  UDrPopover* Popover = PopoverDemo = WidgetTree->ConstructWidget<UDrPopover>();
   UDrButton* PopTrigger = MakeButton(LOCTEXT("PopTrigger", "팝오버(누르면 아래에)"));
   Popover->SetTrigger(PopTrigger);
   UVerticalBox* PopBody = WidgetTree->ConstructWidget<UVerticalBox>();
@@ -1201,11 +1201,39 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   // 시간이 아니라 프레임으로 센다: 화면 없이 렌더링(-RenderOffscreen)하면 틱 시간이 실제와 맞지 않았다.
   static const FName ThemeIds[] = {TEXT("glass-light"), TEXT("glass-dark")};
   static const float Transparencies[] = {0.f, 1.f};
+  // 마지막으로 열어야 보이는 층(바텀시트·코치마크·팝오버)을 밝은 테마 마지막 페이지에서 한 장씩.
+  struct FOverlayShot { const TCHAR* Name; TFunction<void(bool)> Toggle; };
+  const FOverlayShot Overlays[] = {
+    {TEXT("sheet"), [this](bool bOn) { if (Sheet) { if (bOn) Sheet->Open(); else Sheet->Close(); } }},
+    {TEXT("coach"), [this](bool bOn) { if (Coach) { if (bOn) Coach->Start(); else Coach->Finish(true); } }},
+    {TEXT("popover"), [this](bool bOn) { if (PopoverDemo) { if (bOn) PopoverDemo->Open(); else PopoverDemo->Close(); } }}};
   const int32 ThemeShots = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
   const int32 Total = ThemeShots + UE_ARRAY_COUNT(Transparencies);
   CaptureWait -= 1.f;
   if (CaptureWait > 0.f) return true;
-  if (CaptureIndex >= Total) { FPlatformMisc::RequestExit(false, TEXT("DrUIGalleryCapture")); return false; }
+  if (CaptureIndex >= Total) {
+    const int32 Extra = CaptureIndex - Total;
+    if (Extra >= UE_ARRAY_COUNT(Overlays)) { FPlatformMisc::RequestExit(false, TEXT("DrUIGalleryCapture")); return false; }
+    if (!bCaptureShotPending) {
+      if (ThemeChoice) ThemeChoice->SetSelectedIndex(0);
+      HandleTransparency(.5f);
+      if (TransparencySlider) TransparencySlider->SetValue(.5f);
+      ShowPage(GetPageCount() - 1);
+      if (UScrollBox* Scroll = Cast<UScrollBox>(Pages->GetWidgetAtIndex(GetPageCount() - 1))) Scroll->ScrollToEnd();
+      Overlays[Extra].Toggle(true);
+      bCaptureShotPending = true;
+      CaptureWait = 40.f;
+      return true;
+    }
+    FScreenshotRequest::RequestScreenshot(FPaths::ScreenShotDir() / FString::Printf(TEXT("DrUIGallery_overlay_%s.png"), Overlays[Extra].Name), true, false);
+    bCaptureShotPending = false;
+    ++CaptureIndex;
+    // 찍기 요청은 다음 프레임에 처리되므로 닫기는 조금 뒤에.
+    const TFunction<void(bool)> Close = Overlays[Extra].Toggle;
+    FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [Close, Frames = 3](float) mutable { if (--Frames > 0) return true; Close(false); return false; }));
+    CaptureWait = 15.f;
+    return true;
+  }
   const bool bTransparencyShot = CaptureIndex >= ThemeShots;
   const int32 ThemeIndex = bTransparencyShot ? 0 : CaptureIndex / GetPageCount();
   const FName Theme = ThemeIds[ThemeIndex];

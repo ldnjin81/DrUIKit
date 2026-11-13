@@ -59,7 +59,7 @@ TSharedRef<SWidget> UDrBanner::RebuildWidget() {
     Surface->SetContent(Row);
     USizeBox* StripeBox = WidgetTree->ConstructWidget<USizeBox>();
     StripeBox->SetWidthOverride(4.f);
-    Stripe = MakePlainSurface(WidgetTree, TEXT("Stripe"), DrUITokens::Accent, DrUITokens::RadiusPill);
+    Stripe = MakePlainSurface(WidgetTree, TEXT("Stripe"), DrUITokens::Accent, DrUITokens::RadiusXs);  // 알약(높이 절반 반경)이면 4px 폭에서 타원이 된다
     StripeBox->AddChild(Stripe);
     if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(StripeBox)) { S->SetVerticalAlignment(VAlign_Fill); S->SetPadding(FMargin(6, 8, 12, 8)); }
     Icon = WidgetTree->ConstructWidget<UDrGlyph>(UDrGlyph::StaticClass(), TEXT("Icon"));
