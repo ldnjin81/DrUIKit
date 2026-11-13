@@ -28,6 +28,7 @@
 #include "Widgets/DrHoldButton.h"
 #include "Widgets/DrIcon.h"
 #include "Widgets/DrInput.h"
+#include "Widgets/DrListRow.h"
 #include "Widgets/DrNotice.h"
 #include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
@@ -47,7 +48,7 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
     UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
     UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
-    UDrTooltip::StaticClass()};
+    UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrListView::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -576,6 +577,36 @@ UWidget* UDrGlassGallery::BuildNavigationPage() {
   if (UVerticalBoxSlot* S = TooltipDemo->AddChildToVerticalBox(Hovers)) S->SetPadding(FMargin(0, 0, 0, 16));
   TooltipDemo->AddChildToVerticalBox(Samples);
   Add(Section(LOCTEXT("TooltipTitle", "툴팁(UDrTooltip) · 버튼에 마우스를 올려 보기. 아래는 견본(제목+설명, 설명만, 긴 글 줄바꿈)"), TooltipDemo));
+
+  // 목록 행: CommonUI 목록(UDrListView) 안의 행 + 목록 밖 단독 행(비활성).
+  UHorizontalBox* ListDemo = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrListView* List = WidgetTree->ConstructWidget<UDrListView>();
+  struct FRowDemo { FText Title, Subtitle, Trailing; };
+  const FRowDemo Rows[] = {
+    {LOCTEXT("Slot1", "슬롯 1 · 북쪽 숲"), LOCTEXT("Slot1Sub", "레벨 12 · 플레이 3시간 20분"), LOCTEXT("Slot1Time", "방금")},
+    {LOCTEXT("Slot2", "슬롯 2 · 폐광"), LOCTEXT("Slot2Sub", "레벨 9 · 플레이 2시간 5분"), LOCTEXT("Slot2Time", "어제")},
+    {LOCTEXT("Slot3", "슬롯 3 · 성채"), LOCTEXT("Slot3Sub", "레벨 21 · 플레이 11시간"), LOCTEXT("Slot3Time", "3일 전")},
+    {LOCTEXT("Slot4", "새 게임"), FText::GetEmpty(), FText::GetEmpty()}};
+  UObject* SelectedItem = nullptr;
+  for (const FRowDemo& Row : Rows) {
+    UDrListItem* Item = UDrListItem::Make(this, Row.Title, Row.Subtitle, Row.Trailing);
+    List->AddItem(Item);
+    if (!SelectedItem) SelectedItem = Item;
+  }
+  List->SetSelectedItem(SelectedItem);
+  USizeBox* ListSize = WidgetTree->ConstructWidget<USizeBox>();
+  ListSize->SetWidthOverride(420.f);
+  ListSize->SetHeightOverride(240.f);
+  ListSize->AddChild(List);
+  ListDemo->AddChildToHorizontalBox(ListSize);
+  UDrListRow* Lone = WidgetTree->ConstructWidget<UDrListRow>();
+  Lone->SetContent(LOCTEXT("LoneRow", "클라우드 저장"), LOCTEXT("LoneRowSub", "로그인 후 사용 가능(비활성)"), FText::GetEmpty());
+  Lone->SetIsEnabled(false);
+  USizeBox* LoneSize = WidgetTree->ConstructWidget<USizeBox>();
+  LoneSize->SetWidthOverride(320.f);
+  LoneSize->AddChild(Lone);
+  if (UHorizontalBoxSlot* S = ListDemo->AddChildToHorizontalBox(LoneSize)) { S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(32, 0, 0, 0)); }
+  Add(Section(LOCTEXT("ListTitle", "목록 행(UDrListRow, UDrListView, UDrListItem) · 호버 렌즈, 선택(accent-soft), 패드·화살표로 이동. 오른쪽은 목록 밖 단독 행"), ListDemo));
   return Page;
 }
 
@@ -667,7 +698,7 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
     {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
-    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁"), BuildNavigationPage()}};
+    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록 행"), BuildNavigationPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
