@@ -13,6 +13,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
+#include "Components/WrapBoxSlot.h"
 #include "DrGlassBackdrop.h"
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
@@ -570,7 +571,7 @@ UWidget* UDrGlassGallery::BuildNavigationPage() {
     Hovers->AddChild(Button);
     UDrTooltip* Sample = WidgetTree->ConstructWidget<UDrTooltip>();
     Sample->SetContent(Tip.Title, Tip.Body);
-    Samples->AddChild(Sample);
+    if (UWrapBoxSlot* S = Cast<UWrapBoxSlot>(Samples->AddChild(Sample))) S->SetVerticalAlignment(VAlign_Top);  // 줄 높이만큼 늘어나지 않게
   }
   if (UVerticalBoxSlot* S = TooltipDemo->AddChildToVerticalBox(Hovers)) S->SetPadding(FMargin(0, 0, 0, 16));
   TooltipDemo->AddChildToVerticalBox(Samples);
