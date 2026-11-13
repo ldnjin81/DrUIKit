@@ -1,6 +1,7 @@
 #include "Widgets/DrSurface.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "Core/DrUIDraw.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Rendering/DrawElements.h"
 #include "Rendering/SlateRenderer.h"
@@ -8,22 +9,6 @@
 #include "Widgets/Layout/SBackgroundBlur.h"
 #include "Widgets/SLeafWidget.h"
 #include "Widgets/SOverlay.h"
-
-/** 둥근 사각형 둘레(닫힌 꺾은선). 모서리마다 8조각. */
-static TArray<FVector2f> RoundedRectPath(FVector2f Min, FVector2f Size, float Radius) {
-  const float R = FMath::Clamp(Radius, 0.f, FMath::Min(Size.X, Size.Y) * .5f);
-  const FVector2f Centers[4] = {Min + FVector2f(Size.X - R, R), Min + FVector2f(Size.X - R, Size.Y - R), Min + FVector2f(R, Size.Y - R), Min + FVector2f(R)};
-  TArray<FVector2f> Points;
-  for (int32 Corner = 0; Corner < 4; ++Corner)
-    for (int32 I = 0; I <= 8; ++I) {
-      // 오른쪽 위 모서리부터 시계 방향(-90° → 0° → 90° …).
-      const float Angle = (-90.f + 90.f * Corner + 90.f * I / 8.f) * PI / 180.f;
-      Points.Add(Centers[Corner] + R * FVector2f(FMath::Cos(Angle), FMath::Sin(Angle)));
-    }
-  const FVector2f First = Points[0];  // 자기 원소를 그대로 Add하면 재할당 중 참조가 깨진다(TArray 어서트)
-  Points.Add(First);
-  return Points;
-}
 
 /** 표면 장식: 뒤 그림자(표면 바깥 고리 겹) 또는 앞 윗면 반사광(윗변 안쪽 1px 선). 눌림 판정 없음. */
 class SDrSurfaceDecor : public SLeafWidget {
@@ -61,7 +46,7 @@ public:
         const FVector2f Move = Offset.IsNearlyZero() ? FVector2f::ZeroVector : Offset.GetSafeNormal() * FMath::Min(Offset.Size(), D);
         const float Alpha = Shadow.Color.A / (1.f + FMath::Exp(1.702f * (D - Shadow.Spread) / Sigma));
         const FColor Color = (Shadow.Color.CopyWithNewOpacity(Alpha) * Tint).ToFColor(true);
-        TArray<FVector2f> Loop = RoundedRectPath(Move - FVector2f(D), Size + FVector2f(2.f * D), R + D);
+        TArray<FVector2f> Loop = DrUIDraw::RoundedRectPath(Move - FVector2f(D), Size + FVector2f(2.f * D), R + D);
         Loop.Pop();  // 닫는 점(첫 점 반복)은 띠에서 쓰지 않는다
         PerLoop = Loop.Num();
         for (const FVector2f& P : Loop) Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(Transform, P, FVector2f(.5f), Color));

@@ -184,6 +184,107 @@ UDrToast* UDrToastStack::Push(const FText& Message, EDrNoticeTone Tone, float Se
   return Toast;
 }
 
+// ---------------------------------------------------------------- 알림 피드
+
+UDrFeedEntry::UDrFeedEntry(const FObjectInitializer& Initializer) : Super(Initializer) {
+  EnterOffset = FVector2D(-16.f, 0.f);  // 왼쪽에서 밀려 들어온다
+}
+
+void UDrFeedEntry::SetContent(const FText& InMessage, EDrNoticeTone InTone, int32 InCount) {
+  Message = InMessage;
+  Tone = InTone;
+  Count = InCount;
+  ApplyTheme();
+}
+
+void UDrFeedEntry::BuildDefaultTree() {
+  Surface = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Surface"));
+  Surface->FillToken = DrUITokens::GlassStrong;
+  Surface->BackdropToken = NAME_None;  // 줄이 많아도 가볍게(흐림 없음)
+  Surface->StrokeToken = NAME_None;
+  Surface->RadiusToken = DrUITokens::RadiusSm;
+  Surface->PaddingToken = NAME_None;
+  Surface->SetPadding(FMargin(10.f, 5.f, 12.f, 5.f));
+  WidgetTree->RootWidget = Surface;
+  UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
+  Surface->SetContent(Row);
+  Icon = WidgetTree->ConstructWidget<UDrGlyph>(UDrGlyph::StaticClass(), TEXT("Icon"));
+  Icon->GlyphSize = 14.f;
+  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(Icon)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 6, 0)); }
+  MessageText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("MessageText"));
+  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(MessageText)) S->SetVerticalAlignment(VAlign_Center);
+  CountText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("CountText"));
+  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(CountText)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(6, 0, 0, 0)); }
+}
+
+void UDrFeedEntry::ApplyTheme() {
+  if (Surface) Surface->ApplyTheme();
+  if (Icon) {
+    EDrGlyphShape Shape;
+    FName Color;
+    UDrToast::ToneGlyph(Tone, Shape, Color);
+    Icon->SetShape(Shape);
+    Icon->SetColorToken(Color);
+  }
+  if (MessageText) { MessageText->SetTokens(DrUITokens::Label, DrUITokens::Ink); MessageText->SetText(Message); }
+  if (CountText) {
+    CountText->SetTokens(DrUITokens::Label, DrUITokens::Accent);
+    CountText->SetText(FText::Format(NSLOCTEXT("DrFeed", "Count", "×{0}"), FText::AsNumber(Count)));
+    CountText->SetVisibility(Count > 1 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+  }
+}
+
+TSharedRef<SWidget> UDrFeed::RebuildWidget() {
+  if (WidgetTree && !WidgetTree->RootWidget) {
+    Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Stack"));
+    WidgetTree->RootWidget = Stack;
+  }
+  SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+  return Super::RebuildWidget();
+}
+
+int32 UDrFeed::GetActiveCount() const {
+  int32 Count = 0;
+  if (Stack)
+    for (UWidget* Child : Stack->GetAllChildren())
+      if (const UDrFeedEntry* Entry = Cast<UDrFeedEntry>(Child); Entry && Entry->IsShown() && !Entry->IsLeaving()) ++Count;
+  return Count;
+}
+
+UDrFeedEntry* UDrFeed::Push(const FText& Message, EDrNoticeTone Tone, float Seconds) {
+  if (!Stack) TakeWidget();
+  if (!Stack) return nullptr;
+  // 방금 들어온 줄과 같은 글이면 합친다.
+  const TArray<UWidget*> Children = Stack->GetAllChildren();
+  for (int32 I = Children.Num() - 1; I >= 0; --I) {
+    UDrFeedEntry* Last = Cast<UDrFeedEntry>(Children[I]);
+    if (!Last || !Last->IsShown() || Last->IsLeaving()) continue;
+    if (Last->Message.EqualTo(Message) && Last->Tone == Tone) {
+      Last->SetContent(Message, Tone, Last->Count + 1);
+      Last->Enter(Seconds);  // 시간을 다시 센다
+      return Last;
+    }
+    break;  // 가장 최근 줄만 본다
+  }
+  UDrFeedEntry* Entry = CreateWidget<UDrFeedEntry>(this, EntryClass ? EntryClass.Get() : UDrFeedEntry::StaticClass());
+  if (!Entry) return nullptr;
+  Entry->SetContent(Message, Tone, 1);
+  if (UVerticalBoxSlot* S = Stack->AddChildToVerticalBox(Entry)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, Gap)); }
+  Entry->OnLeft.AddWeakLambda(this, [this, Weak = TWeakObjectPtr<UDrFeedEntry>(Entry)] {
+    FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateWeakLambda(this, [Weak](float) {
+      if (UDrFeedEntry* Done = Weak.Get(); Done && !Done->IsShown()) Done->RemoveFromParent();
+      return false;
+    }));
+  });
+  int32 Over = GetActiveCount() - (MaxVisible - 1);
+  for (UWidget* Child : Stack->GetAllChildren()) {
+    if (Over <= 0) break;
+    if (UDrFeedEntry* Old = Cast<UDrFeedEntry>(Child); Old && Old != Entry && Old->IsShown() && !Old->IsLeaving()) { Old->Leave(); --Over; }
+  }
+  Entry->Enter(Seconds);
+  return Entry;
+}
+
 // ---------------------------------------------------------------- 스낵바
 
 UDrSnackbar::UDrSnackbar(const FObjectInitializer& Initializer) : Super(Initializer) {

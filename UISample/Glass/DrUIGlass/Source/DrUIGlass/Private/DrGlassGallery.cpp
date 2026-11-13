@@ -29,6 +29,7 @@
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrAnimatedSwitcher.h"
 #include "Widgets/DrButtonPrompt.h"
+#include "Widgets/DrCooldown.h"
 #include "Widgets/DrCountUp.h"
 #include "Widgets/DrExpandableArea.h"
 #include "Widgets/DrScrollBox.h"
@@ -58,7 +59,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
     UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
     UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass(), UDrButtonPrompt::StaticClass(),
-    UDrScrollBox::StaticClass(), UDrCountUp::StaticClass(), UDrAnimatedSwitcher::StaticClass(), UDrExpandableArea::StaticClass(), UDrExpanderHeader::StaticClass(), UDrTextArea::StaticClass()};
+    UDrScrollBox::StaticClass(), UDrCountUp::StaticClass(), UDrAnimatedSwitcher::StaticClass(), UDrExpandableArea::StaticClass(), UDrExpanderHeader::StaticClass(), UDrTextArea::StaticClass(),
+    UDrCooldown::StaticClass(), UDrFeed::StaticClass(), UDrFeedEntry::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -552,6 +554,60 @@ UWidget* UDrGlassGallery::BuildGamePage() {
   if (UHorizontalBoxSlot* S = RadialRow->AddChildToHorizontalBox(MakeText(LOCTEXT("RadialNote", "마우스: 가운데에서 본 방향으로 가리키고 왼쪽 버튼을 떼면 확정.\n패드: 스틱으로 가리키고 A로 확정, B로 취소.\n키보드: 메뉴를 한 번 누른 뒤 화살표로 옮기고 Enter, Esc로 취소."), TEXT("body"), TEXT("ink-muted"))))
   { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(32, 0, 0, 0)); }
   Add(Section(LOCTEXT("RadialTitle", "파이 메뉴(UDrRadialMenu) · 방향으로 빨리 고르기. 강조가 칸 사이를 미끄러진다"), RadialRow));
+
+  // 쿨다운: 아이콘 칩 위에 겹침. 첫 칸은 버튼으로 3초, 나머지는 긴 견본(진행 중).
+  UHorizontalBox* Cooldowns = WidgetTree->ConstructWidget<UHorizontalBox>();
+  auto SkillTile = [this](EDrGlyphShape Shape) {
+    UOverlay* Tile = WidgetTree->ConstructWidget<UOverlay>();
+    UDrSurface* Chip = WidgetTree->ConstructWidget<UDrSurface>();
+    Chip->FillToken = TEXT("accent"); Chip->FillStrongToken = NAME_None; Chip->BackdropToken = NAME_None; Chip->StrokeToken = NAME_None;
+    Chip->RadiusToken = TEXT("radius-md"); Chip->PaddingToken = NAME_None;
+    Chip->SetHorizontalAlignment(HAlign_Center); Chip->SetVerticalAlignment(VAlign_Center);
+    UDrGlyph* Glyph = WidgetTree->ConstructWidget<UDrGlyph>();
+    Glyph->Shape = Shape; Glyph->GlyphSize = 28.f; Glyph->ColorToken = TEXT("on-accent");
+    Chip->SetContent(Glyph);
+    USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>();
+    Size->SetWidthOverride(56.f); Size->SetHeightOverride(56.f);
+    Size->AddChild(Chip);
+    Tile->AddChildToOverlay(Size);
+    UDrCooldown* Cooldown = WidgetTree->ConstructWidget<UDrCooldown>();
+    if (UOverlaySlot* S = Tile->AddChildToOverlay(Cooldown)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
+    return TPair<UWidget*, UDrCooldown*>(Tile, Cooldown);
+  };
+  const auto [LiveTile, LiveCooldown] = SkillTile(EDrGlyphShape::Plus);
+  if (UHorizontalBoxSlot* S = Cooldowns->AddChildToHorizontalBox(LiveTile)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 16, 0)); }
+  for (const auto& [Shape, Remaining, Total] : TArray<TTuple<EDrGlyphShape, float, float>>{{EDrGlyphShape::Check, 45.f, 60.f}, {EDrGlyphShape::Close, 30.f, 60.f}, {EDrGlyphShape::Alert, 8.f, 60.f}}) {
+    const auto [Tile, Cooldown] = SkillTile(Shape);
+    Cooldown->SetRemaining(Remaining, Total);
+    if (UHorizontalBoxSlot* S = Cooldowns->AddChildToHorizontalBox(Tile)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 16, 0)); }
+  }
+  UDrButton* UseSkill = MakeButton(LOCTEXT("UseSkill", "스킬 사용(3초)"));
+  UDrCooldown* LiveCooldownPtr = LiveCooldown;
+  UseSkill->OnClicked().AddWeakLambda(LiveCooldownPtr, [LiveCooldownPtr] { if (!LiveCooldownPtr->IsCoolingDown()) LiveCooldownPtr->StartCooldown(3.f); });
+  if (UHorizontalBoxSlot* S = Cooldowns->AddChildToHorizontalBox(UseSkill)) S->SetVerticalAlignment(VAlign_Center);
+  Add(Section(LOCTEXT("CooldownTitle", "쿨다운 표시(UDrCooldown) · 어두운 막이 12시부터 시계 방향으로 걷히고 남은 시간 표시, 끝나면 테두리 반짝임"), Cooldowns));
+
+  // 알림 피드: 견본 줄(사라지지 않음) + 버튼으로 추가. 같은 글이 연달아 오면 ×N으로 합침.
+  UHorizontalBox* FeedDemo = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UDrFeed* Feed = WidgetTree->ConstructWidget<UDrFeed>();
+  Feed->Push(LOCTEXT("FeedGold", "골드 +120"), EDrNoticeTone::Success, 0.f);
+  for (int32 I = 0; I < 3; ++I) Feed->Push(LOCTEXT("FeedOre", "철광석 획득"), EDrNoticeTone::Info, 0.f);
+  Feed->Push(LOCTEXT("FeedFull", "가방이 거의 찼어요"), EDrNoticeTone::Warning, 0.f);
+  USizeBox* FeedSize = WidgetTree->ConstructWidget<USizeBox>();
+  FeedSize->SetWidthOverride(280.f);
+  FeedSize->SetMinDesiredHeight(170.f);
+  FeedSize->AddChild(Feed);
+  FeedDemo->AddChildToHorizontalBox(FeedSize);
+  UVerticalBox* FeedButtons = WidgetTree->ConstructWidget<UVerticalBox>();
+  for (const auto& [Message, Tone] : TArray<TPair<FText, EDrNoticeTone>>{{LOCTEXT("FeedOre", "철광석 획득"), EDrNoticeTone::Info}, {LOCTEXT("FeedLevel", "레벨 업!"), EDrNoticeTone::Success}, {LOCTEXT("FeedHit", "방어구 내구도 낮음"), EDrNoticeTone::Danger}}) {
+    UDrButton* PushButton = MakeButton(Message, EDrButtonVariant::Ghost);
+    const FText PushMessage = Message;
+    const EDrNoticeTone PushTone = Tone;
+    PushButton->OnClicked().AddWeakLambda(Feed, [Feed, PushMessage, PushTone] { Feed->Push(PushMessage, PushTone); });
+    if (UVerticalBoxSlot* S = FeedButtons->AddChildToVerticalBox(PushButton)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 6)); }
+  }
+  if (UHorizontalBoxSlot* S = FeedDemo->AddChildToHorizontalBox(FeedButtons)) { S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(32, 0, 0, 0)); }
+  Add(Section(LOCTEXT("FeedTitle", "알림 피드(UDrFeed, UDrFeedEntry) · 줄이 아래에 쌓였다 사라짐. 같은 글이 연달아 오면 ×N으로 합침(첫 버튼 연타)"), FeedDemo));
   return Page;
 }
 
@@ -893,7 +949,7 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()},
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
-    {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
+    {LOCTEXT("PageGame", "게임용: 홀드·파이 메뉴·쿨다운·피드"), BuildGamePage()},
     {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록·페이지 점·프롬프트·순차 등장"), BuildNavigationPage()},
     {LOCTEXT("PageExtended", "2차·확장: 스크롤·카운트 업·전환·접기·여러 줄"), BuildExtendedPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {

@@ -100,6 +100,46 @@ protected:
   virtual TSharedRef<SWidget> RebuildWidget() override;
 };
 
+/** 알림 피드의 한 줄(작은 유리 칩 + 색 표시 + 글 + 겹친 수 "×3"). 왼쪽에서 밀려 들어온다. */
+UCLASS()
+class DRUIKIT_API UDrFeedEntry : public UDrNoticeBase {
+  GENERATED_BODY()
+public:
+  UDrFeedEntry(const FObjectInitializer& Initializer);
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FText Message;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrNoticeTone Tone = EDrNoticeTone::Info;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") int32 Count = 1;
+  void SetContent(const FText& InMessage, EDrNoticeTone InTone, int32 InCount);
+  FSimpleMulticastDelegate OnLeft;
+protected:
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Surface;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrGlyph> Icon;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> MessageText;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> CountText;
+  virtual void BuildDefaultTree() override;
+  virtual void ApplyTheme() override;
+  virtual void HandleLeft() override { OnLeft.Broadcast(); }
+  virtual ESlateVisibility ShownVisibility() const override { return ESlateVisibility::HitTestInvisible; }
+};
+
+/**
+ * 알림 피드(획득 로그·이벤트 줄). 화면 구석에 두면 Push한 줄이 아래에 쌓였다가 시간이 지나면 사라진다.
+ * 방금 들어온 줄과 같은 글이 또 오면 새 줄 대신 그 줄의 수를 올리고 시간을 다시 센다("철광석 ×3"). MaxVisible을 넘으면 오래된 줄부터 물러난다.
+ */
+UCLASS()
+class DRUIKIT_API UDrFeed : public UUserWidget {
+  GENERATED_BODY()
+public:
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") TSubclassOf<UDrFeedEntry> EntryClass;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI", meta = (ClampMin = 1)) int32 MaxVisible = 5;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float Gap = 4.f;
+  UFUNCTION(BlueprintCallable, Category = "DrUI") UDrFeedEntry* Push(const FText& Message, EDrNoticeTone Tone = EDrNoticeTone::Info, float Seconds = 4.f);
+  int32 GetActiveCount() const;
+protected:
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UVerticalBox> Stack;
+  virtual TSharedRef<SWidget> RebuildWidget() override;
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FDrSnackbarAction, int32, RequestId);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FDrSnackbarDismissed, int32, RequestId, bool, bByAction);
 

@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시를 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIStagger.h"
@@ -7,6 +7,7 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrButtonPrompt.h"
+#include "Widgets/DrCooldown.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
@@ -288,6 +289,22 @@ bool FDrStaggerTest::RunTest(const FString&) {
   TestTrue(TEXT("앞 항목이 늘 더 많이 진행"), StaggerProgress(.15f, 0) > StaggerProgress(.15f, 3));
   TestEqual(TEXT("MaxItems 뒤 항목은 같은 지연"), StaggerProgress(.3f, 20), StaggerProgress(.3f, 7));
   TestTrue(TEXT("이즈 아웃: 절반 시간에 절반보다 많이"), StaggerProgress(.14f, 0) > .5f);
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrCooldownTest, "DrUIKit.Core.Cooldown.Math", DrUIKitTestFlags)
+bool FDrCooldownTest::RunTest(const FString&) {
+  TestEqual(TEXT("10초 이상은 올림 정수"), UDrCooldown::FormatRemaining(12.2f).ToString(), FString(TEXT("13")));
+  TestEqual(TEXT("10초 미만은 소수 한 자리(올림)"), UDrCooldown::FormatRemaining(3.21f).ToString(), FString(TEXT("3.3")));
+  TestTrue(TEXT("끝나면 빈 글"), UDrCooldown::FormatRemaining(0.f).IsEmpty());
+  TestEqual(TEXT("비율"), UDrCooldown::Fraction(15.f, 60.f), .25f);
+  TestEqual(TEXT("다 걷히면 꼭짓점 없음"), UDrCooldown::SweepPolygon(FVector2f(40.f), 0.f).Num(), 0);
+  const TArray<FVector2f> Full = UDrCooldown::SweepPolygon(FVector2f(40.f, 20.f), 1.f);
+  TestTrue(TEXT("첫 점은 가운데"), Full[0].Equals(FVector2f(20.f, 10.f), 1e-3f));
+  TestTrue(TEXT("다 덮으면 12시에서 시작(위 변 가운데)"), Full[1].Equals(FVector2f(20.f, 0.f), 1e-2f));
+  bool bOnEdge = true;
+  for (int32 I = 1; I < Full.Num(); ++I)
+    bOnEdge &= FMath::IsNearlyEqual(Full[I].X, 0.f, .01f) || FMath::IsNearlyEqual(Full[I].X, 40.f, .01f) || FMath::IsNearlyEqual(Full[I].Y, 0.f, .01f) || FMath::IsNearlyEqual(Full[I].Y, 20.f, .01f);
+  TestTrue(TEXT("부채꼴 테두리 점은 모두 사각형 변 위"), bOnEdge);
   return true;
 }
 #endif
