@@ -219,9 +219,10 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
 
   // 슬라이더: 값 글자, 4단계 눈금(StepSize .25), 비활성.
   UWrapBox* Sliders = MakeRow();
-  for (const auto& [Value, Step, bEnabled] : TArray<TTuple<float, float, bool>>{{.35f, .05f, true}, {.5f, .25f, true}, {.7f, .05f, false}}) {
+  for (const auto& [Value, Step, bEnabled, MaxValue] : TArray<TTuple<float, float, bool, float>>{{.35f, .05f, true, 1.f}, {.5f, .25f, true, 1.f}, {60.f, 10.f, true, 100.f}, {.7f, .05f, false, 1.f}}) {
     UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>();
     UDrSlider* Slider = WidgetTree->ConstructWidget<UDrSlider>();
+    Slider->SetMaxValue(MaxValue);
     Slider->SetValue(Value);
     Slider->SetStepSize(Step);
     Slider->SetIsEnabled(bEnabled);
@@ -229,13 +230,13 @@ UWidget* UDrGlassGallery::BuildSelectionPage() {
     Width->SetWidthOverride(220.f);
     Width->AddChild(Slider);
     if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(Width)) S->SetVerticalAlignment(VAlign_Center);
-    UDrText* ValueText = MakeText(FText::AsPercent(Value), TEXT("label"), TEXT("ink-muted"));
+    UDrText* ValueText = MakeText(Slider->GetBubbleText(), TEXT("label"), TEXT("ink-muted"));
     if (UHorizontalBoxSlot* S = Line->AddChildToHorizontalBox(ValueText)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(12, 0, 0, 0)); }
     Slider->OnValueChanged.AddUniqueDynamic(this, &ThisClass::HandleSliderDemo);
     SliderDemoValues.Add(Slider, ValueText);
     Sliders->AddChild(Line);
   }
-  Add(Section(LOCTEXT("SliderTitle", "슬라이더(UDrSlider) · 엔진 USlider + 채움 트랙. 두 번째는 4단계, 세 번째는 비활성"), Sliders));
+  Add(Section(LOCTEXT("SliderTitle", "슬라이더(UDrSlider) · 엔진 USlider + 채움 트랙. 끄는 동안 값 말풍선. 두 번째는 4단계·세 번째는 0~100 10단계(눈금), 네 번째는 비활성"), Sliders));
 
   // 세그먼트: 고른 값을 옆 글자로 보여 준다.
   UHorizontalBox* SegmentRow = WidgetTree->ConstructWidget<UHorizontalBox>();
@@ -720,7 +721,7 @@ void UDrGlassGallery::HandleSegmentDemo(int32 Index) {
 
 void UDrGlassGallery::HandleSliderDemo(float) {
   // 어느 슬라이더가 바뀌었는지 이벤트가 알려 주지 않으므로 전부 다시 쓴다(몇 개뿐).
-  for (const auto& [Slider, Text] : SliderDemoValues) if (Slider && Text) Text->SetText(FText::AsPercent(Slider->GetValue()));
+  for (const auto& [Slider, Text] : SliderDemoValues) if (Slider && Text) Text->SetText(Slider->GetBubbleText());
 }
 
 void UDrGlassGallery::HandleTransparency(float Value) {

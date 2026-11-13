@@ -148,6 +148,11 @@ bool FDrUISliderFillTest::RunTest(const FString&) {
   TestEqual(TEXT("0이면 손잡이 반지름까지"), UDrSlider::FillEnd(200.f, 0.f, 18.f), 9.f);
   TestEqual(TEXT("1이면 끝에서 반지름 안쪽"), UDrSlider::FillEnd(200.f, 1.f, 18.f), 191.f);
   TestEqual(TEXT("절반은 가운데"), UDrSlider::FillEnd(200.f, .5f, 18.f), 100.f);
+  TestEqual(TEXT("0~1을 .25씩이면 눈금 4칸"), UDrSlider::TickSteps(0.f, 1.f, .25f, 12), 4);
+  TestEqual(TEXT("0~100을 10씩이면 10칸"), UDrSlider::TickSteps(0.f, 100.f, 10.f, 12), 10);
+  TestEqual(TEXT("촘촘하면(20칸) 눈금 없음"), UDrSlider::TickSteps(0.f, 1.f, .05f, 12), 0);
+  TestEqual(TEXT("범위를 딱 나누지 않으면 눈금 없음"), UDrSlider::TickSteps(0.f, 1.f, .3f, 12), 0);
+  TestEqual(TEXT("단계가 없으면 눈금 없음"), UDrSlider::TickSteps(0.f, 1.f, 0.f, 12), 0);
   return true;
 }
 
