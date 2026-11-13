@@ -30,7 +30,7 @@
 | 게임용 | `UDrHoldButton`(길게 눌러 실행, CommonUI 길게 누르기 + 차오르는 채움·되감기), `UDrRadialMenu`(파이 메뉴: 마우스 방향·패드 스틱·키보드, 강조가 스프링으로 미끄러짐), `UDrCooldown`(아이콘 위 시계 방향 막·남은 시간·반짝임), `UDrFeed`·`UDrFeedEntry`(획득 로그, 같은 글은 ×N으로 합침) |
 | 2차·확장 | `UDrScrollBox`(얇은 막대·가장자리 그늘), `UDrCountUp`(세어 올라가는 숫자), `UDrAnimatedSwitcher`(페이드·밀기·확대, 움직임 줄이기면 바로), `UDrExpandableArea`·`UDrExpanderHeader`(높이 스프링), `UDrTextArea`(여러 줄 입력), `UDrMorphButton`(로딩이면 원으로 줄고 체크 뒤 펴짐), `UDrQuantityStepper`·`UDrIconButton`(− 값 +, 길게 누르면 가속 반복), `UDrChip`(필터·선택·입력 칩) |
 | 2차·탐색 | `UDrSidebar`·`UDrSidebarItem`(레일 ↔ 펼침, 유리 렌즈), `UDrDock`·`UDrDockItem`(가리키면 확대), `UDrBottomTabBar`·`UDrBottomTabButton`(표시+이름 탭), `UDrBanner`(화면 안 알림 줄), `UDrBottomSheet`(아래에서 올라오는 판, 끌어 닫기), `UDrCoachMark`·`UDrCoachScrim`(구멍 뚫린 막 + 단계 말풍선), `UDrPopover`·`UDrPopoverPanel`(누른 자리 옆 유리 판) |
-| 2차·표현 | `UDrStepIndicator`(단계 표시), `UDrCompletion`(체크 그리기 완료 표시), `UDrEmptyState`(빈 화면: 이유 + 다음 행동) |
+| 2차·표현 | `UDrStepIndicator`(단계 표시), `UDrCompletion`(체크 그리기 완료 표시), `UDrEmptyState`(빈 화면: 이유 + 다음 행동), `UDrTextReveal`(글자 등장: 타이핑·스크램블·올라오기), `UDrSparkline`·`UDrDonut`·`UDrStatCard`(데이터 표시) |
 | 탐색·표시 | `UDrTooltip`(엔진 툴팁 창에 넣는 유리 말풍선, 제목+설명, 나타날 때 내려오며 밝아짐, `Attach`), `UDrListRow`(목록 행: 호버 렌즈·선택·포커스. 짧은 목록은 버튼 묶음, 긴 목록은 UCommonListView 항목 — 에디터에서는 이 클래스를 부모로 한 위젯 블루프린트가 필요), `UDrListItem`(항목 데이터), `UDrPageIndicator`(페이지 점, 지금 점이 알약으로 늘어나 미끄러짐), `UDrButtonPrompt`(키캡 칩 + 행동 이름, 키보드↔패드 자동 전환, 길게 누르기 진행) |
 
 ## 갤러리

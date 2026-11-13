@@ -36,6 +36,7 @@
 #include "Widgets/DrNavigation.h"
 #include "Widgets/DrOverlays.h"
 #include "Widgets/DrQuantityStepper.h"
+#include "Widgets/DrData.h"
 #include "Widgets/DrExpandableArea.h"
 #include "Widgets/DrFeedback.h"
 #include "Widgets/DrScrollBox.h"
@@ -52,6 +53,7 @@
 #include "Widgets/DrSurface.h"
 #include "Widgets/DrTabList.h"
 #include "Widgets/DrText.h"
+#include "Widgets/DrTextReveal.h"
 #include "Widgets/DrTooltip.h"
 
 #define LOCTEXT_NAMESPACE "DrGlassGallery"
@@ -70,7 +72,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrMorphButton::StaticClass(), UDrIconButton::StaticClass(), UDrQuantityStepper::StaticClass(), UDrChip::StaticClass(),
     UDrSidebar::StaticClass(), UDrSidebarItem::StaticClass(), UDrDock::StaticClass(), UDrDockItem::StaticClass(), UDrBottomTabBar::StaticClass(), UDrBottomTabButton::StaticClass(),
     UDrBanner::StaticClass(), UDrBottomSheet::StaticClass(), UDrCoachMark::StaticClass(), UDrCoachScrim::StaticClass(), UDrPopover::StaticClass(), UDrPopoverPanel::StaticClass(),
-    UDrStepIndicator::StaticClass(), UDrCompletion::StaticClass(), UDrEmptyState::StaticClass()};
+    UDrStepIndicator::StaticClass(), UDrCompletion::StaticClass(), UDrEmptyState::StaticClass(),
+    UDrTextReveal::StaticClass(), UDrSparkline::StaticClass(), UDrDonut::StaticClass(), UDrStatCard::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -1084,6 +1087,43 @@ UWidget* UDrGlassGallery::BuildExpressionPage() {
   UDrEmptyState* Empty = WidgetTree->ConstructWidget<UDrEmptyState>();
   Empty->SetContent(EDrGlyphShape::Plus, LOCTEXT("EmptyTitle", "아직 친구가 없어요"), LOCTEXT("EmptyBody", "친구를 추가하면 함께 파티를 만들고 진행을 볼 수 있어요. 친구 코드로 바로 찾을 수 있습니다."), LOCTEXT("EmptyAction", "친구 추가"), LOCTEXT("EmptySecondary", "친구 코드 보기"));
   Add(Section(LOCTEXT("EmptyTitleSection", "빈 화면(UDrEmptyState) · 왜 비었나 + 다음 행동"), Empty));
+
+  // 글자 등장: 방식 3가지 + 다시 재생.
+  UVerticalBox* Reveals = WidgetTree->ConstructWidget<UVerticalBox>();
+  TArray<UDrTextReveal*> RevealWidgets;
+  for (const auto& [Mode, Text] : TArray<TPair<EDrRevealMode, FText>>{
+         {EDrRevealMode::Typing, LOCTEXT("RevealTyping", "타이핑 · 오래된 성채의 문이 열렸다.")},
+         {EDrRevealMode::Scramble, LOCTEXT("RevealScramble", "스크램블 · ACCESS GRANTED 접속 허가")},
+         {EDrRevealMode::FadeUp, LOCTEXT("RevealFade", "올라오며 · 퀘스트 완료!")}}) {
+    UDrTextReveal* Reveal = WidgetTree->ConstructWidget<UDrTextReveal>();
+    Reveal->SetTokens(TEXT("title"), TEXT("ink"));
+    Reveal->Mode = Mode;
+    Reveal->FullText = Text;
+    Reveal->Finish();  // 처음은 다 보인 모습
+    RevealWidgets.Add(Reveal);
+    if (UVerticalBoxSlot* S = Reveals->AddChildToVerticalBox(Reveal)) S->SetPadding(FMargin(0, 0, 0, 8));
+  }
+  UDrButton* ReplayReveal = MakeButton(LOCTEXT("ReplayReveal", "다시 재생"));
+  ReplayReveal->OnClicked().AddWeakLambda(this, [RevealWidgets] { for (UDrTextReveal* Reveal : RevealWidgets) if (Reveal) Reveal->Play(); });
+  if (UVerticalBoxSlot* S = Reveals->AddChildToVerticalBox(ReplayReveal)) S->SetHorizontalAlignment(HAlign_Left);
+  Add(Section(LOCTEXT("RevealTitle", "글자 등장(UDrTextReveal) · 타이핑·스크램블·올라오며 밝아짐"), Reveals));
+
+  // 데이터: 통계 카드 3장 + 도넛 + 스파크라인.
+  UHorizontalBox* Data = WidgetTree->ConstructWidget<UHorizontalBox>();
+  struct FStatDemo { FText Label; float Value, Delta; TArray<float> History; ECommonNumericType Type; };
+  const FStatDemo Stats[] = {
+    {LOCTEXT("StatPlayers", "동시 접속"), 1172.f, .12f, {820, 900, 870, 980, 1040, 1010, 1172}, ECommonNumericType::Number},
+    {LOCTEXT("StatWin", "승률"), .54f, -.035f, {.6f, .58f, .59f, .55f, .56f, .53f, .54f}, ECommonNumericType::Percentage},
+    {LOCTEXT("StatTime", "평균 판 시간"), 754.f, 0.f, {740, 760, 750, 755, 748, 756, 754}, ECommonNumericType::Seconds}};
+  for (const FStatDemo& Stat : Stats) {
+    UDrStatCard* Card = WidgetTree->ConstructWidget<UDrStatCard>();
+    Card->SetData(Stat.Label, Stat.Value, Stat.Delta, Stat.History, Stat.Type);
+    if (UHorizontalBoxSlot* S = Data->AddChildToHorizontalBox(Card)) { S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, 0, 16, 0)); }
+  }
+  UDrDonut* Donut = WidgetTree->ConstructWidget<UDrDonut>();
+  Donut->SetData({42.f, 28.f, 18.f, 12.f}, LOCTEXT("DonutValue", "42%"), LOCTEXT("DonutCaption", "전사"));
+  if (UHorizontalBoxSlot* S = Data->AddChildToHorizontalBox(Donut)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(8, 0)); }
+  Add(Section(LOCTEXT("DataTitle", "데이터: 통계 카드(UDrStatCard: 세어 올라가는 숫자·↑↓ 변화·스파크라인 UDrSparkline) · 도넛(UDrDonut: 직업 비율)"), Data));
   return Page;
 }
 

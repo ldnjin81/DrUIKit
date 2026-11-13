@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시를 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIStagger.h"
@@ -8,6 +8,7 @@
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrButtonPrompt.h"
 #include "Widgets/DrCooldown.h"
+#include "Widgets/DrData.h"
 #include "Widgets/DrFeedback.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
@@ -19,6 +20,7 @@
 #include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
+#include "Widgets/DrTextReveal.h"
 #include "Widgets/DrSurface.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
@@ -325,6 +327,24 @@ bool FDrCooldownTest::RunTest(const FString&) {
   for (int32 I = 1; I < Full.Num(); ++I)
     bOnEdge &= FMath::IsNearlyEqual(Full[I].X, 0.f, .01f) || FMath::IsNearlyEqual(Full[I].X, 40.f, .01f) || FMath::IsNearlyEqual(Full[I].Y, 0.f, .01f) || FMath::IsNearlyEqual(Full[I].Y, 20.f, .01f);
   TestTrue(TEXT("부채꼴 테두리 점은 모두 사각형 변 위"), bOnEdge);
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrRevealDataTest, "DrUIKit.Core.RevealAndData", DrUIKitTestFlags)
+bool FDrRevealDataTest::RunTest(const FString&) {
+  TestEqual(TEXT("타이핑: 초당 20자면 0.5초에 10자"), UDrTextReveal::RevealedCount(.5f, 30, 20.f), 10);
+  TestEqual(TEXT("타이핑: 길이를 넘지 않음"), UDrTextReveal::RevealedCount(9.f, 30, 20.f), 30);
+  const FString Full = TEXT("다시 오셨네요 Hello");
+  const FString Frame = UDrTextReveal::ScrambleFrame(Full, 3, 7u);
+  TestEqual(TEXT("스크램블: 길이 같음"), Frame.Len(), Full.Len());
+  TestTrue(TEXT("스크램블: 앞 3글자는 그대로"), Frame.Left(3) == Full.Left(3));
+  TestEqual(TEXT("스크램블: 띄어쓰기는 그대로"), Frame[7], TCHAR(' '));
+  TestTrue(TEXT("스크램블: 한글 자리는 한글"), Frame[4] >= 0xAC00 && Frame[4] <= 0xD7A3);
+  const TArray<FVector2f> Spark = UDrSparkline::ToPoints({1.f, 5.f, 3.f}, FVector2f(100.f, 40.f), 0.f);
+  TestTrue(TEXT("스파크라인: 큰 값이 위, 작은 값이 아래, 양 끝 x"), Spark[1].Y == 0.f && Spark[0].Y == 40.f && Spark[2].X == 100.f);
+  const TArray<FVector2f> Segs = UDrDonut::Segments({1.f, 3.f, -2.f});
+  TestTrue(TEXT("도넛: 비율(음수는 0)"), Segs.Num() == 3 && FMath::IsNearlyEqual(Segs[1].X, .25f) && FMath::IsNearlyEqual(Segs[1].Y, .75f) && Segs[2].Y == 0.f);
+  TestEqual(TEXT("통계 카드: 오름"), UDrStatCard::FormatDelta(.12f).ToString(), FString(TEXT("↑12%")));
+  TestEqual(TEXT("통계 카드: 변화 없음"), UDrStatCard::FormatDelta(0.f).ToString(), FString(TEXT("—")));
   return true;
 }
 #endif
