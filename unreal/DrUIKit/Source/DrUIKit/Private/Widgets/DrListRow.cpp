@@ -86,9 +86,3 @@ void UDrListRow::ApplyVisualState() {
     Chevron->SetVisibility(bShowChevron ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
   }
 }
-
-UDrListView::UDrListView(const FObjectInitializer& Initializer) : Super(Initializer) {
-  EntryWidgetClass = UDrListRow::StaticClass();
-  WidgetStyle.SetBackgroundBrush(FSlateNoResource());  // 바탕은 놓인 표면이 칠한다
-  SetVerticalEntrySpacing(2.f);
-}

@@ -1,7 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Blueprint/IUserObjectListEntry.h"
-#include "CommonListView.h"
 #include "Widgets/DrButtonBase.h"
 #include "DrListRow.generated.h"
 
@@ -9,7 +8,7 @@ class UDrGlyph;
 class UDrSurface;
 class UDrText;
 
-/** 목록 항목 데이터(제목·보조 글·오른쪽 글). UDrListView에 AddItem으로 넣는다. 게임 데이터 오브젝트를 바로 넣으려면 행을 상속해 NativeOnListItemObjectSet을 덮어쓴다. */
+/** 목록 항목 데이터(제목·보조 글·오른쪽 글). UListView·UCommonListView에 AddItem으로 넣는다. 게임 데이터 오브젝트를 바로 넣으려면 행을 상속해 NativeOnListItemObjectSet을 덮어쓴다. */
 UCLASS(BlueprintType)
 class DRUIKIT_API UDrListItem : public UObject {
   GENERATED_BODY()
@@ -23,8 +22,10 @@ public:
 
 /**
  * 목록 행. 호버하면 옅은 렌즈(둥근 hairline 바탕)가 깔리고, 선택되면 accent-soft 바탕, 포커스는 2px 링.
- * CommonUI 버튼이라 패드·키보드로 이동·선택되고, UCommonListView 안에서는 목록이 선택을 맡는다(버튼 선택과 자동으로 맞춰짐).
- * 목록 밖에서 단독으로도 쓴다(Title 등을 직접 채움).
+ * CommonUI 버튼이라 패드·키보드로 이동·선택된다. 쓰는 법 두 가지:
+ *  - 짧은 목록(저장 슬롯·설정): 스크롤 상자에 직접 넣고 UCommonButtonGroupBase로 하나만 선택(SetIsSelectable(true)).
+ *  - 긴 목록(가상화): UCommonListView의 EntryWidgetClass로 쓴다. 단 엔진이 에디터에서는 항목이 위젯 블루프린트이기를 요구하므로
+ *    이 클래스를 부모로 한 위젯 블루프린트를 만들어 지정한다(UListViewBase::RebuildWidget 검사, 덮어쓸 수 없음). 선택은 목록이 맡고 버튼 선택과 자동으로 맞춰진다.
  */
 UCLASS()
 class DRUIKIT_API UDrListRow : public UDrButtonBase, public IUserObjectListEntry {
@@ -46,12 +47,4 @@ protected:
   virtual void BuildDefaultTree() override;
   virtual void ApplyVisualState() override;
   virtual void NativeOnListItemObjectSet(UObject* ListItemObject) override;
-};
-
-/** DrUIKit 목록. CommonUI 목록에 행 기본값(UDrListRow), 투명 바탕, 행 간격만 정했다. 다른 행 클래스를 쓰려면 EntryWidgetClass를 바꾼다. */
-UCLASS()
-class DRUIKIT_API UDrListView : public UCommonListView {
-  GENERATED_BODY()
-public:
-  UDrListView(const FObjectInitializer& Initializer);
 };
