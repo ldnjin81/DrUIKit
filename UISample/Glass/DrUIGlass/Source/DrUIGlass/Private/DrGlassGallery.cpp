@@ -1013,15 +1013,15 @@ void UDrGlassGallery::Build() {
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
   PageTabs->SetLinkedSwitcher(Pages);
   const TArray<TPair<FText, UWidget*>> PageList = {
-    {LOCTEXT("PageFoundation", "기초: 글자·색·표면·아이콘"), BuildFoundationPage()},
-    {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()},
-    {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()},
-    {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()},
-    {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
-    {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
-    {LOCTEXT("PageGame", "게임용: 홀드·파이 메뉴·쿨다운·피드"), BuildGamePage()},
-    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록·페이지 점·프롬프트·순차 등장"), BuildNavigationPage()},
-    {LOCTEXT("PageExtended", "2차·확장: 스크롤·카운트 업·전환·접기·여러 줄"), BuildExtendedPage()}};
+    {LOCTEXT("PageFoundation", "기초"), BuildFoundationPage()},
+    {LOCTEXT("PageButtons", "버튼"), BuildButtonPage()},
+    {LOCTEXT("PageSelection", "선택"), BuildSelectionPage()},
+    {LOCTEXT("PageStatus", "상태"), BuildStatusPage()},
+    {LOCTEXT("PageNotice", "알림"), BuildNoticePage()},
+    {LOCTEXT("PageInput", "입력"), BuildInputPage()},
+    {LOCTEXT("PageGame", "게임용"), BuildGamePage()},
+    {LOCTEXT("PageNavigation", "탐색·표시"), BuildNavigationPage()},
+    {LOCTEXT("PageExtended", "2차·확장"), BuildExtendedPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UDrScrollBox* Scroll = WidgetTree->ConstructWidget<UDrScrollBox>();  // 얇은 막대 + 가장자리 그늘
     // 스크롤 상자는 내용 밖을 자른다. 카드 그림자(shadow-glass)가 잘리지 않게 양옆·아래 여백을 둔다.
