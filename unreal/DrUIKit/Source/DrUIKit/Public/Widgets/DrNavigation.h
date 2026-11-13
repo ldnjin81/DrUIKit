@@ -95,7 +95,7 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") bool bRunning = false;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") int32 Count = 0;
   /** 확대 배율(독이 스프링으로 넣는다). 칩은 아래 가운데를 축으로 커지고, 자리 너비도 함께 늘어 이웃을 민다. */
-  void SetMagnify(float Scale);
+  void SetMagnify(float Magnify);
   bool IsPointed() const { return IsHovered() || bFocusedNow; }
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<USizeBox> TileBox;

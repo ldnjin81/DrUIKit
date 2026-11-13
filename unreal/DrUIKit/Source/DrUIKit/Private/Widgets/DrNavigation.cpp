@@ -234,9 +234,9 @@ void UDrDockItem::BuildDefaultTree() {
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(DotSize)) { S->SetHorizontalAlignment(HAlign_Center); S->SetPadding(FMargin(0, 4, 0, 0)); }
 }
 
-void UDrDockItem::SetMagnify(float Scale) {
-  if (TileBox) TileBox->SetWidthOverride(48.f * Scale);
-  if (TileLayer) TileLayer->SetRenderScale(FVector2D(Scale));
+void UDrDockItem::SetMagnify(float Magnify) {
+  if (TileBox) TileBox->SetWidthOverride(48.f * Magnify);
+  if (TileLayer) TileLayer->SetRenderScale(FVector2D(Magnify));
 }
 
 void UDrDockItem::ApplyVisualState() {
