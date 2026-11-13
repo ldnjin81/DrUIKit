@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례를 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
@@ -6,6 +6,7 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrGlyph.h"
+#include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
@@ -218,6 +219,18 @@ bool FDrUISnackbarQueueTest::RunTest(const FString&) {
   }
   TestEqual(TEXT("토스트 색 4종은 모양도 모두 다름(색만으로 구분하지 않음)"), Shapes.Num(), 4);
   TestEqual(TEXT("느낌표는 획 둘"), DrGlyph::Strokes(EDrGlyphShape::Alert).Num(), 2);
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrInputMathTest, "DrUIKit.Core.Input.Math", DrUIKitTestFlags)
+bool FDrInputMathTest::RunTest(const FString&) {
+  TestEqual(TEXT("제한 없음(0)"), UDrTextField::ClampLength(FText::FromString(TEXT("안녕하세요")), 0).ToString(), FString(TEXT("안녕하세요")));
+  TestEqual(TEXT("넘으면 자름"), UDrTextField::ClampLength(FText::FromString(TEXT("안녕하세요")), 3).ToString(), FString(TEXT("안녕하")));
+  TestEqual(TEXT("다음(감쌈) 끝 → 처음"), UDrHorizontalSelector::StepIndex(2, 1, 3, true), 0);
+  TestEqual(TEXT("이전(감쌈) 처음 → 끝"), UDrHorizontalSelector::StepIndex(0, -1, 3, true), 2);
+  TestEqual(TEXT("감싸지 않으면 끝에서 멈춤"), UDrHorizontalSelector::StepIndex(2, 1, 3, false), 2);
+  TestEqual(TEXT("감싸지 않으면 처음에서 멈춤"), UDrHorizontalSelector::StepIndex(0, -1, 3, false), 0);
+  TestEqual(TEXT("고른 것 없으면 다음은 처음"), UDrHorizontalSelector::StepIndex(INDEX_NONE, 1, 3, true), 0);
+  TestEqual(TEXT("항목이 없으면 없음"), UDrHorizontalSelector::StepIndex(0, 1, 0, true), int32(INDEX_NONE));
   return true;
 }
 #endif

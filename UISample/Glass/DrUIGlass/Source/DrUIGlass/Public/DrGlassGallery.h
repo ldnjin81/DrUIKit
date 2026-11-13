@@ -10,6 +10,7 @@ class UCommonButtonGroupBase;
 class UDrSegmentedControl;
 class UDrSlider;
 class UDrSnackbar;
+class UDrTextField;
 class UDrSwitch;
 class UDrTabList;
 class UDrToastStack;
@@ -39,12 +40,14 @@ private:
   UWidget* BuildSelectionPage();
   UWidget* BuildStatusPage();
   UWidget* BuildNoticePage();
+  UWidget* BuildInputPage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);
   UFUNCTION() void HandleThemeChoice(int32 Index);
   UFUNCTION() void HandleQualityChoice(int32 Index);
   UFUNCTION() void HandleUndo(int32 RequestId);
+  UFUNCTION() void HandleNicknameCommitted(const FText& Text);
   UFUNCTION() void HandleSampleSnackbar(int32 RequestId);
   UDrButton* MakeButton(const FText& Label, EDrButtonVariant Variant = EDrButtonVariant::Secondary);
   UDrText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
@@ -63,6 +66,7 @@ private:
   UPROPERTY(Transient) TObjectPtr<UDrToastStack> Toasts;
   UPROPERTY(Transient) TObjectPtr<UDrSnackbar> Snackbar;
   UPROPERTY(Transient) TObjectPtr<UDrSnackbar> SampleSnackbar;
+  UPROPERTY(Transient) TObjectPtr<UDrTextField> NicknameField;
   /** 라디오 묶음(하나만 선택). 위젯이 아니라서 따로 붙잡아 둔다. */
   UPROPERTY(Transient) TArray<TObjectPtr<UCommonButtonGroupBase>> RadioGroups;
   UPROPERTY(Transient) TObjectPtr<UDrText> SegmentDemoValue;

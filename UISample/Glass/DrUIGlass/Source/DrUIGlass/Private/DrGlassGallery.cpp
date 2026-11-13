@@ -25,6 +25,7 @@
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrIcon.h"
+#include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
@@ -39,7 +40,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrGlyph::StaticClass(), UDrCheckBox::StaticClass(), UDrRadio::StaticClass(), UDrSwitch::StaticClass(),
     UDrTabButton::StaticClass(), UDrTabList::StaticClass(), UDrSegmentedControl::StaticClass(), UDrSlider::StaticClass(),
     UDrBadge::StaticClass(), UDrProgressBar::StaticClass(), UDrProgressRing::StaticClass(), UDrSkeleton::StaticClass(), UDrSpinner::StaticClass(),
-    UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass()};
+    UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
+    UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -427,6 +429,68 @@ UWidget* UDrGlassGallery::BuildNoticePage() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildInputPage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+  auto MakeRow = [this] { UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>(); Row->SetInnerSlotPadding(FVector2D(24, 16)); return Row; };
+  auto Sized = [this](UWidget* W, float Width) { USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(); Box->SetWidthOverride(Width); Box->AddChild(W); return Box; };
+
+  // 텍스트 필드: 안내·비밀번호·글자 수·오류·비활성. 닉네임은 Enter로 확정하면 2자 미만일 때 오류.
+  UWrapBox* Fields = MakeRow();
+  auto Field = [&](const FText& Label, const FText& Hint, const FText& Helper) {
+    UDrTextField* F = WidgetTree->ConstructWidget<UDrTextField>();
+    F->Label = Label; F->Hint = Hint; F->Helper = Helper;
+    Fields->AddChild(Sized(F, 260.f));
+    return F;
+  };
+  NicknameField = Field(LOCTEXT("Nickname", "닉네임"), LOCTEXT("NicknameHint", "2~12자"), LOCTEXT("NicknameHelper", "Enter로 확정(2자 미만이면 오류)"));
+  NicknameField->MaxLength = 12;
+  NicknameField->OnTextCommitted.AddUniqueDynamic(this, &ThisClass::HandleNicknameCommitted);
+  Field(LOCTEXT("Password", "비밀번호"), LOCTEXT("PasswordHint", "8자 이상"), FText::GetEmpty())->bPassword = true;
+  UDrTextField* Errored = Field(LOCTEXT("Email", "이메일"), FText::GetEmpty(), FText::GetEmpty());
+  Errored->SetText(LOCTEXT("EmailValue", "player@"));
+  Errored->SetError(LOCTEXT("EmailError", "이메일 형식이 아니에요"));
+  Field(LOCTEXT("ServerName", "서버"), LOCTEXT("ServerHint", "자동 선택됨"), LOCTEXT("ServerHelper", "비활성"))->SetIsEnabled(false);
+  Add(Section(LOCTEXT("FieldTitle", "텍스트 필드(UDrTextField) · 엔진 UEditableText + 라벨·안내·글자 수·오류"), Fields));
+
+  // 드롭다운: 직접 열기(자리표시·고른 값) + 비활성 + 목록 견본(UDrDropdownMenu를 그대로 놓음).
+  const TArray<FText> Regions = {LOCTEXT("Seoul", "서울"), LOCTEXT("Tokyo", "도쿄"), LOCTEXT("Singapore", "싱가포르"), LOCTEXT("Frankfurt", "프랑크푸르트")};
+  UWrapBox* Dropdowns = MakeRow();
+  for (const auto& [Selected, bEnabled] : TArray<TPair<int32, bool>>{{INDEX_NONE, true}, {1, true}, {2, false}}) {
+    UDrDropdown* Dropdown = WidgetTree->ConstructWidget<UDrDropdown>();
+    Dropdown->Placeholder = LOCTEXT("RegionPlaceholder", "지역 선택");
+    Dropdown->SetOptions(Regions);
+    Dropdown->SetSelectedIndex(Selected);
+    Dropdown->SetIsEnabled(bEnabled);
+    Dropdowns->AddChild(Sized(Dropdown, 200.f));
+  }
+  UDrDropdownMenu* MenuSample = WidgetTree->ConstructWidget<UDrDropdownMenu>();
+  MenuSample->SetOptions(Regions, 1, 200.f);
+  Dropdowns->AddChild(MenuSample);
+  Add(Section(LOCTEXT("DropdownTitle", "드롭다운(UDrDropdown, UDrDropdownMenu, UDrDropdownItem) · 누르면 아래에 목록. 오른쪽은 목록 견본"), Dropdowns));
+
+  // 수평 선택기: 감쌈(끝에서 처음으로) / 멈춤(끝 화살표 흐림) / 비활성.
+  UWrapBox* Selectors = MakeRow();
+  const TArray<TTuple<TArray<FText>, int32, bool, bool>> SelectorList = {
+    {{LOCTEXT("Easy", "쉬움"), LOCTEXT("Normal", "보통"), LOCTEXT("Hard", "어려움"), LOCTEXT("Nightmare", "악몽")}, 1, true, true},
+    {{LOCTEXT("QLow", "낮음"), LOCTEXT("QMid", "중간"), LOCTEXT("QHigh", "높음"), LOCTEXT("QEpic", "최고")}, 3, false, true},
+    {{LOCTEXT("Off", "끔"), LOCTEXT("On", "켬")}, 0, true, false}};
+  for (const auto& [Options, Selected, bWrapAround, bEnabled] : SelectorList) {
+    UDrHorizontalSelector* Selector = WidgetTree->ConstructWidget<UDrHorizontalSelector>();
+    Selector->bWrap = bWrapAround;
+    Selector->SetOptions(Options);
+    Selector->SetSelectedIndex(Selected);
+    Selector->SetIsEnabled(bEnabled);
+    Selectors->AddChild(Selector);
+  }
+  Add(Section(LOCTEXT("SelectorTitle", "수평 선택기(UDrHorizontalSelector) · 패드·키보드 좌우, 마우스는 왼쪽 절반 이전·오른쪽 절반 다음. 두 번째는 끝에서 멈춤"), Selectors));
+  return Page;
+}
+
+void UDrGlassGallery::HandleNicknameCommitted(const FText& Text) {
+  if (NicknameField && Text.ToString().TrimStartAndEnd().Len() < 2) NicknameField->SetError(LOCTEXT("NicknameError", "2자 이상 입력하세요"));
+}
+
 void UDrGlassGallery::HandleUndo(int32) {
   if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
@@ -512,7 +576,8 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageButtons", "버튼: 4종 × 상태"), BuildButtonPage()},
     {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()},
     {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()},
-    {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()}};
+    {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
+    {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
