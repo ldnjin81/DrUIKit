@@ -1219,7 +1219,8 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
       HandleTransparency(.5f);
       if (TransparencySlider) TransparencySlider->SetValue(.5f);
       ShowPage(GetPageCount() - 1);
-      if (UScrollBox* Scroll = Cast<UScrollBox>(Pages->GetWidgetAtIndex(GetPageCount() - 1))) Scroll->ScrollToEnd();
+      // 즉시 끝으로(ScrollToEnd는 다음 틱에 처리되어 코치마크의 '대상 보이게 굴리기'를 덮는다).
+      if (UScrollBox* Scroll = Cast<UScrollBox>(Pages->GetWidgetAtIndex(GetPageCount() - 1))) Scroll->SetScrollOffset(Scroll->GetScrollOffsetOfEnd());
       Overlays[Extra].Toggle(true);
       bCaptureShotPending = true;
       CaptureWait = 40.f;

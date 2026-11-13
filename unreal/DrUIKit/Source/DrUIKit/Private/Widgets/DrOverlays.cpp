@@ -519,6 +519,7 @@ TSharedRef<SWidget> UDrPopover::RebuildWidget() {
     Anchor = WidgetTree->ConstructWidget<UMenuAnchor>(UMenuAnchor::StaticClass(), TEXT("Anchor"));
     Anchor->SetPlacement(MenuPlacement_BelowAnchor);
     Anchor->FitInWindow(true);
+    Anchor->InitShowMenuBackground(false);  // 엔진 메뉴 창의 진회색 배경을 끈다(판은 우리가 칠한다)
     Anchor->OnGetUserMenuContentEvent.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UDrPopover, HandleGetMenu));
     WidgetTree->RootWidget = Anchor;
     if (PendingTrigger) Anchor->SetContent(PendingTrigger);
