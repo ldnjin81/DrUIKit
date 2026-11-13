@@ -77,6 +77,7 @@ UWidget* UDrGlassGallery::Section(const FText& Title, UWidget* Body) {
   Card->RadiusToken = TEXT("radius-xl");
   Card->PaddingToken = TEXT("space-6");
   Card->BackdropToken = NAME_None;  // 조밀한 내용은 흐림 없이(디자인 시스템 원칙 2)
+  Card->SetElevation(TEXT("shadow-glass"));  // 유리 패널: 넓고 옅은 그림자 + 윗면 반사광
   UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>();
   Card->SetContent(Column);
   if (UVerticalBoxSlot* TitleSlot = Column->AddChildToVerticalBox(MakeText(Title, TEXT("title")))) TitleSlot->SetPadding(FMargin(0, 0, 0, 12));
@@ -119,6 +120,7 @@ UWidget* UDrGlassGallery::BuildFoundationPage() {
     Panel->RadiusToken = TEXT("radius-xl");
     Panel->PaddingToken = TEXT("space-5");
     if (Fill != TEXT("glass")) Panel->BackdropToken = NAME_None;
+    Panel->SetElevation(TEXT("shadow-glass"));
     UVerticalBox* Inner = WidgetTree->ConstructWidget<UVerticalBox>();
     Inner->AddChildToVerticalBox(MakeText(Caption, TEXT("heading")));
     Inner->AddChildToVerticalBox(MakeText(LOCTEXT("SurfaceBody", "표면 품질을 낮음으로 바꾸면 흐림이 꺼지고 불투명해진다."), TEXT("body"), TEXT("ink-muted")));
@@ -749,6 +751,7 @@ void UDrGlassGallery::Build() {
   UDrSurface* Bar = WidgetTree->ConstructWidget<UDrSurface>();
   Bar->RadiusToken = TEXT("radius-pill");
   Bar->PaddingToken = TEXT("space-3");
+  Bar->SetElevation(TEXT("shadow-glass"));
   UHorizontalBox* BarRow = WidgetTree->ConstructWidget<UHorizontalBox>();
   Bar->SetContent(BarRow);
   auto BarAdd = [BarRow](UWidget* W, bool bFill = false) {

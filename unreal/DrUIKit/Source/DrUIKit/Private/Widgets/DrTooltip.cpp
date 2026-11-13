@@ -40,6 +40,8 @@ TSharedRef<SWidget> UDrTooltip::RebuildWidget() {
     Surface->RadiusToken = DrUITokens::RadiusSm;
     Surface->PaddingToken = NAME_None;
     Surface->SetPadding(FMargin(10.f, 7.f));
+    Surface->ShadowToken = DrUITokens::ShadowFloat;
+    Surface->HighlightToken = DrUITokens::GlassHighlight;
     Frame->AddChild(Surface);
     UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>();
     Surface->SetContent(Column);

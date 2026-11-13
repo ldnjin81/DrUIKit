@@ -89,7 +89,7 @@ UDrUITheme* UDrUITheme::MakeDefault(UObject* Outer) {
   auto Gray = [](float V, float A = 1.f) { return FLinearColor(FColor(uint8(V * 255), uint8(V * 255), uint8(V * 255))).CopyWithNewOpacity(A); };
   Theme->Colors = {
     {DrUITokens::Ground, Gray(.93f)}, {DrUITokens::Glass, Gray(.98f)}, {DrUITokens::GlassStrong, Gray(1.f)},
-    {DrUITokens::GlassStroke, Gray(.78f)}, {DrUITokens::Hairline, Gray(.85f)},
+    {DrUITokens::GlassStroke, Gray(.78f)}, {DrUITokens::GlassHighlight, Gray(1.f, .9f)}, {DrUITokens::Hairline, Gray(.85f)},
     {DrUITokens::Ink, Gray(.08f)}, {DrUITokens::InkMuted, Gray(.36f)}, {DrUITokens::InkFaint, Gray(.6f)},
     {DrUITokens::Accent, Gray(.2f)}, {DrUITokens::OnAccent, Gray(1.f)}, {DrUITokens::AccentSoft, Gray(.2f, .12f)},
     {DrUITokens::Chip, Gray(.1f)}, {DrUITokens::OnChip, Gray(1.f)},

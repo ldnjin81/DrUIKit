@@ -111,6 +111,8 @@ void UDrToast::BuildDefaultTree() {
   Surface->RadiusToken = DrUITokens::RadiusPill;
   Surface->PaddingToken = NAME_None;
   Surface->SetPadding(FMargin(14.f, 9.f, 18.f, 9.f));
+  Surface->ShadowToken = DrUITokens::ShadowFloat;  // 디자인 시스템: 떠 있는 작은 요소(툴팁·토스트)
+  Surface->HighlightToken = DrUITokens::GlassHighlight;
   Frame->AddChild(Surface);
   UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
   Surface->SetContent(Row);
@@ -208,6 +210,7 @@ void UDrSnackbar::BuildDefaultTree() {
   Surface->RadiusToken = DrUITokens::RadiusLg;
   Surface->PaddingToken = NAME_None;
   Surface->SetPadding(FMargin(18.f, 8.f, 8.f, 8.f));
+  Surface->ShadowToken = DrUITokens::ShadowFloat;
   Frame->AddChild(Surface);
   UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
   Surface->SetContent(Row);

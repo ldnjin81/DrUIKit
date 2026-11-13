@@ -74,7 +74,7 @@ private:
 
 /** 코어 부품이 쓰는 토큰 이름(디자인 시스템과 같은 이름). */
 namespace DrUITokens {
-inline const FName Ground = TEXT("ground"), Glass = TEXT("glass"), GlassStrong = TEXT("glass-strong"), GlassStroke = TEXT("glass-stroke");
+inline const FName Ground = TEXT("ground"), Glass = TEXT("glass"), GlassStrong = TEXT("glass-strong"), GlassStroke = TEXT("glass-stroke"), GlassHighlight = TEXT("glass-highlight");
 inline const FName Hairline = TEXT("hairline"), Ink = TEXT("ink"), InkMuted = TEXT("ink-muted"), InkFaint = TEXT("ink-faint");
 inline const FName Accent = TEXT("accent"), OnAccent = TEXT("on-accent"), AccentSoft = TEXT("accent-soft"), Chip = TEXT("chip"), OnChip = TEXT("on-chip");
 inline const FName Success = TEXT("success"), Warning = TEXT("warning"), Danger = TEXT("danger"), Focus = TEXT("focus");

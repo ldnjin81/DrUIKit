@@ -21,6 +21,10 @@ bool FDrGlassThemeLoadTest::RunTest(const FString&) {
   TestEqual(TEXT("body 14px → 10.5"), Themes[0]->GetTextStyle(TEXT("body")).Size, 10.5f);
   TestEqual(TEXT("radius-xl"), Themes[0]->GetRadius(TEXT("radius-xl")), 28.f);
   TestTrue(TEXT("흐림 토큰"), Themes[0]->GetBackdrop(TEXT("backdrop-glass")) > 0.f);
+  FDrUIShadow Shadow;
+  TestTrue(TEXT("box-shadow: inset 겹은 건너뛰고 바깥 겹"), DrGlassTheme::ParseCssShadow(TEXT("inset 0 1px 0 rgba(255,255,255,0.95), 0 16px 48px -16px rgba(24,32,56,0.28)"), Shadow)
+    && Shadow.Offset == FVector2D(0, 16) && Shadow.Blur == 48.f && Shadow.Spread == -16.f && FMath::IsNearlyEqual(Shadow.Color.A, .28f));
+  TestTrue(TEXT("그림자 토큰 3개"), Themes[0]->Shadows.Num() == 3 && Themes[1]->GetShadow(TEXT("shadow-float")).Color.A > .5f);
   if (TestTrue(TEXT("Pretendard 글꼴"), Themes[0]->RuntimeFont.IsValid())) {
     TestEqual(TEXT("서체 5개"), Themes[0]->RuntimeFont->DefaultTypeface.Fonts.Num(), 5);
     TestEqual(TEXT("600 → SemiBold"), UDrUITheme::PickTypeface(*Themes[0]->RuntimeFont, 600), FName(TEXT("SemiBold")));

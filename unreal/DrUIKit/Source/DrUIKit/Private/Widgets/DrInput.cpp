@@ -232,6 +232,8 @@ void UDrDropdownMenu::EnsureTree() {
   Surface->RadiusToken = DrUITokens::RadiusMd;
   Surface->PaddingToken = NAME_None;
   Surface->SetPadding(FMargin(6.f));
+  Surface->ShadowToken = DrUITokens::ShadowFloat;
+  Surface->HighlightToken = DrUITokens::GlassHighlight;
   Frame->AddChild(Surface);
   List = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("List"));
   Surface->SetContent(List);

@@ -42,6 +42,37 @@ static float LeadingNumber(const FString& Text) {
   return Digits.IsEmpty() ? 0.f : FCString::Atof(*Digits);
 }
 
+bool DrGlassTheme::ParseCssShadow(const FString& Text, FDrUIShadow& Out) {
+  // 괄호 밖 쉼표로 겹을 나눈다(rgba(…, …) 안의 쉼표는 건너뜀).
+  TArray<FString> Layers;
+  FString Current;
+  int32 Depth = 0;
+  for (TCHAR C : Text) {
+    if (C == TEXT('(')) ++Depth;
+    else if (C == TEXT(')')) --Depth;
+    if (C == TEXT(',') && Depth == 0) { Layers.Add(Current); Current.Reset(); }
+    else Current.AppendChar(C);
+  }
+  Layers.Add(Current);
+  for (FString Layer : Layers) {
+    Layer = Layer.TrimStartAndEnd().ToLower();
+    if (Layer.IsEmpty() || Layer.StartsWith(TEXT("inset"))) continue;
+    // 길이들(x y 흐림 퍼짐) 뒤에 색.
+    const int32 ColorAt = FMath::Max(Layer.Find(TEXT("rgb")), Layer.Find(TEXT("#")));
+    if (ColorAt < 0) continue;
+    TArray<FString> Lengths;
+    Layer.Left(ColorAt).ParseIntoArrayWS(Lengths);
+    TArray<float> Values;
+    for (const FString& L : Lengths) Values.Add(FCString::Atof(*L));  // "16px" → 16, "-16px" → -16
+    if (Values.Num() < 2 || !ParseCssColor(Layer.Mid(ColorAt), Out.Color)) continue;
+    Out.Offset = FVector2D(Values[0], Values[1]);
+    Out.Blur = Values.IsValidIndex(2) ? Values[2] : 0.f;
+    Out.Spread = Values.IsValidIndex(3) ? Values[3] : 0.f;
+    return true;
+  }
+  return false;
+}
+
 TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Outer, FString& OutError) {
   TArray<UDrUITheme*> Result;
   TSharedPtr<FJsonObject> Root;
@@ -89,6 +120,18 @@ TArray<UDrUITheme*> DrGlassTheme::BuildThemes(const FString& Json, UObject* Oute
     Lengths(TEXT("radius"), Theme->Radius, 1.f);
     // CSS blur(px)와 Slate 흐림 강도는 기준이 다르다. 화면 캡처로 맞출 때까지 px의 절반으로 둔다.
     Lengths(TEXT("backdrop"), Theme->Backdrops, .5f);
+    // 그림자: 테마별 CSS box-shadow 문자열.
+    const TSharedPtr<FJsonObject>* Shadows;
+    if (Root->TryGetObjectField(TEXT("shadow"), Shadows))
+      for (const TSharedPtr<FJsonValue>& V : (*Shadows)->GetArrayField(TEXT("tokens"))) {
+        const TSharedPtr<FJsonObject> Token = V->AsObject();
+        FString Text;
+        const TSharedPtr<FJsonObject>* PerTheme;
+        if (Token->TryGetObjectField(TEXT("value"), PerTheme)) { if (!(*PerTheme)->TryGetStringField(Id, Text)) (*PerTheme)->TryGetStringField(ThemeIds[0], Text); }
+        else Token->TryGetStringField(TEXT("value"), Text);
+        FDrUIShadow Shadow;
+        if (ParseCssShadow(Text, Shadow)) Theme->Shadows.Add(*Token->GetStringField(TEXT("name")), Shadow);
+      }
     // 투명도 조절은 유리 채움만 따른다(디자인 시스템: 유리 표면 = glass, 글이 많은 유리 = glass-strong).
     Theme->TranslucentTokens = {TEXT("glass"), TEXT("glass-strong")};
     Result.Add(Theme);
