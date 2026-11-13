@@ -79,7 +79,10 @@ public:
       if (bShowSeconds) {
         const FText Text = UDrCooldown::FormatRemaining(Remaining);
         const FVector2D TextSize = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Text, Font);
-        FSlateDrawElement::MakeText(Out, LayerId + 1, Geometry.ToPaintGeometry(FVector2f(TextSize), FSlateLayoutTransform((Size - FVector2f(TextSize)) * .5f)), Text, Font, ESlateDrawEffect::None, Ink * Tint);
+        // 아이콘 위에서도 읽히게 1px 어두운 그림자를 먼저 깐다.
+        const FVector2f At = (Size - FVector2f(TextSize)) * .5f;
+        FSlateDrawElement::MakeText(Out, LayerId + 1, Geometry.ToPaintGeometry(FVector2f(TextSize), FSlateLayoutTransform(At + FVector2f(0.f, 1.f))), Text, Font, ESlateDrawEffect::None, FLinearColor(0, 0, 0, .6f) * Tint);
+        FSlateDrawElement::MakeText(Out, LayerId + 1, Geometry.ToPaintGeometry(FVector2f(TextSize), FSlateLayoutTransform(At)), Text, Font, ESlateDrawEffect::None, Ink * Tint);
       }
     }
     // 끝나면 0.45초 동안 테두리가 반짝였다 사라진다.
