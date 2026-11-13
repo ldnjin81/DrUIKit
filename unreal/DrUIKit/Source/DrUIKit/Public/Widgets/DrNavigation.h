@@ -43,6 +43,8 @@ protected:
   virtual void BuildDefaultTree() override;
   virtual void ApplyVisualState() override;
 private:
+  UPROPERTY(Transient) TObjectPtr<USizeBox> CountBox;
+  UPROPERTY(Transient) TObjectPtr<USizeBox> AlertBox;
   float ExpandAmount = 1.f;
 };
 

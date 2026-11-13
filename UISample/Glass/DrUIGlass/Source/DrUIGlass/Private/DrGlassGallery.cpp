@@ -982,11 +982,11 @@ UWidget* UDrGlassGallery::BuildNavigation2Page() {
   PagesSize->SetWidthOverride(360.f);
   PagesSize->SetHeightOverride(60.f);
   PagesSize->AddChild(MobilePages);
-  Mobile->AddChildToVerticalBox(PagesSize);
+  if (UVerticalBoxSlot* S = Mobile->AddChildToVerticalBox(PagesSize)) S->SetHorizontalAlignment(HAlign_Left);
   USizeBox* BarSize = WidgetTree->ConstructWidget<USizeBox>();
   BarSize->SetWidthOverride(360.f);
   BarSize->AddChild(TabBar);
-  Mobile->AddChildToVerticalBox(BarSize);
+  if (UVerticalBoxSlot* S = Mobile->AddChildToVerticalBox(BarSize)) S->SetHorizontalAlignment(HAlign_Left);  // 채우기면 너비 상자가 무시된다
   Add(Section(LOCTEXT("BottomTabTitle", "하단 탭바(UDrBottomTabBar, UDrBottomTabButton) · 표시+이름, 진한 알약이 미끄러짐(탭 목록 상속)"), Mobile));
   return Page;
 }

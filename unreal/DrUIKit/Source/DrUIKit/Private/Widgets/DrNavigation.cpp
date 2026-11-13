@@ -52,24 +52,29 @@ void UDrSidebarItem::BuildDefaultTree() {
   Icon = WidgetTree->ConstructWidget<UDrGlyph>(UDrGlyph::StaticClass(), TEXT("Icon"));
   Icon->GlyphSize = 18.f;
   IconLayer->AddChildToOverlay(Icon);
+  // 배지는 테마를 칠할 때 스스로 보이고 숨으므로, 레일/펼침에 따른 표시는 감싼 상자에서 정한다.
+  AlertBox = WidgetTree->ConstructWidget<USizeBox>();
   AlertDot = WidgetTree->ConstructWidget<UDrBadge>(UDrBadge::StaticClass(), TEXT("AlertDot"));
   AlertDot->bDot = true;
-  if (UOverlaySlot* S = IconLayer->AddChildToOverlay(AlertDot)) { S->SetHorizontalAlignment(HAlign_Right); S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, -3, -3, 0)); }
+  AlertBox->AddChild(AlertDot);
+  if (UOverlaySlot* S = IconLayer->AddChildToOverlay(AlertBox)) { S->SetHorizontalAlignment(HAlign_Right); S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, -3, -3, 0)); }
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(IconLayer)) S->SetVerticalAlignment(VAlign_Center);
   LabelText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("LabelText"));
   if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(LabelText)) { S->SetSize(FSlateChildSize(ESlateSizeRule::Fill)); S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(12, 0, 0, 0)); }
+  CountBox = WidgetTree->ConstructWidget<USizeBox>();
   CountBadge = WidgetTree->ConstructWidget<UDrBadge>(UDrBadge::StaticClass(), TEXT("CountBadge"));
   CountBadge->Tone = EDrBadgeTone::Neutral;
-  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(CountBadge)) S->SetVerticalAlignment(VAlign_Center);
+  CountBox->AddChild(CountBadge);
+  if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(CountBox)) S->SetVerticalAlignment(VAlign_Center);
 }
 
 void UDrSidebarItem::SetExpandAmount(float Amount) {
   ExpandAmount = FMath::Clamp(Amount, 0.f, 1.f);
   const bool bShowText = ExpandAmount > .05f;
   if (LabelText) { LabelText->SetVisibility(bShowText ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed); LabelText->SetRenderOpacity(ExpandAmount); }
-  if (CountBadge) { CountBadge->SetRenderOpacity(ExpandAmount); CountBadge->SetVisibility(bShowText && Count > 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed); }
+  if (CountBox) { CountBox->SetRenderOpacity(ExpandAmount); CountBox->SetVisibility(bShowText && Count > 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed); }
   // 레일에서는 숫자 대신 알림 점.
-  if (AlertDot) AlertDot->SetVisibility(!bShowText && Count > 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+  if (AlertBox) AlertBox->SetVisibility(!bShowText && Count > 0 ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 void UDrSidebarItem::ApplyVisualState() {
@@ -120,7 +125,7 @@ void UDrSidebar::EnsureTree() {
   LensBox->SetVisibility(ESlateVisibility::Hidden);
   if (UOverlaySlot* S = Layers->AddChildToOverlay(LensBox)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Top); }
   List = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("List"));
-  Layers->AddChildToOverlay(List);
+  if (UOverlaySlot* S = Layers->AddChildToOverlay(List)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }  // 오버레이 칸 기본은 왼쪽 정렬
   Group = NewObject<UCommonButtonGroupBase>(this);
   Group->SetSelectionRequired(true);
   Width.Snap(bExpanded ? PanelWidth : RailWidth);
