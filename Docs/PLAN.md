@@ -32,6 +32,21 @@
 - 흐림 환산은 1:1(CSS `blur(r)`의 r과 `SBackgroundBlur` 강도가 둘 다 가우스 표준편차). `saturate()`는 Slate에 없어 쓰지 않는다. 글자 크기는 px × 0.75(96dpi 포인트).
 - 아이콘 모양은 게임이 정한다(코어는 에셋 없음). 코어가 그리는 표시는 `UDrGlyph`(체크·점·±·닫기·화살표·느낌표).
 
+**2차 — 만든 것**(2026-11-13, 갤러리 '2차·확장'·'2차·탐색'·'2차·표현'·'게임용' 페이지)
+
+| 영역 | 클래스 |
+|---|---|
+| 엔진 상속 확장 | `UDrScrollBox`, `UDrCountUp`, `UDrAnimatedSwitcher`, `UDrExpandableArea`·`UDrExpanderHeader`, `UDrTextArea` |
+| 게임용 | `UDrCooldown`, `UDrFeed`·`UDrFeedEntry` |
+| 행동·입력 | `UDrMorphButton`, `UDrQuantityStepper`·`UDrIconButton`, `UDrChip` |
+| 탐색 | `UDrSidebar`·`UDrSidebarItem`, `UDrDock`·`UDrDockItem`, `UDrBottomTabBar`·`UDrBottomTabButton` |
+| 알림·덮개 | `UDrBanner`, `UDrBottomSheet`, `UDrCoachMark`·`UDrCoachScrim`, `UDrPopover`·`UDrPopoverPanel` |
+| 진행·완료·빈 상태 | `UDrStepIndicator`, `UDrCompletion`, `UDrEmptyState` |
+| 움직임·데이터 | `UDrTextReveal`, `UDrSparkline`, `UDrDonut`, `UDrStatCard` |
+
+- 바텀시트·코치마크는 화면 층이 생기기 전까지 게임이 맨 위 오버레이에 꽉 차게 둔다(1차 남은 것: 화면 층과 함께 그 층으로).
+- 글자 등장의 '블러 인'은 Slate에 글자 흐림이 없어 올라오며 밝아짐으로 대신했다.
+
 **1차 남은 것**: 확인 대화상자 + 화면 층(`UDrUIFlowSubsystem`) — DrFramework 0.3.0 UI 이동과 함께(DrFramework의 `UDrUIRootLayout`과 이름이 겹쳐 먼저 만들 수 없음). 2차 22개는 아래 표의 우선순위대로.
 
 ## 개요
