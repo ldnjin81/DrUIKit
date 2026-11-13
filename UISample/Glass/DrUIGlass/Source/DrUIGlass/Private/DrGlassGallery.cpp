@@ -33,6 +33,7 @@
 #include "Widgets/DrChip.h"
 #include "Widgets/DrCountUp.h"
 #include "Widgets/DrMorphButton.h"
+#include "Widgets/DrNavigation.h"
 #include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrExpandableArea.h"
 #include "Widgets/DrScrollBox.h"
@@ -64,7 +65,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass(), UDrButtonPrompt::StaticClass(),
     UDrScrollBox::StaticClass(), UDrCountUp::StaticClass(), UDrAnimatedSwitcher::StaticClass(), UDrExpandableArea::StaticClass(), UDrExpanderHeader::StaticClass(), UDrTextArea::StaticClass(),
     UDrCooldown::StaticClass(), UDrFeed::StaticClass(), UDrFeedEntry::StaticClass(),
-    UDrMorphButton::StaticClass(), UDrIconButton::StaticClass(), UDrQuantityStepper::StaticClass(), UDrChip::StaticClass()};
+    UDrMorphButton::StaticClass(), UDrIconButton::StaticClass(), UDrQuantityStepper::StaticClass(), UDrChip::StaticClass(),
+    UDrSidebar::StaticClass(), UDrSidebarItem::StaticClass(), UDrDock::StaticClass(), UDrDockItem::StaticClass(), UDrBottomTabBar::StaticClass(), UDrBottomTabButton::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -931,6 +933,64 @@ UWidget* UDrGlassGallery::BuildExtendedPage() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildNavigation2Page() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+
+  // 사이드바: 펼친 것 + 레일(같은 부품, 위 화살표로 오감).
+  UHorizontalBox* Sidebars = WidgetTree->ConstructWidget<UHorizontalBox>();
+  for (const bool bOpen : {true, false}) {
+    UDrSidebar* Sidebar = WidgetTree->ConstructWidget<UDrSidebar>();
+    Sidebar->bExpanded = bOpen;
+    Sidebar->AddItem(TEXT("Home"), LOCTEXT("SideHome", "홈"), EDrGlyphShape::Dot);
+    Sidebar->AddItem(TEXT("Quests"), LOCTEXT("SideQuests", "퀘스트"), EDrGlyphShape::Check, 3);
+    Sidebar->AddItem(TEXT("Inventory"), LOCTEXT("SideInventory", "가방"), EDrGlyphShape::Plus);
+    Sidebar->AddItem(TEXT("Mail"), LOCTEXT("SideMail", "우편"), EDrGlyphShape::Alert, 12);
+    Sidebar->AddItem(TEXT("Settings"), LOCTEXT("SideSettings", "설정"), EDrGlyphShape::ChevronRight);
+    Sidebar->SelectItem(TEXT("Quests"));
+    if (UHorizontalBoxSlot* S = Sidebars->AddChildToHorizontalBox(Sidebar)) { S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, 0, 32, 0)); }
+  }
+  Sidebars->AddChildToHorizontalBox(MakeText(LOCTEXT("SideNote", "항목에 마우스를 올리면 유리 렌즈가 따라 미끄러지고,\n떼면 활성 항목(퀘스트)으로 돌아간다. 위 화살표로 레일 ↔ 펼침.\n레일에서는 개수 대신 알림 점, 이름은 툴팁."), TEXT("body"), TEXT("ink-muted")));
+  Add(Section(LOCTEXT("SidebarTitle", "사이드바(UDrSidebar, UDrSidebarItem) · 레일 60px ↔ 펼침 250px, 유리 렌즈"), Sidebars));
+
+  // 독: 아이콘 6개, 가리키면 커짐.
+  UDrDock* Dock = WidgetTree->ConstructWidget<UDrDock>();
+  Dock->AddItem(TEXT("Map"), LOCTEXT("DockMap", "지도"), EDrGlyphShape::Plus, TEXT("accent"), true);
+  Dock->AddItem(TEXT("Bag"), LOCTEXT("DockBag", "가방"), EDrGlyphShape::Check, TEXT("success"), true, 2);
+  Dock->AddItem(TEXT("Craft"), LOCTEXT("DockCraft", "제작"), EDrGlyphShape::Minus, TEXT("warning"));
+  Dock->AddItem(TEXT("Mail"), LOCTEXT("DockMail", "우편"), EDrGlyphShape::Alert, TEXT("ember"), false, 5);
+  Dock->AddItem(TEXT("Party"), LOCTEXT("DockParty", "파티"), EDrGlyphShape::Dot, TEXT("chip"), true);
+  Dock->AddItem(TEXT("Quit"), LOCTEXT("DockQuit", "나가기"), EDrGlyphShape::Close, TEXT("danger"));
+  USizeBox* DockRoom = WidgetTree->ConstructWidget<USizeBox>();  // 커진 아이콘이 위로 나올 자리
+  DockRoom->SetMinDesiredHeight(110.f);
+  if (USizeBoxSlot* S = Cast<USizeBoxSlot>(DockRoom->AddChild(Dock))) { S->SetHorizontalAlignment(HAlign_Left); S->SetVerticalAlignment(VAlign_Bottom); }
+  Add(Section(LOCTEXT("DockTitle", "독(UDrDock, UDrDockItem) · 가리킨 아이콘 1.4배·이웃 1.15배(스프링), 활성 점, 배지. 움직임 줄이기면 확대 없음"), DockRoom));
+
+  // 하단 탭바.
+  UVerticalBox* Mobile = WidgetTree->ConstructWidget<UVerticalBox>();
+  UDrAnimatedSwitcher* MobilePages = WidgetTree->ConstructWidget<UDrAnimatedSwitcher>();
+  UDrBottomTabBar* TabBar = WidgetTree->ConstructWidget<UDrBottomTabBar>();
+  TabBar->SetLinkedSwitcher(MobilePages);
+  for (const auto& [Id, Label, Shape] : TArray<TTuple<FName, FText, EDrGlyphShape>>{
+         {TEXT("Home"), LOCTEXT("BtHome", "홈"), EDrGlyphShape::Dot}, {TEXT("Shop"), LOCTEXT("BtShop", "상점"), EDrGlyphShape::Plus},
+         {TEXT("Friends"), LOCTEXT("BtFriends", "친구"), EDrGlyphShape::Check}, {TEXT("Me"), LOCTEXT("BtMe", "나"), EDrGlyphShape::ChevronDown}}) {
+    UDrText* Content = MakeText(FText::Format(LOCTEXT("BtPage", "{0} 화면"), Label), TEXT("title"));
+    MobilePages->AddChild(Content);
+    TabBar->AddIconTab(Id, Label, Shape, Content);
+  }
+  USizeBox* PagesSize = WidgetTree->ConstructWidget<USizeBox>();
+  PagesSize->SetWidthOverride(360.f);
+  PagesSize->SetHeightOverride(60.f);
+  PagesSize->AddChild(MobilePages);
+  Mobile->AddChildToVerticalBox(PagesSize);
+  USizeBox* BarSize = WidgetTree->ConstructWidget<USizeBox>();
+  BarSize->SetWidthOverride(360.f);
+  BarSize->AddChild(TabBar);
+  Mobile->AddChildToVerticalBox(BarSize);
+  Add(Section(LOCTEXT("BottomTabTitle", "하단 탭바(UDrBottomTabBar, UDrBottomTabButton) · 표시+이름, 진한 알약이 미끄러짐(탭 목록 상속)"), Mobile));
+  return Page;
+}
+
 void UDrGlassGallery::HandleUndo(int32) {
   if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
@@ -1021,7 +1081,8 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageInput", "입력"), BuildInputPage()},
     {LOCTEXT("PageGame", "게임용"), BuildGamePage()},
     {LOCTEXT("PageNavigation", "탐색·표시"), BuildNavigationPage()},
-    {LOCTEXT("PageExtended", "2차·확장"), BuildExtendedPage()}};
+    {LOCTEXT("PageExtended", "2차·확장"), BuildExtendedPage()},
+    {LOCTEXT("PageNavigation2", "2차·탐색"), BuildNavigation2Page()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UDrScrollBox* Scroll = WidgetTree->ConstructWidget<UDrScrollBox>();  // 얇은 막대 + 가장자리 그늘
     // 스크롤 상자는 내용 밖을 자른다. 카드 그림자(shadow-glass)가 잘리지 않게 양옆·아래 여백을 둔다.
