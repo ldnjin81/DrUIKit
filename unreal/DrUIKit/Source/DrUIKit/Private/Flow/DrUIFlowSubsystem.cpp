@@ -154,7 +154,11 @@ void UDrUIFlowSubsystem::OpenSettings() {
 
 void UDrUIFlowSubsystem::Back() {
   if (Root && Root->HasModal()) {  // 모달이 떠 있으면 그 창이 뒤로를 받는다(확인 대화상자는 취소)
-    if (UCommonActivatableWidget* Modal = Root->GetStack(EDrUILayer::Modal)->GetActiveWidget()) Modal->HandleBackAction();
+    // HandleBackAction은 protected라: 확인 대화상자면 취소로 결정, 그 밖의 모달은 닫는다.
+    if (UCommonActivatableWidget* Modal = Root->GetStack(EDrUILayer::Modal)->GetActiveWidget()) {
+      if (UDrConfirmDialog* Dialog = Cast<UDrConfirmDialog>(Modal)) Dialog->Resolve(false);
+      else Modal->DeactivateWidget();
+    }
     return;
   }
   if (SettingsMenu) {
