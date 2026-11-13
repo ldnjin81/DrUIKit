@@ -92,9 +92,11 @@ int32 UDrRadialMenu::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
   const float Mid = (Outer + Inner) * .5f, Thick = Outer - Inner;
   const int32 Count = Items.Num();
   // 굵은 선은 이음매가 겹치므로 반투명이면 얼룩진다. 칸 색은 불투명으로 섞어 만든다.
-  const FLinearColor Base = Theme.GetColor(DrUITokens::GlassStrong).CopyWithNewOpacity(1.f);
+  // 유리 카드 위에 올라가므로 칸은 바탕(glass-strong)보다 살짝 진하게, 가운데 원은 바탕색 그대로(고리와 구분).
+  const FLinearColor Surface = Theme.GetColor(DrUITokens::GlassStrong).CopyWithNewOpacity(1.f);
+  const FLinearColor Base = FMath::Lerp(Surface, Theme.GetColor(DrUITokens::Ink), .08f).CopyWithNewOpacity(1.f);
   const FLinearColor Accent = Theme.GetColor(DrUITokens::Accent);
-  const FLinearColor Lit = FMath::Lerp(Base, Accent, .2f).CopyWithNewOpacity(1.f);
+  const FLinearColor Lit = FMath::Lerp(Surface, Accent, .25f).CopyWithNewOpacity(1.f);
   const float Gap = Count > 0 ? FMath::Min(.006f, .15f / Count) : 0.f;
   auto Arc = [&](float ArcRadius, float Start, float Length, float Width, const FLinearColor& Color) {
     const TArray<FVector2f> Points = DrProgressRing::ArcPoints(Center, ArcRadius, Start, Length, 160);
@@ -114,7 +116,7 @@ int32 UDrRadialMenu::NativePaint(const FPaintArgs& Args, const FGeometry& Allott
   FSlateRoundedBoxBrush Disc(FLinearColor::White, 999.f);
   Disc.OutlineSettings.RoundingType = ESlateBrushRoundingType::HalfHeightRadius;
   const float DiscSize = 2.f * (Inner - 6.f);
-  FSlateDrawElement::MakeBox(Out, Layer, AllottedGeometry.ToPaintGeometry(FVector2f(DiscSize), FSlateLayoutTransform(Center - FVector2f(DiscSize * .5f))), &Disc, ESlateDrawEffect::None, Base * Tint);
+  FSlateDrawElement::MakeBox(Out, Layer, AllottedGeometry.ToPaintGeometry(FVector2f(DiscSize), FSlateLayoutTransform(Center - FVector2f(DiscSize * .5f))), &Disc, ESlateDrawEffect::None, Surface * Tint);
   ++Layer;
   const TSharedRef<FSlateFontMeasure> Measure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
   auto Text = [&](const FText& InText, FName Style, FName Color, FVector2f At) {
