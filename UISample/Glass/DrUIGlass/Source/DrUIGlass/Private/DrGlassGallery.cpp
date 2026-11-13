@@ -34,6 +34,7 @@
 #include "Widgets/DrCountUp.h"
 #include "Widgets/DrMorphButton.h"
 #include "Widgets/DrNavigation.h"
+#include "Widgets/DrOverlays.h"
 #include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrExpandableArea.h"
 #include "Widgets/DrScrollBox.h"
@@ -66,7 +67,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrScrollBox::StaticClass(), UDrCountUp::StaticClass(), UDrAnimatedSwitcher::StaticClass(), UDrExpandableArea::StaticClass(), UDrExpanderHeader::StaticClass(), UDrTextArea::StaticClass(),
     UDrCooldown::StaticClass(), UDrFeed::StaticClass(), UDrFeedEntry::StaticClass(),
     UDrMorphButton::StaticClass(), UDrIconButton::StaticClass(), UDrQuantityStepper::StaticClass(), UDrChip::StaticClass(),
-    UDrSidebar::StaticClass(), UDrSidebarItem::StaticClass(), UDrDock::StaticClass(), UDrDockItem::StaticClass(), UDrBottomTabBar::StaticClass(), UDrBottomTabButton::StaticClass()};
+    UDrSidebar::StaticClass(), UDrSidebarItem::StaticClass(), UDrDock::StaticClass(), UDrDockItem::StaticClass(), UDrBottomTabBar::StaticClass(), UDrBottomTabButton::StaticClass(),
+    UDrBanner::StaticClass(), UDrBottomSheet::StaticClass(), UDrCoachMark::StaticClass(), UDrCoachScrim::StaticClass(), UDrPopover::StaticClass(), UDrPopoverPanel::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -988,6 +990,53 @@ UWidget* UDrGlassGallery::BuildNavigation2Page() {
   BarSize->AddChild(TabBar);
   if (UVerticalBoxSlot* S = Mobile->AddChildToVerticalBox(BarSize)) S->SetHorizontalAlignment(HAlign_Left);  // 채우기면 너비 상자가 무시된다
   Add(Section(LOCTEXT("BottomTabTitle", "하단 탭바(UDrBottomTabBar, UDrBottomTabButton) · 표시+이름, 진한 알약이 미끄러짐(탭 목록 상속)"), Mobile));
+
+  // 배너: 색 4종(둘은 행동 버튼). ×로 닫으면 접히며 사라짐.
+  UVerticalBox* Banners = WidgetTree->ConstructWidget<UVerticalBox>();
+  struct FBannerDemo { EDrNoticeTone Tone; FText Title, Message, Action; };
+  const FBannerDemo BannerList[] = {
+    {EDrNoticeTone::Info, LOCTEXT("BnUpdate", "업데이트 있음"), LOCTEXT("BnUpdateMsg", "1.2.0 패치를 받을 수 있어요."), LOCTEXT("BnUpdateAct", "받기")},
+    {EDrNoticeTone::Success, LOCTEXT("BnSync", "동기화 완료"), LOCTEXT("BnSyncMsg", "클라우드 저장과 맞췄어요."), FText::GetEmpty()},
+    {EDrNoticeTone::Warning, LOCTEXT("BnNet", "연결이 불안정해요"), LOCTEXT("BnNetMsg", "재연결을 시도하는 중입니다."), FText::GetEmpty()},
+    {EDrNoticeTone::Danger, LOCTEXT("BnLost", "서버 연결 끊김"), LOCTEXT("BnLostMsg", "진행은 로컬에 저장됐어요."), LOCTEXT("BnLostAct", "다시 연결")}};
+  for (const FBannerDemo& Demo : BannerList) {
+    UDrBanner* Banner = WidgetTree->ConstructWidget<UDrBanner>();
+    Banner->SetContent(Demo.Title, Demo.Message, Demo.Tone, Demo.Action);
+    if (UVerticalBoxSlot* S = Banners->AddChildToVerticalBox(Banner)) S->SetPadding(FMargin(0, 0, 0, 8));
+  }
+  USizeBox* BannerSize = WidgetTree->ConstructWidget<USizeBox>();
+  BannerSize->SetWidthOverride(640.f);
+  BannerSize->AddChild(Banners);
+  Add(Section(LOCTEXT("BannerTitle", "배너(UDrBanner) · 왼쪽 색 띠 + 표시 + 제목·설명 + 행동 + 닫기(접히며 사라짐)"), BannerSize));
+
+  // 바텀시트·코치마크·팝오버: 버튼으로 연다(시트·코치마크는 갤러리 맨 위 층에 있다).
+  UWrapBox* OverlayButtons = WidgetTree->ConstructWidget<UWrapBox>();
+  OverlayButtons->SetInnerSlotPadding(FVector2D(12, 12));
+  UDrButton* OpenSheet = MakeButton(LOCTEXT("OpenSheet", "바텀시트 열기"));
+  OpenSheet->OnClicked().AddWeakLambda(this, [this] { if (Sheet) Sheet->Open(); });
+  OverlayButtons->AddChild(OpenSheet);
+  UDrButton* StartTour = MakeButton(LOCTEXT("StartTour", "코치마크 둘러보기"));
+  StartTour->OnClicked().AddWeakLambda(this, [this] { if (Coach) Coach->Start(); });
+  OverlayButtons->AddChild(StartTour);
+  UDrPopover* Popover = WidgetTree->ConstructWidget<UDrPopover>();
+  UDrButton* PopTrigger = MakeButton(LOCTEXT("PopTrigger", "팝오버(누르면 아래에)"));
+  Popover->SetTrigger(PopTrigger);
+  UVerticalBox* PopBody = WidgetTree->ConstructWidget<UVerticalBox>();
+  PopBody->AddChildToVerticalBox(MakeText(LOCTEXT("PopTitle", "빠른 설정"), TEXT("heading")));
+  if (UVerticalBoxSlot* S = PopBody->AddChildToVerticalBox(MakeText(LOCTEXT("PopBody", "바깥을 누르거나 Esc로 닫혀요."), TEXT("caption"), TEXT("ink-muted")))) S->SetPadding(FMargin(0, 2, 0, 10));
+  UDrSwitch* PopSwitch = WidgetTree->ConstructWidget<UDrSwitch>();
+  PopSwitch->Label = LOCTEXT("PopSwitch", "자막");
+  PopBody->AddChildToVerticalBox(PopSwitch);
+  Popover->SetBody(PopBody);
+  OverlayButtons->AddChild(Popover);
+  Add(Section(LOCTEXT("OverlayTitle", "바텀시트(UDrBottomSheet) · 코치마크(UDrCoachMark, UDrCoachScrim) · 팝오버(UDrPopover, UDrPopoverPanel)"), OverlayButtons));
+
+  // 코치마크 단계: 이 페이지의 사이드바 → 독 → 둘러보기 버튼.
+  if (Coach) {
+    Coach->AddStep(Sidebars, LOCTEXT("CoachSide", "사이드바"), LOCTEXT("CoachSideBody", "주 탐색이에요. 화살표로 접어 아이콘 레일로 쓸 수 있어요."));
+    Coach->AddStep(DockRoom, LOCTEXT("CoachDock", "독"), LOCTEXT("CoachDockBody", "자주 쓰는 기능을 빠르게 엽니다. 가리키면 커져요."));
+    Coach->AddStep(StartTour, LOCTEXT("CoachAgain", "다시 보기"), LOCTEXT("CoachAgainBody", "언제든 이 버튼으로 다시 둘러볼 수 있어요."));
+  }
   return Page;
 }
 
@@ -1027,6 +1076,18 @@ void UDrGlassGallery::HandleQualityChoice(int32 Index) {
 void UDrGlassGallery::Build() {
   UOverlay* Root = WidgetTree->ConstructWidget<UOverlay>();
   WidgetTree->RootWidget = Root;
+  // 바텀시트·코치마크: 갤러리 전체를 덮는 층(닫혀 있으면 접힘).
+  Sheet = WidgetTree->ConstructWidget<UDrBottomSheet>();
+  Sheet->Title = LOCTEXT("SheetTitle", "공유하기");
+  UVerticalBox* SheetBody = WidgetTree->ConstructWidget<UVerticalBox>();
+  for (const FText& Line : {LOCTEXT("SheetLine1", "친구에게 보내기"), LOCTEXT("SheetLine2", "링크 복사"), LOCTEXT("SheetLine3", "스크린샷 저장")}) {
+    UDrListRow* Row = WidgetTree->ConstructWidget<UDrListRow>();
+    Row->SetContent(Line, FText::GetEmpty(), FText::GetEmpty());
+    Row->OnClicked().AddWeakLambda(this, [this] { if (Sheet) Sheet->Close(); });
+    SheetBody->AddChildToVerticalBox(Row);
+  }
+  Sheet->SetBody(SheetBody);
+  Coach = WidgetTree->ConstructWidget<UDrCoachMark>();
   if (UOverlaySlot* S = Root->AddChildToOverlay(CreateWidget<UDrGlassBackdrop>(this, UDrGlassBackdrop::StaticClass()))) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
   UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>();
   if (UOverlaySlot* S = Root->AddChildToOverlay(Column)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); S->SetPadding(FMargin(32)); }
@@ -1096,6 +1157,9 @@ void UDrGlassGallery::Build() {
   // 떠 있는 층: 토스트는 위 가운데, 스낵바는 아래 가운데(갤러리 전체 위).
   Toasts = WidgetTree->ConstructWidget<UDrToastStack>();
   if (UOverlaySlot* S = Root->AddChildToOverlay(Toasts)) { S->SetHorizontalAlignment(HAlign_Center); S->SetVerticalAlignment(VAlign_Top); S->SetPadding(FMargin(0, 24, 0, 0)); }
+  // 바텀시트·코치마크는 맨 위 층(스낵바 뒤에 붙인다). 페이지가 코치마크 단계를 등록하므로 위젯은 먼저 만들어 두었다.
+  if (UOverlaySlot* S = Root->AddChildToOverlay(Sheet)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
+  if (UOverlaySlot* S = Root->AddChildToOverlay(Coach)) { S->SetHorizontalAlignment(HAlign_Fill); S->SetVerticalAlignment(VAlign_Fill); }
   Snackbar = WidgetTree->ConstructWidget<UDrSnackbar>();
   Snackbar->OnAction.AddUniqueDynamic(this, &ThisClass::HandleUndo);
   if (UOverlaySlot* S = Root->AddChildToOverlay(Snackbar)) { S->SetHorizontalAlignment(HAlign_Center); S->SetVerticalAlignment(VAlign_Bottom); S->SetPadding(FMargin(0, 0, 0, 32)); }

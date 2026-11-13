@@ -12,6 +12,7 @@
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNavigation.h"
 #include "Widgets/DrNotice.h"
+#include "Widgets/DrOverlays.h"
 #include "Widgets/DrPageIndicator.h"
 #include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrRadialMenu.h"
@@ -263,6 +264,10 @@ bool FDrRadialSectorTest::RunTest(const FString&) {
   TestEqual(TEXT("독: 가리킨 아이콘 1.4배"), UDrDock::MagnifyFor(0), 1.4f);
   TestEqual(TEXT("독: 이웃 1.15배"), UDrDock::MagnifyFor(1), 1.15f);
   TestEqual(TEXT("독: 그 밖은 그대로"), UDrDock::MagnifyFor(3), 1.f);
+  TestTrue(TEXT("바텀시트: 높이 25% 넘게 끌면 닫힘"), UDrBottomSheet::ShouldDismissDrag(120.f, 400.f) && !UDrBottomSheet::ShouldDismissDrag(80.f, 400.f));
+  TestEqual(TEXT("코치마크: 아래 자리가 있으면 구멍 아래"), UDrCoachMark::PlaceBubble(FVector2D(100, 100), FVector2D(50, 40), FVector2D(200, 100), FVector2D(800, 600)), FVector2D(100, 152));
+  TestEqual(TEXT("코치마크: 아래 자리가 없으면 위"), UDrCoachMark::PlaceBubble(FVector2D(100, 520), FVector2D(50, 40), FVector2D(200, 100), FVector2D(800, 600)).Y, 408.0);
+  TestEqual(TEXT("코치마크: 오른쪽 끝을 넘지 않음"), UDrCoachMark::PlaceBubble(FVector2D(700, 100), FVector2D(50, 40), FVector2D(200, 100), FVector2D(800, 600)).X, 592.0);
   return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrPageIndicatorLayoutTest, "DrUIKit.Core.PageIndicator.Layout", DrUIKitTestFlags)

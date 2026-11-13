@@ -78,6 +78,8 @@ private:
   UPROPERTY(Transient) TObjectPtr<UDrToastStack> Toasts;
   UPROPERTY(Transient) TObjectPtr<UDrSnackbar> Snackbar;
   UPROPERTY(Transient) TObjectPtr<UDrSnackbar> SampleSnackbar;
+  UPROPERTY(Transient) TObjectPtr<class UDrBottomSheet> Sheet;
+  UPROPERTY(Transient) TObjectPtr<class UDrCoachMark> Coach;
   UPROPERTY(Transient) TObjectPtr<UDrTextField> NicknameField;
   UPROPERTY(Transient) TObjectPtr<UDrRadialMenu> RadialDemo;
   UPROPERTY(Transient) TObjectPtr<class UWidgetSwitcher> CarouselPages;
