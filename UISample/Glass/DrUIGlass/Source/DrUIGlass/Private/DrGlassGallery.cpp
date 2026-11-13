@@ -30,7 +30,10 @@
 #include "Widgets/DrAnimatedSwitcher.h"
 #include "Widgets/DrButtonPrompt.h"
 #include "Widgets/DrCooldown.h"
+#include "Widgets/DrChip.h"
 #include "Widgets/DrCountUp.h"
+#include "Widgets/DrMorphButton.h"
+#include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrExpandableArea.h"
 #include "Widgets/DrScrollBox.h"
 #include "Widgets/DrGlyph.h"
@@ -60,7 +63,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
     UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass(), UDrButtonPrompt::StaticClass(),
     UDrScrollBox::StaticClass(), UDrCountUp::StaticClass(), UDrAnimatedSwitcher::StaticClass(), UDrExpandableArea::StaticClass(), UDrExpanderHeader::StaticClass(), UDrTextArea::StaticClass(),
-    UDrCooldown::StaticClass(), UDrFeed::StaticClass(), UDrFeedEntry::StaticClass()};
+    UDrCooldown::StaticClass(), UDrFeed::StaticClass(), UDrFeedEntry::StaticClass(),
+    UDrMorphButton::StaticClass(), UDrIconButton::StaticClass(), UDrQuantityStepper::StaticClass(), UDrChip::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -627,6 +631,10 @@ void UDrGlassGallery::HandlePageTabSelected(FName TabId) {
     if (PageId(I) == TabId && PageBodies[I]) DrUIMotion::PlayStagger(PageBodies[I]);
 }
 
+void UDrGlassGallery::HandleChipRemoved(UDrChip* Chip) {
+  if (Chip) Chip->RemoveFromParent();  // 입력 칩 지우기는 쓰는 쪽이 한다
+}
+
 void UDrGlassGallery::HandleRadialCancelled() {
   if (Toasts) Toasts->Push(LOCTEXT("RadialCancelled", "파이 메뉴 취소"), EDrNoticeTone::Info, 1.5f);
 }
@@ -858,6 +866,68 @@ UWidget* UDrGlassGallery::BuildExtendedPage() {
   MemoSize->SetWidthOverride(420.f);
   MemoSize->AddChild(Memo);
   Add(Section(LOCTEXT("MemoTitle", "여러 줄 입력(UDrTextArea) · 텍스트 필드와 같은 상태·라벨·글자 수"), MemoSize));
+
+  // 버튼 모핑: 누르면 원으로 줄며 로딩 → 체크 → 펴지며 성공. 마지막은 실패(오류로 펴짐).
+  UWrapBox* Morphs = WidgetTree->ConstructWidget<UWrapBox>();
+  Morphs->SetInnerSlotPadding(FVector2D(16, 12));
+  for (const auto& [Label, Variant, bFail] : TArray<TTuple<FText, EDrButtonVariant, bool>>{
+         {LOCTEXT("MorphPay", "결제하기"), EDrButtonVariant::Primary, false}, {LOCTEXT("MorphSend", "보내기"), EDrButtonVariant::Secondary, false}, {LOCTEXT("MorphFail", "실패해 보기"), EDrButtonVariant::Primary, true}}) {
+    UDrMorphButton* Morph = WidgetTree->ConstructWidget<UDrMorphButton>();
+    Morph->Label = Label;
+    Morph->Variant = Variant;
+    const bool bWillFail = bFail;
+    Morph->OnClicked().AddWeakLambda(this, [this, Morph, bWillFail] {
+      Morph->SetLoading(true);
+      FTimerHandle Handle;
+      if (UWorld* World = GetWorld())
+        World->GetTimerManager().SetTimer(Handle, FTimerDelegate::CreateWeakLambda(Morph, [Morph, bWillFail] {
+          if (bWillFail) { Morph->SetLoading(false); Morph->SetError(true, LOCTEXT("MorphError", "다시 시도")); }
+          else Morph->ShowSuccess(LOCTEXT("MorphDone", "완료"));
+        }), 1.2f, false);
+    });
+    Morphs->AddChild(Morph);
+  }
+  Add(Section(LOCTEXT("MorphTitle", "버튼 모핑(UDrMorphButton) · 누르면 원으로 줄며 로딩 → 체크를 그리고 → 펴지며 성공. 셋째는 오류"), Morphs));
+
+  // 수량 스테퍼 + 아이콘 버튼.
+  UWrapBox* Steppers = WidgetTree->ConstructWidget<UWrapBox>();
+  Steppers->SetInnerSlotPadding(FVector2D(24, 12));
+  for (const auto& [Value, Max] : TArray<TPair<int32, int32>>{{1, 99}, {10, 10}}) {
+    UDrQuantityStepper* Stepper = WidgetTree->ConstructWidget<UDrQuantityStepper>();
+    Stepper->MaxValue = Max;
+    Stepper->Value = Value;
+    Steppers->AddChild(Stepper);
+  }
+  for (const EDrGlyphShape Shape : {EDrGlyphShape::Minus, EDrGlyphShape::Plus, EDrGlyphShape::Close, EDrGlyphShape::ChevronLeft, EDrGlyphShape::ChevronRight}) {
+    UDrIconButton* Icon = WidgetTree->ConstructWidget<UDrIconButton>();
+    Icon->Shape = Shape;
+    Steppers->AddChild(Icon);
+  }
+  Add(Section(LOCTEXT("StepperTitle", "수량 스테퍼(UDrQuantityStepper) · 누르고 있으면 점점 빠르게 반복, 끝에서 버튼 비활성(둘째는 최대) · 아이콘 버튼(UDrIconButton)"), Steppers));
+
+  // 칩: 필터(여러 개 켜기), 선택(하나만), 입력(× 지우기).
+  UVerticalBox* Chips = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto ChipRow = [&](EDrChipKind Kind, const TArray<FText>& Labels, int32 OnIndex) {
+    UWrapBox* Row = WidgetTree->ConstructWidget<UWrapBox>();
+    Row->SetInnerSlotPadding(FVector2D(8, 8));
+    UCommonButtonGroupBase* Group = nullptr;
+    if (Kind == EDrChipKind::Choice) { Group = NewObject<UCommonButtonGroupBase>(this); Group->SetSelectionRequired(true); RadioGroups.Add(Group); }
+    for (int32 I = 0; I < Labels.Num(); ++I) {
+      UDrChip* Chip = WidgetTree->ConstructWidget<UDrChip>();
+      Chip->Label = Labels[I];
+      Chip->SetKind(Kind);
+      if (Group) Group->AddWidget(Chip);
+      else if (I == OnIndex && Kind == EDrChipKind::Filter) Chip->SetIsSelected(true, false);
+      if (Kind == EDrChipKind::Input) Chip->OnRemoved.AddUniqueDynamic(this, &ThisClass::HandleChipRemoved);
+      Row->AddChild(Chip);
+    }
+    if (Group) Group->SelectButtonAtIndex(OnIndex, false);
+    if (UVerticalBoxSlot* S = Chips->AddChildToVerticalBox(Row)) S->SetPadding(FMargin(0, 0, 0, 10));
+  };
+  ChipRow(EDrChipKind::Filter, {LOCTEXT("ChipAll", "전체"), LOCTEXT("ChipWeapon", "무기"), LOCTEXT("ChipArmor", "방어구"), LOCTEXT("ChipPotion", "물약")}, 1);
+  ChipRow(EDrChipKind::Choice, {LOCTEXT("ChipNew", "최신순"), LOCTEXT("ChipPrice", "가격순"), LOCTEXT("ChipRare", "희귀도순")}, 0);
+  ChipRow(EDrChipKind::Input, {LOCTEXT("ChipTag1", "#협동"), LOCTEXT("ChipTag2", "#초보 환영"), LOCTEXT("ChipTag3", "#보이스")}, -1);
+  Add(Section(LOCTEXT("ChipTitle", "칩(UDrChip) · 필터(여러 개, 켜지면 체크) · 선택(하나만) · 입력(× 누르면 지움)"), Chips));
   return Page;
 }
 

@@ -12,6 +12,7 @@
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
 #include "Widgets/DrPageIndicator.h"
+#include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
@@ -255,6 +256,9 @@ bool FDrRadialSectorTest::RunTest(const FString&) {
   TestTrue(TEXT("5에서 0으로는 6으로(앞으로 한 칸)"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(5.f, 0, 6), 6.f));
   TestTrue(TEXT("0에서 5로는 -1로(뒤로 한 칸)"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(0.f, 5, 6), -1.f));
   TestTrue(TEXT("가까우면 그대로"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(1.f, 2, 6), 2.f));
+  TestEqual(TEXT("수량 스테퍼: 0.4초 전에는 반복 없음"), UDrQuantityStepper::RepeatInterval(.3f), 0.f);
+  TestTrue(TEXT("수량 스테퍼: 오래 누를수록 빨라짐"), UDrQuantityStepper::RepeatInterval(.5f) > UDrQuantityStepper::RepeatInterval(3.f));
+  TestEqual(TEXT("수량 스테퍼: 가장 빠르면 0.04초"), UDrQuantityStepper::RepeatInterval(10.f), .04f);
   return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrPageIndicatorLayoutTest, "DrUIKit.Core.PageIndicator.Layout", DrUIKitTestFlags)

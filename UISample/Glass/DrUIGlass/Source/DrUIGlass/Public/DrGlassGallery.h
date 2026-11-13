@@ -56,6 +56,7 @@ private:
   UFUNCTION() void HandleRadialCancelled();
   UFUNCTION() void ShowCarouselPage(int32 Page);
   UFUNCTION() void HandlePageTabSelected(FName TabId);
+  UFUNCTION() void HandleChipRemoved(class UDrChip* Chip);
   UFUNCTION() void HandleSampleSnackbar(int32 RequestId);
   UDrButton* MakeButton(const FText& Label, EDrButtonVariant Variant = EDrButtonVariant::Secondary);
   UDrText* MakeText(const FText& Text, FName Style, FName Color = TEXT("ink"));
