@@ -800,7 +800,7 @@ void UDrGlassGallery::Build() {
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     // 스크롤 상자는 내용 밖을 자른다. 카드 그림자(shadow-glass)가 잘리지 않게 양옆·아래 여백을 둔다.
-    if (UScrollBoxSlot* S = Cast<UScrollBoxSlot>(Scroll->AddChild(PageList[I].Value))) S->SetPadding(FMargin(20.f, 0.f, 20.f, 40.f));
+    if (UScrollBoxSlot* S = Cast<UScrollBoxSlot>(Scroll->AddChild(PageList[I].Value))) S->SetPadding(FMargin(32.f, 0.f, 32.f, 56.f));
     Pages->AddChild(Scroll);
     PageTabs->AddTab(PageId(I), PageList[I].Key, Scroll);
     PageBodies.Add(Cast<UPanelWidget>(PageList[I].Value));
