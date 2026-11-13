@@ -37,7 +37,8 @@ private:
 
 void UDrScrollBox::ApplyTheme() {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
-  auto Thumb = [&](FName Token) { return FSlateRoundedBoxBrush(Theme.GetColor(Token), BarThickness * .5f); };
+  // 브러시 기본 크기(32px)가 막대 굵기로 쓰이므로 굵기만큼으로 준다.
+  auto Thumb = [&](FName Token) { return FSlateRoundedBoxBrush(Theme.GetColor(Token), BarThickness * .5f, FVector2D(BarThickness)); };
   FSlateBrush None;
   None.DrawAs = ESlateBrushDrawType::NoDrawType;
   FScrollBarStyle Bar = GetWidgetBarStyle();
@@ -46,6 +47,10 @@ void UDrScrollBox::ApplyTheme() {
     .SetNormalThumbImage(Thumb(ThumbToken)).SetHoveredThumbImage(Thumb(ThumbHoverToken)).SetDraggedThumbImage(Thumb(ThumbHoverToken))
     .SetThickness(BarThickness);
   SetWidgetBarStyle(Bar);
+  // 엔진 기본 스크롤 그림자(검은 그라데이션 이미지)는 끈다. 가장자리 그늘은 SDrScrollEdge가 토큰 색으로 그린다.
+  FScrollBoxStyle Box = GetWidgetStyle();
+  Box.SetTopShadowBrush(None).SetBottomShadowBrush(None).SetLeftShadowBrush(None).SetRightShadowBrush(None);
+  SetWidgetStyle(Box);
   SetScrollbarThickness(FVector2D(BarThickness));
   const FLinearColor Edge = Theme.GetColor(EdgeToken).CopyWithNewOpacity(.08f);
   const bool bVertical = GetOrientation() == Orient_Vertical;
