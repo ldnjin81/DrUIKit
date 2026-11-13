@@ -44,6 +44,7 @@ private:
   UWidget* BuildInputPage();
   UWidget* BuildGamePage();
   UWidget* BuildNavigationPage();
+  UWidget* BuildExtendedPage();
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);
@@ -63,7 +64,7 @@ private:
 
   static FName PageId(int32 Index) { return FName(TEXT("Page"), Index + 1); }
 
-  UPROPERTY(Transient) TObjectPtr<UCommonAnimatedSwitcher> Pages;
+  UPROPERTY(Transient) TObjectPtr<class UDrAnimatedSwitcher> Pages;
   /** 페이지 본문(탭을 고르면 순차 등장). */
   UPROPERTY(Transient) TArray<TObjectPtr<class UPanelWidget>> PageBodies;
   UPROPERTY(Transient) TObjectPtr<UDrTabList> PageTabs;

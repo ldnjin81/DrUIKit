@@ -27,7 +27,11 @@
 #include "TimerManager.h"
 #include "UnrealClient.h"
 #include "Widgets/DrToggle.h"
+#include "Widgets/DrAnimatedSwitcher.h"
 #include "Widgets/DrButtonPrompt.h"
+#include "Widgets/DrCountUp.h"
+#include "Widgets/DrExpandableArea.h"
+#include "Widgets/DrScrollBox.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrHoldButton.h"
 #include "Widgets/DrIcon.h"
@@ -53,7 +57,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
     UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
     UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass(),
-    UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass(), UDrButtonPrompt::StaticClass()};
+    UDrTooltip::StaticClass(), UDrListRow::StaticClass(), UDrPageIndicator::StaticClass(), UDrButtonPrompt::StaticClass(),
+    UDrScrollBox::StaticClass(), UDrCountUp::StaticClass(), UDrAnimatedSwitcher::StaticClass(), UDrExpandableArea::StaticClass(), UDrExpanderHeader::StaticClass(), UDrTextArea::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -707,6 +712,99 @@ UWidget* UDrGlassGallery::BuildNavigationPage() {
   return Page;
 }
 
+UWidget* UDrGlassGallery::BuildExtendedPage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+
+  // 스크롤 영역: 짧은 상자 안 긴 목록(얇은 막대, 위·아래 그늘). 이 갤러리 페이지들도 같은 스크롤.
+  UDrScrollBox* Scroll = WidgetTree->ConstructWidget<UDrScrollBox>();
+  for (int32 I = 1; I <= 16; ++I)
+    if (UScrollBoxSlot* S = Cast<UScrollBoxSlot>(Scroll->AddChild(MakeText(FText::Format(LOCTEXT("ScrollLine", "{0}번째 줄 · 굴리면 위아래 가장자리에 그늘이 생긴다"), I), TEXT("body"))))) S->SetPadding(FMargin(4, 4));
+  USizeBox* ScrollSize = WidgetTree->ConstructWidget<USizeBox>();
+  ScrollSize->SetWidthOverride(420.f);
+  ScrollSize->SetHeightOverride(150.f);
+  ScrollSize->AddChild(Scroll);
+  Add(Section(LOCTEXT("ScrollTitle", "스크롤 영역(UDrScrollBox) · 얇은 알약 막대, 더 볼 내용이 있는 쪽 가장자리 그늘"), ScrollSize));
+
+  // 카운트 업: 버튼을 누르면 새 값까지 세어 올라감.
+  UHorizontalBox* Counts = WidgetTree->ConstructWidget<UHorizontalBox>();
+  TArray<UDrCountUp*> CountWidgets;
+  for (const auto& [Value, Type] : TArray<TPair<float, ECommonNumericType>>{{1172.f, ECommonNumericType::Number}, {.42f, ECommonNumericType::Percentage}, {95.f, ECommonNumericType::Seconds}}) {
+    UDrCountUp* Count = WidgetTree->ConstructWidget<UDrCountUp>();
+    Count->SetNumericType(Type);
+    Count->SetCurrentValue(Value);
+    CountWidgets.Add(Count);
+    if (UHorizontalBoxSlot* S = Counts->AddChildToHorizontalBox(Count)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 40, 0)); }
+  }
+  UDrButton* Recount = MakeButton(LOCTEXT("Recount", "새 값"));
+  const TArray<float> BaseValues = {1172.f, .42f, 95.f};
+  Recount->OnClicked().AddWeakLambda(this, [CountWidgets, BaseValues] {
+    for (int32 I = 0; I < CountWidgets.Num(); ++I) if (CountWidgets[I]) CountWidgets[I]->CountTo(BaseValues[I] * FMath::FRandRange(.5f, 1.8f));
+  });
+  if (UHorizontalBoxSlot* S = Counts->AddChildToHorizontalBox(Recount)) S->SetVerticalAlignment(VAlign_Center);
+  Add(Section(LOCTEXT("CountTitle", "카운트 업 숫자(UDrCountUp) · 정수·백분율·초. '새 값'을 누르면 세어 올라감(움직임 줄이기면 바로)"), Counts));
+
+  // 화면 전환: 전환 방식별 작은 전환기. 페이지 탭 전환도 같은 부품(밀기).
+  UWrapBox* Switchers = WidgetTree->ConstructWidget<UWrapBox>();
+  Switchers->SetInnerSlotPadding(FVector2D(16, 16));
+  for (const auto& [Mode, Name] : TArray<TPair<EDrTransition, FText>>{{EDrTransition::Fade, LOCTEXT("TFade", "페이드")}, {EDrTransition::SlideHorizontal, LOCTEXT("TSlideH", "가로 밀기")}, {EDrTransition::SlideVertical, LOCTEXT("TSlideV", "세로 밀기")}, {EDrTransition::Zoom, LOCTEXT("TZoom", "확대")}}) {
+    UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>();
+    UDrAnimatedSwitcher* Switcher = WidgetTree->ConstructWidget<UDrAnimatedSwitcher>();
+    Switcher->Transition = Mode;
+    for (int32 I = 0; I < 3; ++I) {
+      UDrSurface* Card = WidgetTree->ConstructWidget<UDrSurface>();
+      Card->FillToken = I == 0 ? TEXT("accent-soft") : I == 1 ? TEXT("hairline") : TEXT("glass-strong");
+      Card->FillStrongToken = NAME_None; Card->BackdropToken = NAME_None; Card->StrokeToken = NAME_None;
+      Card->RadiusToken = TEXT("radius-lg"); Card->PaddingToken = TEXT("space-4");
+      Card->SetContent(MakeText(FText::Format(LOCTEXT("SwitchCard", "{0} · {1}"), Name, I + 1), TEXT("heading")));
+      Switcher->AddChild(Card);
+    }
+    USizeBox* SwitchSize = WidgetTree->ConstructWidget<USizeBox>();
+    SwitchSize->SetWidthOverride(200.f);
+    SwitchSize->SetHeightOverride(70.f);
+    SwitchSize->AddChild(Switcher);
+    if (UVerticalBoxSlot* S = Cell->AddChildToVerticalBox(SwitchSize)) S->SetPadding(FMargin(0, 0, 0, 8));
+    UDrButton* NextCard = MakeButton(LOCTEXT("NextCard", "다음"), EDrButtonVariant::Ghost);
+    NextCard->OnClicked().AddWeakLambda(Switcher, [Switcher] { Switcher->SetActiveWidgetIndex((Switcher->GetActiveWidgetIndex() + 1) % Switcher->GetNumWidgets()); });
+    if (UVerticalBoxSlot* S = Cell->AddChildToVerticalBox(NextCard)) S->SetHorizontalAlignment(HAlign_Left);
+    Switchers->AddChild(Cell);
+  }
+  Add(Section(LOCTEXT("SwitcherTitle", "화면 전환(UDrAnimatedSwitcher) · 페이드·밀기·확대, 이즈 아웃 0.24초. 위 페이지 탭 전환도 이것"), Switchers));
+
+  // 접히는 영역: 자주 묻는 질문 세 칸(첫 칸은 열림).
+  UVerticalBox* Faq = WidgetTree->ConstructWidget<UVerticalBox>();
+  struct FFaq { FText Q, A; };
+  const FFaq Items[] = {
+    {LOCTEXT("FaqSave", "저장은 언제 되나요?"), LOCTEXT("FaqSaveA", "체크포인트를 지날 때와 메뉴로 나갈 때 자동으로 저장합니다. 수동 저장은 슬롯 1~3에 할 수 있어요.")},
+    {LOCTEXT("FaqPad", "패드를 쓸 수 있나요?"), LOCTEXT("FaqPadA", "Xbox·PlayStation 패드를 지원합니다. 마지막으로 쓴 입력 장치에 맞춰 버튼 표시가 바뀝니다.")},
+    {LOCTEXT("FaqLang", "언어를 바꾸려면?"), LOCTEXT("FaqLangA", "설정 › 일반 › 언어에서 바꿉니다. 다시 시작할 필요는 없습니다.")}};
+  for (int32 I = 0; I < UE_ARRAY_COUNT(Items); ++I) {
+    UDrExpandableArea* Area = WidgetTree->ConstructWidget<UDrExpandableArea>();
+    Area->Title = Items[I].Q;
+    Area->bExpanded = I == 0;
+    UDrText* Answer = MakeText(Items[I].A, TEXT("body"), TEXT("ink-muted"));
+    Answer->SetAutoWrapText(true);
+    Area->SetBody(Answer);
+    Faq->AddChildToVerticalBox(Area);
+  }
+  USizeBox* FaqSize = WidgetTree->ConstructWidget<USizeBox>();
+  FaqSize->SetWidthOverride(520.f);
+  FaqSize->AddChild(Faq);
+  Add(Section(LOCTEXT("FaqTitle", "접히는 영역(UDrExpandableArea, UDrExpanderHeader) · 머리줄을 누르면 높이가 스프링으로 열림"), FaqSize));
+
+  // 여러 줄 입력.
+  UDrTextArea* Memo = WidgetTree->ConstructWidget<UDrTextArea>();
+  Memo->Label = LOCTEXT("MemoLabel", "메모");
+  Memo->Hint = LOCTEXT("MemoHint", "여러 줄로 적을 수 있어요");
+  Memo->Helper = LOCTEXT("MemoHelper", "Enter는 줄바꿈");
+  Memo->MaxLength = 200;
+  USizeBox* MemoSize = WidgetTree->ConstructWidget<USizeBox>();
+  MemoSize->SetWidthOverride(420.f);
+  MemoSize->AddChild(Memo);
+  Add(Section(LOCTEXT("MemoTitle", "여러 줄 입력(UDrTextArea) · 텍스트 필드와 같은 상태·라벨·글자 수"), MemoSize));
+  return Page;
+}
+
 void UDrGlassGallery::HandleUndo(int32) {
   if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
@@ -785,7 +883,7 @@ void UDrGlassGallery::Build() {
   // 탭(알약형 UDrTabList) + 페이지(UCommonAnimatedSwitcher).
   PageTabs = WidgetTree->ConstructWidget<UDrTabList>();
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(PageTabs)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
-  Pages = WidgetTree->ConstructWidget<UCommonAnimatedSwitcher>();
+  Pages = WidgetTree->ConstructWidget<UDrAnimatedSwitcher>();  // 페이지 넘김도 DrUIKit 전환기(움직임 줄이기면 바로)
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
   PageTabs->SetLinkedSwitcher(Pages);
   const TArray<TPair<FText, UWidget*>> PageList = {
@@ -796,9 +894,10 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
     {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
     {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()},
-    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록·페이지 점·프롬프트·순차 등장"), BuildNavigationPage()}};
+    {LOCTEXT("PageNavigation", "탐색·표시: 툴팁·목록·페이지 점·프롬프트·순차 등장"), BuildNavigationPage()},
+    {LOCTEXT("PageExtended", "2차·확장: 스크롤·카운트 업·전환·접기·여러 줄"), BuildExtendedPage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
-    UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
+    UDrScrollBox* Scroll = WidgetTree->ConstructWidget<UDrScrollBox>();  // 얇은 막대 + 가장자리 그늘
     // 스크롤 상자는 내용 밖을 자른다. 카드 그림자(shadow-glass)가 잘리지 않게 양옆·아래 여백을 둔다.
     if (UScrollBoxSlot* S = Cast<UScrollBoxSlot>(Scroll->AddChild(PageList[I].Value))) S->SetPadding(FMargin(32.f, 0.f, 32.f, 56.f));
     Pages->AddChild(Scroll);

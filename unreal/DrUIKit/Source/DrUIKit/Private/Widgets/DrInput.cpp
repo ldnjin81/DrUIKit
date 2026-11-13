@@ -5,6 +5,7 @@
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/MenuAnchor.h"
+#include "Components/MultiLineEditableText.h"
 #include "Components/SizeBox.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -49,8 +50,18 @@ TSharedRef<SWidget> UDrTextField::RebuildWidget() {
     LabelText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("LabelText"));
     if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(LabelText)) S->SetPadding(FMargin(0, 0, 0, 6));
     Field = MakeWell(WidgetTree, TEXT("Field"));
-    Input = WidgetTree->ConstructWidget<UEditableText>(UEditableText::StaticClass(), TEXT("Input"));
-    Field->SetContent(Input);
+    if (bMultiLine) {
+      MultiInput = WidgetTree->ConstructWidget<UMultiLineEditableText>(UMultiLineEditableText::StaticClass(), TEXT("MultiInput"));
+      // 최소 줄 수만큼 높이(body 줄 높이 20px 기준), 더 길면 늘어난다.
+      USizeBox* MinBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("MinBox"));
+      MinBox->SetMinDesiredHeight(20.f * FMath::Max(1, MinLines));
+      MinBox->AddChild(MultiInput);
+      Field->SetContent(MinBox);
+      Field->SetVerticalAlignment(VAlign_Fill);
+    } else {
+      Input = WidgetTree->ConstructWidget<UEditableText>(UEditableText::StaticClass(), TEXT("Input"));
+      Field->SetContent(Input);
+    }
     Column->AddChildToVerticalBox(Field);
     UHorizontalBox* Below = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Below"));
     HelperText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("HelperText"));
@@ -59,11 +70,11 @@ TSharedRef<SWidget> UDrTextField::RebuildWidget() {
     if (UHorizontalBoxSlot* S = Below->AddChildToHorizontalBox(CounterText)) S->SetPadding(FMargin(12, 0, 0, 0));
     if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Below)) S->SetPadding(FMargin(0, 6, 0, 0));
     BindInput();
-    if (!PendingText.IsEmpty()) Input->SetText(PendingText);
+    if (!PendingText.IsEmpty()) SetInputText(PendingText);
     ApplyTheme();
   }
   // 갤러리·패드로 이 위젯에 포커스가 오면 입력 칸으로 넘긴다.
-  if (Input) SetDesiredFocusWidget(Input);
+  if (UWidget* InputWidget = GetInputWidget()) SetDesiredFocusWidget(InputWidget);
   return Super::RebuildWidget();
 }
 
@@ -82,22 +93,35 @@ void UDrTextField::NativeDestruct() {
 }
 
 void UDrTextField::BindInput() {
-  if (!Input || bBound) return;
-  bBound = true;
-  Input->OnTextChanged.AddUniqueDynamic(this, &ThisClass::HandleInputChanged);
-  Input->OnTextCommitted.AddUniqueDynamic(this, &ThisClass::HandleInputCommitted);
+  if (bBound) return;
+  if (Input) {
+    Input->OnTextChanged.AddUniqueDynamic(this, &ThisClass::HandleInputChanged);
+    Input->OnTextCommitted.AddUniqueDynamic(this, &ThisClass::HandleInputCommitted);
+    bBound = true;
+  } else if (MultiInput) {
+    MultiInput->OnTextChanged.AddUniqueDynamic(this, &ThisClass::HandleInputChanged);
+    MultiInput->OnTextCommitted.AddUniqueDynamic(this, &ThisClass::HandleInputCommitted);
+    bBound = true;
+  }
+}
+
+UWidget* UDrTextField::GetInputWidget() const { return Input ? static_cast<UWidget*>(Input) : static_cast<UWidget*>(MultiInput); }
+
+void UDrTextField::SetInputText(const FText& InText) {
+  if (Input) Input->SetText(InText);
+  else if (MultiInput) MultiInput->SetText(InText);
 }
 
 void UDrTextField::SetText(const FText& InText) {
   PendingText = ClampLength(InText, MaxLength);
-  if (Input) {
+  if (GetInputWidget()) {
     TGuardValue<bool> Guard(bClamping, true);  // 코드에서 넣은 값은 '고치기 시작'이 아니므로 오류를 내리지 않는다
-    Input->SetText(PendingText);
+    SetInputText(PendingText);
   }
   ApplyVisualState();
 }
 
-FText UDrTextField::GetText() const { return Input ? Input->GetText() : PendingText; }
+FText UDrTextField::GetText() const { return Input ? Input->GetText() : MultiInput ? MultiInput->GetText() : PendingText; }
 
 void UDrTextField::SetError(const FText& InError) {
   Error = InError;
@@ -107,9 +131,9 @@ void UDrTextField::SetError(const FText& InError) {
 void UDrTextField::HandleInputChanged(const FText& InText) {
   if (bClamping) return;
   const FText Clamped = ClampLength(InText, MaxLength);
-  if (!Clamped.EqualTo(InText) && Input) {
+  if (!Clamped.EqualTo(InText) && GetInputWidget()) {
     TGuardValue<bool> Guard(bClamping, true);
-    Input->SetText(Clamped);
+    SetInputText(Clamped);
   }
   Error = FText::GetEmpty();  // 고치기 시작하면 오류를 내린다(다시 검사는 쓰는 쪽이)
   ApplyVisualState();
@@ -140,6 +164,15 @@ void UDrTextField::ApplyTheme() {
     Input->SetHintText(Hint);
     Input->SetIsPassword(bPassword);
   }
+  if (MultiInput) {
+    const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
+    FTextBlockStyle Style;
+    Style.SetFont(Theme.MakeFont(DrUITokens::Body))
+      .SetColorAndOpacity(FSlateColor(Theme.GetColor(DrUITokens::Ink)))
+      .SetSelectedBackgroundColor(FSlateColor(Theme.GetColor(DrUITokens::AccentSoft)));
+    MultiInput->SetWidgetStyle(Style);
+    MultiInput->SetHintText(Hint);
+  }
   ApplyVisualState();
 }
 
@@ -165,6 +198,15 @@ void UDrTextField::ApplyVisualState() {
   }
   if (HelperText && HelperText->GetParent())
     HelperText->GetParent()->SetVisibility(Shown.IsEmpty() && MaxLength <= 0 ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+}
+
+UDrTextArea::UDrTextArea(const FObjectInitializer& Initializer) : Super(Initializer) {
+  bMultiLine = true;
+}
+
+TSharedRef<SWidget> UDrTextArea::RebuildWidget() {
+  MinLines = Lines;  // 기본 구성을 만들기 전에 넘긴다
+  return Super::RebuildWidget();
 }
 
 // ---------------------------------------------------------------- 드롭다운 항목·목록

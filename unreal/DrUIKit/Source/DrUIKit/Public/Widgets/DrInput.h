@@ -10,6 +10,7 @@ class UDrSurface;
 class UDrText;
 class UEditableText;
 class UMenuAnchor;
+class UMultiLineEditableText;
 class USizeBox;
 class UVerticalBox;
 
@@ -50,6 +51,8 @@ protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> LabelText;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Field;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UEditableText> Input;
+  /** 여러 줄이면 Input 대신 이것(UDrTextArea). */
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UMultiLineEditableText> MultiInput;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> HelperText;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> CounterText;
 
@@ -66,9 +69,15 @@ protected:
   virtual void ApplyVisualState();
   /** 글꼴·색·커서·선택 영역을 테마대로(테마가 바뀔 때). 이어서 ApplyVisualState. */
   virtual void ApplyTheme();
+  /** 참이면 기본 구성에서 여러 줄 입력을 만든다(UDrTextArea가 켬). */
+  bool bMultiLine = false;
+  /** 여러 줄일 때 최소 줄 수(입력 칸 최소 높이). */
+  int32 MinLines = 1;
 
 private:
   void BindInput();
+  void SetInputText(const FText& InText);
+  UWidget* GetInputWidget() const;
   UFUNCTION() void HandleInputChanged(const FText& InText);
   UFUNCTION() void HandleInputCommitted(const FText& InText, ETextCommit::Type Method);
   FText Error;
@@ -76,6 +85,17 @@ private:
   FText PendingText;
   bool bHovered = false, bFocused = false, bBound = false, bWasEnabled = true, bClamping = false;
   FDelegateHandle ThemeHandle;
+};
+
+/** 여러 줄 입력(메모·채팅·설명). 텍스트 필드와 같은 상태·라벨·글자 수에 엔진 UMultiLineEditableText(Enter는 줄바꿈, Ctrl+Enter 확정)를 쓴다. */
+UCLASS()
+class DRUIKIT_API UDrTextArea : public UDrTextField {
+  GENERATED_BODY()
+public:
+  UDrTextArea(const FObjectInitializer& Initializer);
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI", meta = (ClampMin = 1)) int32 Lines = 4;
+protected:
+  virtual TSharedRef<SWidget> RebuildWidget() override;
 };
 
 /** 드롭다운 목록의 항목 한 줄(글 + 고른 항목 체크). */
