@@ -1071,6 +1071,7 @@ void UDrGlassGallery::NativeDestruct() {
 
 bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   // 테마(밝게·어둡게) × 페이지마다: 적용 → 30프레임 기다림(레이아웃·글꼴 안정) → 찍기.
+  // 페이지가 화면보다 길면 끝까지 내린 화면을 한 장 더(_<페이지>b).
   // 이어서 밝은 테마 첫 페이지를 투명도 0·1로 한 장씩(투명도 조절 확인). 다 찍으면 종료.
   // 시간이 아니라 프레임으로 센다: 화면 없이 렌더링(-RenderOffscreen)하면 틱 시간이 실제와 맞지 않았다.
   static const FName ThemeIds[] = {TEXT("glass-light"), TEXT("glass-dark")};
@@ -1084,8 +1085,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   const int32 ThemeIndex = bTransparencyShot ? 0 : CaptureIndex / GetPageCount();
   const FName Theme = ThemeIds[ThemeIndex];
   const int32 Page = bTransparencyShot ? 0 : CaptureIndex % GetPageCount();
-  const FString ShotName = bTransparencyShot ? FString::Printf(TEXT("DrUIGallery_transparency_%.0f"), Transparencies[CaptureIndex - ThemeShots])
-                                             : FString::Printf(TEXT("DrUIGallery_%s_%d"), *Theme.ToString(), Page);
+  UScrollBox* PageScroll = Pages ? Cast<UScrollBox>(Pages->GetWidgetAtIndex(Page)) : nullptr;
   if (!bCaptureShotPending) {
     if (ThemeChoice) ThemeChoice->SetSelectedIndex(ThemeIndex);  // HandleThemeChoice가 테마를 바꾼다
     if (bTransparencyShot) {
@@ -1094,14 +1094,25 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
       HandleTransparency(Value);
     }
     ShowPage(Page);
+    if (PageScroll) PageScroll->ScrollToStart();
     bCaptureShotPending = true;
+    bCaptureScrolled = false;
     CaptureWait = 30.f;
     return true;
   }
+  const FString ShotName = bTransparencyShot ? FString::Printf(TEXT("DrUIGallery_transparency_%.0f"), Transparencies[CaptureIndex - ThemeShots])
+                                             : FString::Printf(TEXT("DrUIGallery_%s_%d%s"), *Theme.ToString(), Page, bCaptureScrolled ? TEXT("b") : TEXT(""));
   FScreenshotRequest::RequestScreenshot(FPaths::ScreenShotDir() / (ShotName + TEXT(".png")), true, false);
+  CaptureWait = 10.f;
+  if (!bTransparencyShot && !bCaptureScrolled && PageScroll && PageScroll->GetScrollOffsetOfEnd() > 40.f) {
+    // 아래가 더 있으면 끝까지 내려 한 장 더.
+    bCaptureScrolled = true;
+    PageScroll->ScrollToEnd();
+    CaptureWait = 30.f;
+    return true;
+  }
   bCaptureShotPending = false;
   ++CaptureIndex;
-  CaptureWait = 10.f;
   return true;
 }
 

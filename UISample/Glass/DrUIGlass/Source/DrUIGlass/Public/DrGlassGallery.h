@@ -91,4 +91,6 @@ private:
   /** 남은 대기 프레임 수. */
   float CaptureWait = 0.f;
   bool bCaptureShotPending = false;
+  /** 지금 페이지를 끝까지 내린 두 번째 장을 찍는 중. */
+  bool bCaptureScrolled = false;
 };
