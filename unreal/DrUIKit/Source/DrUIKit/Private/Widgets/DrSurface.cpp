@@ -6,6 +6,21 @@
 #include "Widgets/SLeafWidget.h"
 #include "Widgets/SOverlay.h"
 
+/** 둥근 사각형 둘레(닫힌 꺾은선). 모서리마다 8조각. */
+static TArray<FVector2f> RoundedRectPath(FVector2f Min, FVector2f Size, float Radius) {
+  const float R = FMath::Clamp(Radius, 0.f, FMath::Min(Size.X, Size.Y) * .5f);
+  const FVector2f Centers[4] = {Min + FVector2f(Size.X - R, R), Min + FVector2f(Size.X - R, Size.Y - R), Min + FVector2f(R, Size.Y - R), Min + FVector2f(R)};
+  TArray<FVector2f> Points;
+  for (int32 Corner = 0; Corner < 4; ++Corner)
+    for (int32 I = 0; I <= 8; ++I) {
+      // 오른쪽 위 모서리부터 시계 방향(-90° → 0° → 90° …).
+      const float Angle = (-90.f + 90.f * Corner + 90.f * I / 8.f) * PI / 180.f;
+      Points.Add(Centers[Corner] + R * FVector2f(FMath::Cos(Angle), FMath::Sin(Angle)));
+    }
+  Points.Add(Points[0]);
+  return Points;
+}
+
 /** 표면 장식: 뒤 그림자(표면 바깥 고리 겹) 또는 앞 윗면 반사광(윗변 안쪽 1px 선). 눌림 판정 없음. */
 class SDrSurfaceDecor : public SLeafWidget {
 public:
@@ -31,13 +46,14 @@ public:
       constexpr int32 Rings = 8;
       const float Width = Extent / Rings;
       for (int32 K = 0; K < Rings; ++K) {
-        const float D = (K + 1) * Width;
-        // 고리가 표면 안으로 들어가지 않을 만큼만 오프셋 방향으로 민다(바깥 테두리 띠만 그린다).
-        const float Shift = FMath::Min(Offset.Size(), FMath::Max(0.f, D - Width));
+        const float D = (K + .5f) * Width;  // 고리 띠의 가운데 거리
+        // 고리가 표면 안으로 들어가지 않을 만큼만 오프셋 방향으로 민다(바깥 띠만 그린다).
+        const float Shift = FMath::Min(Offset.Size(), FMath::Max(0.f, D - Width * .5f));
         const FVector2f Move = Offset.IsNearlyZero() ? FVector2f::ZeroVector : Offset.GetSafeNormal() * Shift;
         const float Fade = FMath::Square(1.f - (K + .5f) / Rings);
-        FSlateRoundedBoxBrush Ring(FLinearColor::Transparent, R + D, Shadow.Color.CopyWithNewOpacity(Shadow.Color.A * Fade * 1.6f), Width);
-        FSlateDrawElement::MakeBox(Out, LayerId, Geometry.ToPaintGeometry(Size + FVector2f(2.f * D), FSlateLayoutTransform(Move - FVector2f(D))), &Ring, ESlateDrawEffect::None, Tint);
+        // 둥근 상자 브러시는 채움을 그릴 때 넘기는 색으로 칠해 고리만 그릴 수 없다. 둘레를 굵은 선으로 따라간다.
+        const TArray<FVector2f> Path = RoundedRectPath(Move - FVector2f(D), Size + FVector2f(2.f * D), R + D);
+        FSlateDrawElement::MakeLines(Out, LayerId, Geometry.ToPaintGeometry(), Path, ESlateDrawEffect::None, Shadow.Color.CopyWithNewOpacity(Shadow.Color.A * Fade * 1.6f) * Tint, true, Width);
       }
       return LayerId;
     }
