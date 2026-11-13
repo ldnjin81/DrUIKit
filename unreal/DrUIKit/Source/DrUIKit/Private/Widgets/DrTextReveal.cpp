@@ -9,7 +9,7 @@ int32 UDrTextReveal::RevealedCount(float InElapsed, int32 Length, float InCharsP
 FString UDrTextReveal::ScrambleFrame(const FString& Full, int32 Revealed, uint32 Seed) {
   static const TCHAR Latin[] = TEXT("ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%&*");
   static const TCHAR Hangul[] = TEXT("가나다라마바사아자차카타파하거너더러머버서어저처커터퍼허");
-  FRandomStream Stream(int32(Seed));
+  FRandomStream Stream{static_cast<int32>(Seed)};  // Stream(int32(Seed))는 함수 선언으로 읽힌다
   FString Out = Full;
   for (int32 I = FMath::Max(0, Revealed); I < Out.Len(); ++I) {
     const TCHAR C = Full[I];
