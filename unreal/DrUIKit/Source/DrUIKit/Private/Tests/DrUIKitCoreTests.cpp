@@ -1,4 +1,4 @@
-// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동을 검증한다.
+// 상태 판정, 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
@@ -8,6 +8,7 @@
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
+#include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
 #include "Widgets/DrSurface.h"
@@ -231,6 +232,20 @@ bool FDrInputMathTest::RunTest(const FString&) {
   TestEqual(TEXT("감싸지 않으면 처음에서 멈춤"), UDrHorizontalSelector::StepIndex(0, -1, 3, false), 0);
   TestEqual(TEXT("고른 것 없으면 다음은 처음"), UDrHorizontalSelector::StepIndex(INDEX_NONE, 1, 3, true), 0);
   TestEqual(TEXT("항목이 없으면 없음"), UDrHorizontalSelector::StepIndex(0, 1, 0, true), int32(INDEX_NONE));
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrRadialSectorTest, "DrUIKit.Core.RadialMenu.Sector", DrUIKitTestFlags)
+bool FDrRadialSectorTest::RunTest(const FString&) {
+  TestEqual(TEXT("위(12시)는 0번"), UDrRadialMenu::SectorAt(FVector2D(0, -1), 4), 0);
+  TestEqual(TEXT("오른쪽은 1번(시계 방향)"), UDrRadialMenu::SectorAt(FVector2D(1, 0), 4), 1);
+  TestEqual(TEXT("아래는 2번"), UDrRadialMenu::SectorAt(FVector2D(0, 1), 4), 2);
+  TestEqual(TEXT("왼쪽은 3번"), UDrRadialMenu::SectorAt(FVector2D(-1, 0), 4), 3);
+  TestEqual(TEXT("칸 경계 조금 왼쪽(11시 반)은 0번"), UDrRadialMenu::SectorAt(FVector2D(-.3, -1), 4), 0);
+  TestEqual(TEXT("길이 0은 없음"), UDrRadialMenu::SectorAt(FVector2D::ZeroVector, 4), int32(INDEX_NONE));
+  TestEqual(TEXT("칸이 없으면 없음"), UDrRadialMenu::SectorAt(FVector2D(1, 0), 0), int32(INDEX_NONE));
+  TestTrue(TEXT("5에서 0으로는 6으로(앞으로 한 칸)"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(5.f, 0, 6), 6.f));
+  TestTrue(TEXT("0에서 5로는 -1로(뒤로 한 칸)"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(0.f, 5, 6), -1.f));
+  TestTrue(TEXT("가까우면 그대로"), FMath::IsNearlyEqual(UDrRadialMenu::NearestWrapped(1.f, 2, 6), 2.f));
   return true;
 }
 #endif

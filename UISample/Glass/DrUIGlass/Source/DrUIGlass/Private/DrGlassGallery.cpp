@@ -24,9 +24,11 @@
 #include "UnrealClient.h"
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrGlyph.h"
+#include "Widgets/DrHoldButton.h"
 #include "Widgets/DrIcon.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNotice.h"
+#include "Widgets/DrRadialMenu.h"
 #include "Widgets/DrSlider.h"
 #include "Widgets/DrStatus.h"
 #include "Widgets/DrSurface.h"
@@ -41,7 +43,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrTabButton::StaticClass(), UDrTabList::StaticClass(), UDrSegmentedControl::StaticClass(), UDrSlider::StaticClass(),
     UDrBadge::StaticClass(), UDrProgressBar::StaticClass(), UDrProgressRing::StaticClass(), UDrSkeleton::StaticClass(), UDrSpinner::StaticClass(),
     UDrToast::StaticClass(), UDrToastStack::StaticClass(), UDrSnackbar::StaticClass(),
-    UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass()};
+    UDrTextField::StaticClass(), UDrDropdown::StaticClass(), UDrDropdownMenu::StaticClass(), UDrDropdownItem::StaticClass(), UDrHorizontalSelector::StaticClass(),
+    UDrHoldButton::StaticClass(), UDrRadialMenu::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -495,6 +498,55 @@ void UDrGlassGallery::HandleNicknameCommitted(const FText& Text) {
   if (NicknameField && Text.ToString().TrimStartAndEnd().Len() < 2) NicknameField->SetError(LOCTEXT("NicknameError", "2자 이상 입력하세요"));
 }
 
+UWidget* UDrGlassGallery::BuildGamePage() {
+  UVerticalBox* Page = WidgetTree->ConstructWidget<UVerticalBox>();
+  auto Add = [Page](UWidget* W) { if (UVerticalBoxSlot* S = Page->AddChildToVerticalBox(W)) S->SetPadding(FMargin(0, 0, 0, 16)); };
+
+  // 홀드 버튼: 변형·시간별. 다 차면 성공 표시.
+  UWrapBox* Holds = WidgetTree->ConstructWidget<UWrapBox>();
+  Holds->SetInnerSlotPadding(FVector2D(12, 12));
+  struct FHoldDemo { FText Label; EDrButtonVariant Variant; float Seconds; FText Done; bool bEnabled; };
+  const FHoldDemo HoldList[] = {
+    {LOCTEXT("HoldDelete", "길게 눌러 삭제(1초)"), EDrButtonVariant::Destructive, 1.f, LOCTEXT("HoldDeleted", "✓ 삭제했어요"), true},
+    {LOCTEXT("HoldBuy", "길게 눌러 구매(0.6초)"), EDrButtonVariant::Primary, .6f, LOCTEXT("HoldBought", "✓ 구매했어요"), true},
+    {LOCTEXT("HoldSkip", "길게 눌러 건너뛰기(2초)"), EDrButtonVariant::Secondary, 2.f, LOCTEXT("HoldSkipped", "✓ 건너뛰었어요"), true},
+    {LOCTEXT("HoldDisabled", "비활성"), EDrButtonVariant::Secondary, 1.f, FText::GetEmpty(), false}};
+  for (const FHoldDemo& Demo : HoldList) {
+    UDrHoldButton* Hold = WidgetTree->ConstructWidget<UDrHoldButton>();
+    Hold->Label = Demo.Label;
+    Hold->Variant = Demo.Variant;
+    Hold->SetHoldSeconds(Demo.Seconds);
+    Hold->SetIsEnabled(Demo.bEnabled);
+    const FText Done = Demo.Done;
+    Hold->OnClicked().AddWeakLambda(Hold, [Hold, Done] { Hold->ShowSuccess(Done); });
+    Holds->AddChild(Hold);
+  }
+  Add(Section(LOCTEXT("HoldTitle", "홀드 버튼(UDrHoldButton) · 누르고 있으면 차오르고 다 차면 실행. 중간에 떼면 되감김(CommonUI 길게 누르기)"), Holds));
+
+  // 파이 메뉴: 고르면 토스트, Esc·B는 취소 토스트.
+  UHorizontalBox* RadialRow = WidgetTree->ConstructWidget<UHorizontalBox>();
+  RadialDemo = WidgetTree->ConstructWidget<UDrRadialMenu>();
+  RadialDemo->Hint = LOCTEXT("RadialHint", "방향을 고르세요");
+  RadialDemo->SetItems({LOCTEXT("RAttack", "공격"), LOCTEXT("RDefend", "방어"), LOCTEXT("RPotion", "물약"), LOCTEXT("RMap", "지도"), LOCTEXT("RPing", "핑"), LOCTEXT("REmote", "감정")});
+  RadialDemo->SetHighlighted(1);
+  RadialDemo->OnItemSelected.AddUniqueDynamic(this, &ThisClass::HandleRadialSelected);
+  RadialDemo->OnCancelled.AddUniqueDynamic(this, &ThisClass::HandleRadialCancelled);
+  RadialRow->AddChildToHorizontalBox(RadialDemo);
+  if (UHorizontalBoxSlot* S = RadialRow->AddChildToHorizontalBox(MakeText(LOCTEXT("RadialNote", "마우스: 가운데에서 본 방향으로 가리키고 왼쪽 버튼을 떼면 확정.\n패드: 스틱으로 가리키고 A로 확정, B로 취소.\n키보드: 메뉴를 한 번 누른 뒤 화살표로 옮기고 Enter, Esc로 취소."), TEXT("body"), TEXT("ink-muted"))))
+  { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(32, 0, 0, 0)); }
+  Add(Section(LOCTEXT("RadialTitle", "파이 메뉴(UDrRadialMenu) · 방향으로 빨리 고르기. 강조가 칸 사이를 미끄러진다"), RadialRow));
+  return Page;
+}
+
+void UDrGlassGallery::HandleRadialSelected(int32 Index) {
+  if (Toasts && RadialDemo && RadialDemo->Items.IsValidIndex(Index))
+    Toasts->Push(FText::Format(LOCTEXT("RadialPicked", "고름: {0}"), RadialDemo->Items[Index]), EDrNoticeTone::Success, 1.5f);
+}
+
+void UDrGlassGallery::HandleRadialCancelled() {
+  if (Toasts) Toasts->Push(LOCTEXT("RadialCancelled", "파이 메뉴 취소"), EDrNoticeTone::Info, 1.5f);
+}
+
 void UDrGlassGallery::HandleUndo(int32) {
   if (Toasts) Toasts->Push(LOCTEXT("Undone", "되돌렸어요"), EDrNoticeTone::Success);
 }
@@ -581,7 +633,8 @@ void UDrGlassGallery::Build() {
     {LOCTEXT("PageSelection", "선택: 체크·라디오·스위치·슬라이더·세그먼트·탭"), BuildSelectionPage()},
     {LOCTEXT("PageStatus", "상태: 배지·진행·스켈레톤·스피너"), BuildStatusPage()},
     {LOCTEXT("PageNotice", "알림: 토스트·스낵바"), BuildNoticePage()},
-    {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()}};
+    {LOCTEXT("PageInput", "입력: 텍스트 필드·드롭다운·수평 선택기"), BuildInputPage()},
+    {LOCTEXT("PageGame", "게임용: 홀드 버튼·파이 메뉴"), BuildGamePage()}};
   for (int32 I = 0; I < PageList.Num(); ++I) {
     UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>();
     Scroll->AddChild(PageList[I].Value);
