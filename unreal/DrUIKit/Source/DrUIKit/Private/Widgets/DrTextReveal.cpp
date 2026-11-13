@@ -9,13 +9,13 @@ int32 UDrTextReveal::RevealedCount(float InElapsed, int32 Length, float InCharsP
 FString UDrTextReveal::ScrambleFrame(const FString& Full, int32 Revealed, uint32 Seed) {
   static const TCHAR Latin[] = TEXT("ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%&*");
   static const TCHAR Hangul[] = TEXT("가나다라마바사아자차카타파하거너더러머버서어저처커터퍼허");
-  FRandomStream Random(int32(Seed));
+  FRandomStream Stream(int32(Seed));
   FString Out = Full;
   for (int32 I = FMath::Max(0, Revealed); I < Out.Len(); ++I) {
     const TCHAR C = Full[I];
     if (FChar::IsWhitespace(C) || FChar::IsPunct(C)) continue;  // 띄어쓰기·문장 부호는 그대로(글 모양 유지)
     const bool bHangul = C >= 0xAC00 && C <= 0xD7A3;
-    Out[I] = bHangul ? Hangul[Random.RandRange(0, UE_ARRAY_COUNT(Hangul) - 2)] : Latin[Random.RandRange(0, UE_ARRAY_COUNT(Latin) - 2)];
+    Out[I] = bHangul ? Hangul[Stream.RandRange(0, UE_ARRAY_COUNT(Hangul) - 2)] : Latin[Stream.RandRange(0, UE_ARRAY_COUNT(Latin) - 2)];
   }
   return Out;
 }
