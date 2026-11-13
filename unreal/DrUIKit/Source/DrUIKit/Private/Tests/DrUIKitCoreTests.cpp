@@ -7,6 +7,7 @@
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrButtonPrompt.h"
+#include "Widgets/DrConfirmDialog.h"
 #include "Widgets/DrCooldown.h"
 #include "Widgets/DrData.h"
 #include "Widgets/DrFeedback.h"
@@ -345,6 +346,19 @@ bool FDrRevealDataTest::RunTest(const FString&) {
   TestTrue(TEXT("도넛: 비율(음수는 0)"), Segs.Num() == 3 && FMath::IsNearlyEqual(Segs[1].X, .25f) && FMath::IsNearlyEqual(Segs[1].Y, .75f) && Segs[2].Y == 0.f);
   TestEqual(TEXT("통계 카드: 오름"), UDrStatCard::FormatDelta(.12f).ToString(), FString(TEXT("↑12%")));
   TestEqual(TEXT("통계 카드: 변화 없음"), UDrStatCard::FormatDelta(0.f).ToString(), FString(TEXT("—")));
+  return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrConfirmDialogTest, "DrUIKit.Core.Flow.ConfirmResolvesOnce", DrUIKitTestFlags)
+bool FDrConfirmDialogTest::RunTest(const FString&) {
+  UDrConfirmDialog* Dialog = NewObject<UDrConfirmDialog>(GetTransientPackage());
+  int32 Calls = 0;
+  bool bLast = true;
+  Dialog->SetContent(FText::FromString(TEXT("삭제할까요?")), FText::GetEmpty(), FText::GetEmpty(), FText::GetEmpty(), true);
+  Dialog->OnResultNative = [&](bool bOk) { ++Calls; bLast = bOk; };
+  Dialog->Resolve(false);
+  Dialog->Resolve(true);  // 이미 결정됐으면 무시
+  TestEqual(TEXT("결과는 한 번만 알린다"), Calls, 1);
+  TestFalse(TEXT("첫 결정(취소)이 남는다"), bLast);
   return true;
 }
 #endif

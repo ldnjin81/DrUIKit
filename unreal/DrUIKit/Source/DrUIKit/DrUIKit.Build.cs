@@ -16,6 +16,7 @@ public class DrUIKit : ModuleRules
 			"UMG",
 			"CommonUI",
 			"CommonInput",
+			"EnhancedInput",
 			"DeveloperSettings"
 		});
 	}

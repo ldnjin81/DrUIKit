@@ -2,7 +2,7 @@
 
 언리얼 엔진 5.8용 **스타일 중립 UI 부품** 플러그인이다. 엔진·CommonUI 위젯을 상속해 확장하고, 상속으로 안 되는 것은 UserWidget 안에서 조합한다. 모양은 테마 토큰으로만 칠하고, 실제 디자인은 스타일 샘플(`UISample/<스타일>`)이 입힌다.
 
-> 상태: 0.0.2(뼈대 + 1차 부품 진행 중). 기획·구현 현황: `Docs/PLAN.md`.
+> 상태: 0.1.0(1차·2차 부품, UI 흐름·화면 층). 기획·구현 현황: `Docs/PLAN.md`.
 
 ## 구성
 
@@ -28,6 +28,7 @@
 | 알림 | `UDrNoticeBase`(떴다 사라지는 부품 공통 틀, 추상), `UDrToast`(유리 알약 + 색·모양 표시 4종), `UDrToastStack`(토스트 쌓기, 최대 개수 넘으면 오래된 것부터 물러남), `UDrSnackbar`(진한 알약 + 행동 버튼, 한 번에 하나·차례 줄, 호버 중 시간 멈춤) |
 | 입력 | `UDrTextField`(UEditableText + 라벨·안내·글자 수·오류), `UDrDropdown`·`UDrDropdownMenu`·`UDrDropdownItem`(UMenuAnchor 목록, 고른 항목부터 포커스), `UDrHorizontalSelector`(◀ 값 ▶, 패드 좌우·감쌈/멈춤) |
 | 게임용 | `UDrHoldButton`(길게 눌러 실행, CommonUI 길게 누르기 + 차오르는 채움·되감기), `UDrRadialMenu`(파이 메뉴: 마우스 방향·패드 스틱·키보드, 강조가 스프링으로 미끄러짐), `UDrCooldown`(아이콘 위 시계 방향 막·남은 시간·반짝임), `UDrFeed`·`UDrFeedEntry`(획득 로그, 같은 글은 ×N으로 합침) |
+| UI 흐름 | `UDrUIFlowSubsystem`(로컬 플레이어 서브시스템: 화면 층 자동 생성, 타이틀·HUD·일시정지·설정·뒤로·입력 모드·확인 대화상자·알림), `UDrUIRootLayout`(게임·메뉴·모달·알림 층), `UDrUIMenuWidget`·`UDrUIHUDWidget`(메뉴·HUD 기반), `UDrConfirmDialog`(모달 확인 창). 설정은 `UDrUIKitSettings`의 '흐름'·'입력'. DrFramework 0.2.0 UI를 옮긴 것 |
 | 2차·확장 | `UDrScrollBox`(얇은 막대·가장자리 그늘), `UDrCountUp`(세어 올라가는 숫자), `UDrAnimatedSwitcher`(페이드·밀기·확대, 움직임 줄이기면 바로), `UDrExpandableArea`·`UDrExpanderHeader`(높이 스프링), `UDrTextArea`(여러 줄 입력), `UDrMorphButton`(로딩이면 원으로 줄고 체크 뒤 펴짐), `UDrQuantityStepper`·`UDrIconButton`(− 값 +, 길게 누르면 가속 반복), `UDrChip`(필터·선택·입력 칩) |
 | 2차·탐색 | `UDrSidebar`·`UDrSidebarItem`(레일 ↔ 펼침, 유리 렌즈), `UDrDock`·`UDrDockItem`(가리키면 확대), `UDrBottomTabBar`·`UDrBottomTabButton`(표시+이름 탭), `UDrBanner`(화면 안 알림 줄), `UDrBottomSheet`(아래에서 올라오는 판, 끌어 닫기), `UDrCoachMark`·`UDrCoachScrim`(구멍 뚫린 막 + 단계 말풍선), `UDrPopover`·`UDrPopoverPanel`(누른 자리 옆 유리 판) |
 | 2차·표현 | `UDrStepIndicator`(단계 표시), `UDrCompletion`(체크 그리기 완료 표시), `UDrEmptyState`(빈 화면: 이유 + 다음 행동), `UDrTextReveal`(글자 등장: 타이핑·스크램블·올라오기), `UDrSparkline`·`UDrDonut`·`UDrStatCard`(데이터 표시) |

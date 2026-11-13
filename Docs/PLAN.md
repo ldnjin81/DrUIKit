@@ -47,7 +47,7 @@
 - 바텀시트·코치마크는 화면 층이 생기기 전까지 게임이 맨 위 오버레이에 꽉 차게 둔다(1차 남은 것: 화면 층과 함께 그 층으로).
 - 글자 등장의 '블러 인'은 Slate에 글자 흐림이 없어 올라오며 밝아짐으로 대신했다.
 
-**1차 남은 것**: 확인 대화상자 + 화면 층(`UDrUIFlowSubsystem`) — DrFramework 0.3.0 UI 이동과 함께(DrFramework의 `UDrUIRootLayout`과 이름이 겹쳐 먼저 만들 수 없음). 2차 22개는 아래 표의 우선순위대로.
+**UI 흐름(2026-11-13)**: `UDrUIFlowSubsystem`·`UDrUIRootLayout`(게임·메뉴·모달·알림)·`UDrUIMenuWidget`·`UDrUIHUDWidget`·`UDrConfirmDialog`를 DrUIKit에 만들었다. 흐름은 게임이 `EnterTitle`·`EnterGame`을 부른 뒤에만 입력 모드를 바꾼다. DrFramework 쪽 UI 제거(0.3.0)는 0.2.0 위 브랜치로 준비하며, 두 플러그인을 함께 쓰는 DrSample은 0.3.0이 병합될 때까지 DrUIKit을 넣지 않는다(`UDrUIRootLayout` 이름 겹침). 2차 22개는 아래 표의 우선순위대로.
 
 ## 개요
 

@@ -18,6 +18,10 @@
 #include "Components/WidgetSwitcher.h"
 #include "Core/DrUIStagger.h"
 #include "DrGlassBackdrop.h"
+#include "DrGlassDemoMenu.h"
+#include "Flow/DrUIFlowSubsystem.h"
+#include "Flow/DrUIRootLayout.h"
+#include "Widgets/DrConfirmDialog.h"
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
 #include "Misc/CommandLine.h"
@@ -73,7 +77,8 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrSidebar::StaticClass(), UDrSidebarItem::StaticClass(), UDrDock::StaticClass(), UDrDockItem::StaticClass(), UDrBottomTabBar::StaticClass(), UDrBottomTabButton::StaticClass(),
     UDrBanner::StaticClass(), UDrBottomSheet::StaticClass(), UDrCoachMark::StaticClass(), UDrCoachScrim::StaticClass(), UDrPopover::StaticClass(), UDrPopoverPanel::StaticClass(),
     UDrStepIndicator::StaticClass(), UDrCompletion::StaticClass(), UDrEmptyState::StaticClass(),
-    UDrTextReveal::StaticClass(), UDrSparkline::StaticClass(), UDrDonut::StaticClass(), UDrStatCard::StaticClass()};
+    UDrTextReveal::StaticClass(), UDrSparkline::StaticClass(), UDrDonut::StaticClass(), UDrStatCard::StaticClass(),
+    UDrUIRootLayout::StaticClass(), UDrConfirmDialog::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -460,7 +465,28 @@ UWidget* UDrGlassGallery::BuildNoticePage() {
   SnackDemo->AddChildToVerticalBox(SnackButtons);
   Add(Section(LOCTEXT("SnackTitle", "스낵바(UDrSnackbar) · 한 번에 하나, 나머지는 차례. 마우스를 올리면 시간이 멈춤"), SnackDemo));
 
-  Page->AddChildToVerticalBox(MakeText(LOCTEXT("NoticeNote", "확인 대화상자는 화면 층(UI 흐름)과 함께 만든다. 움직임 줄이기를 켜면 바로 나타나고 바로 사라진다."), TEXT("caption"), TEXT("ink-muted")));
+  // 확인 대화상자·UI 흐름: 로컬 플레이어마다 화면 층(게임·메뉴·모달·알림)이 자동으로 생기고, 이 버튼들은 그 층을 쓴다.
+  UWrapBox* FlowButtons = MakeRow();
+  struct FFlowDemo { FText Label; TFunction<void(UDrUIFlowSubsystem*)> Run; };
+  const FFlowDemo FlowDemos[] = {
+    {LOCTEXT("FlowConfirm", "확인 대화상자"), [](UDrUIFlowSubsystem* Flow) {
+       Flow->ShowConfirm(LOCTEXT("ConfirmSaveTitle", "변경 사항을 저장할까요?"), LOCTEXT("ConfirmSaveBody", "저장하지 않으면 이번 세션에서 바꾼 설정이 사라집니다."), LOCTEXT("ConfirmSave", "저장"), LOCTEXT("ConfirmLater", "나중에"), false,
+         [Flow](bool bOk) { Flow->ShowToast(bOk ? LOCTEXT("Saved2", "저장했어요") : LOCTEXT("NotSaved", "저장하지 않았어요"), bOk ? EDrNoticeTone::Success : EDrNoticeTone::Info); });
+     }},
+    {LOCTEXT("FlowDanger", "삭제 확인(파괴적)"), [](UDrUIFlowSubsystem* Flow) {
+       Flow->ShowConfirm(LOCTEXT("ConfirmDelTitle", "슬롯 2를 삭제할까요?"), LOCTEXT("ConfirmDelBody", "삭제한 저장 데이터는 되돌릴 수 없어요. 첫 포커스는 '취소'에 있습니다."), LOCTEXT("ConfirmDel", "삭제"), FText::GetEmpty(), true,
+         [Flow](bool bOk) { if (bOk) Flow->ShowToast(LOCTEXT("Deleted2", "슬롯 2를 삭제했어요"), EDrNoticeTone::Danger); });
+     }},
+    {LOCTEXT("FlowMenu", "메뉴 층 열기"), [](UDrUIFlowSubsystem* Flow) { Flow->OpenMenu(UDrGlassDemoMenu::StaticClass()); }},
+    {LOCTEXT("FlowToast", "알림 층 토스트"), [](UDrUIFlowSubsystem* Flow) { Flow->ShowToast(LOCTEXT("FlowToastMsg", "화면 층의 알림 층에서 떴어요"), EDrNoticeTone::Info); }}};
+  for (const FFlowDemo& Demo : FlowDemos) {
+    UDrButton* Button = MakeButton(Demo.Label);
+    const TFunction<void(UDrUIFlowSubsystem*)> Run = Demo.Run;
+    Button->OnClicked().AddWeakLambda(this, [this, Run] { if (UDrUIFlowSubsystem* Flow = UDrUIFlowSubsystem::Get(this)) Run(Flow); });
+    FlowButtons->AddChild(Button);
+  }
+  Add(Section(LOCTEXT("FlowTitle", "확인 대화상자(UDrConfirmDialog) · UI 흐름(UDrUIFlowSubsystem)과 화면 층(UDrUIRootLayout: 게임·메뉴·모달·알림)"), FlowButtons));
+  Page->AddChildToVerticalBox(MakeText(LOCTEXT("NoticeNote", "대화상자는 모달 층에 뜨고 뒤로(Esc·패드 B)는 취소. 파괴적 확인은 첫 포커스가 취소. 움직임 줄이기를 켜면 바로 나타나고 바로 사라진다."), TEXT("caption"), TEXT("ink-muted")));
   return Page;
 }
 
@@ -1294,7 +1320,13 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   const FOverlayShot Overlays[] = {
     {TEXT("sheet"), [this](bool bOn) { if (Sheet) { if (bOn) Sheet->Open(); else Sheet->Close(); } }},
     {TEXT("coach"), [this](bool bOn) { if (Coach) { if (bOn) Coach->Start(); else Coach->Finish(true); } }},
-    {TEXT("popover"), [this](bool bOn) { if (PopoverDemo) { if (bOn) PopoverDemo->Open(); else PopoverDemo->Close(); } }}};
+    {TEXT("popover"), [this](bool bOn) { if (PopoverDemo) { if (bOn) PopoverDemo->Open(); else PopoverDemo->Close(); } }},
+    {TEXT("confirm"), [this](bool bOn) {
+       UDrUIFlowSubsystem* Flow = UDrUIFlowSubsystem::Get(this);
+       if (!Flow) return;
+       if (bOn) CaptureDialog = Flow->ShowConfirm(LOCTEXT("CapConfirm", "슬롯 2를 삭제할까요?"), LOCTEXT("CapConfirmBody", "삭제한 저장 데이터는 되돌릴 수 없어요."), LOCTEXT("CapDel", "삭제"), FText::GetEmpty(), true);
+       else if (CaptureDialog) { CaptureDialog->Resolve(false); CaptureDialog = nullptr; }
+     }}};
   const int32 ThemeShots = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
   const int32 Total = ThemeShots + UE_ARRAY_COUNT(Transparencies);
   CaptureWait -= 1.f;
