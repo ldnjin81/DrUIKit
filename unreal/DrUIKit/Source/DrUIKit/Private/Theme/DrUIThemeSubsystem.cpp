@@ -24,6 +24,7 @@ void UDrUIThemeSubsystem::Initialize(FSubsystemCollectionBase& Collection) {
   GamepadGlyphs = Settings->GamepadGlyphs;
   bUISounds = Settings->bUISounds;
   bUIHaptics = Settings->bUIHaptics;
+  bUseGlyphImages = Settings->bUseGlyphImages;
   Active = Themes.IsEmpty() ? Fallback.Get() : Themes[0].Get();
   if (!Settings->StartTheme.IsNone()) SetTheme(Settings->StartTheme);
 }
@@ -78,6 +79,12 @@ void UDrUIThemeSubsystem::SetTextScale(float Scale) {
 void UDrUIThemeSubsystem::SetGamepadGlyphs(EDrUIGamepadGlyphs Glyphs) {
   if (Glyphs == GamepadGlyphs) return;
   GamepadGlyphs = Glyphs;
+  Broadcast();
+}
+
+void UDrUIThemeSubsystem::SetUseGlyphImages(bool bUse) {
+  if (bUse == bUseGlyphImages) return;
+  bUseGlyphImages = bUse;
   Broadcast();
 }
 

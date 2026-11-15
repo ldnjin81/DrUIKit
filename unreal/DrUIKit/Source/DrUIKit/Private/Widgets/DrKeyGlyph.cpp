@@ -5,7 +5,10 @@
 #include "Framework/Application/SlateApplication.h"
 #include "Rendering/DrawElements.h"
 #include "Rendering/SlateRenderer.h"
+#include "Engine/Texture2D.h"
+#include "Theme/DrUIGlyphImages.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "UObject/StrongObjectPtr.h"
 #include "Widgets/SLeafWidget.h"
 
 EDrKeyShape DrKeyGlyph::ShapeFor(const FKey& Key) {
@@ -36,6 +39,9 @@ public:
   bool bBrand = false;
   FLinearColor Body, Ink, Dim, CapFill, CapEdge, CapInk;
   FSlateFontInfo Font;
+  /** 이미지 세트의 그림(있으면 벡터 대신 그대로 그린다, 색은 바꾸지 않음). */
+  TStrongObjectPtr<UTexture2D> Image;
+  FSlateBrush ImageBrush;
 
   void Refresh() {
     Shape = DrKeyGlyph::ShapeFor(Key);
@@ -55,6 +61,10 @@ public:
   }
 
   virtual FVector2D ComputeDesiredSize(float) const override {
+    if (Image) {
+      const float Aspect = Image->GetSizeY() > 0 ? float(Image->GetSizeX()) / Image->GetSizeY() : 1.f;
+      return FVector2D(H * Aspect, H);
+    }
     const float W = TextWidth();
     switch (Shape) {
       case EDrKeyShape::Shoulder: return FVector2D(FMath::Max(H * 1.5f, W + H * .7f), H);
@@ -86,6 +96,10 @@ public:
       for (int32 I = 0; I <= Segments; ++I) { const float A = 2.f * PI * I / Segments; P.Add(C + R * FVector2f(FMath::Cos(A), FMath::Sin(A))); }
       return P;
     };
+    if (Image) {
+      FSlateDrawElement::MakeBox(Out, Layer, G.ToPaintGeometry(), &ImageBrush, ESlateDrawEffect::None, Tint);
+      return Layer;
+    }
     const FVector2f C = S * .5f;
     const float R = FMath::Min(S.X, S.Y) * .5f;
     switch (Shape) {
@@ -234,6 +248,15 @@ void UDrKeyGlyph::ApplyTheme() {
   Slate->CapEdge = Faint;
   Slate->CapInk = Theme.GetColor(DrUITokens::Ink);
   Slate->Font = Theme.MakeFont(DrUITokens::Label);
+  // 이미지 세트에 이 키가 있으면 이미지로(표기·키보드에 맞는 세트). 없으면 벡터.
+  UTexture2D* Texture = DrUIGlyphImages::Find(Slate->Glyphs, Key);
+  Slate->Image.Reset(Texture);
+  if (Texture) {
+    Slate->ImageBrush = FSlateBrush();
+    Slate->ImageBrush.SetResourceObject(Texture);
+    Slate->ImageBrush.ImageSize = FVector2D(Texture->GetSizeX(), Texture->GetSizeY());
+    Slate->ImageBrush.DrawAs = ESlateBrushDrawType::Image;
+  }
   Slate->Refresh();
   Slate->Invalidate(EInvalidateWidgetReason::Paint);
 }

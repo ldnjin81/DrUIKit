@@ -1226,7 +1226,13 @@ UWidget* UDrGlassGallery::BuildGamepadPage() {
   GlyphChoice = WidgetTree->ConstructWidget<UDrSegmentedControl>();
   GlyphChoice->SetOptions({LOCTEXT("GlyphAuto", "자동"), LOCTEXT("GlyphPickXbox", "Xbox"), LOCTEXT("GlyphPickPS", "PlayStation"), LOCTEXT("GlyphPickSwitch", "Switch")});
   GlyphChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleGlyphChoice);
-  Put(GlyphRow, GlyphChoice, 24.f);
+  Put(GlyphRow, GlyphChoice, 16.f);
+  // 버튼 이미지 세트(Glyphs/glyphs.json 플러그인)가 있으면 이미지, 끄면 벡터.
+  UDrSwitch* ImageSwitch = WidgetTree->ConstructWidget<UDrSwitch>();
+  ImageSwitch->Label = LOCTEXT("GlyphImages", "이미지 세트");
+  ImageSwitch->SetOn(!UDrUIThemeSubsystem::Get() || UDrUIThemeSubsystem::Get()->IsUseGlyphImages());
+  ImageSwitch->OnClicked().AddWeakLambda(this, [ImageSwitch] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetUseGlyphImages(ImageSwitch->IsOn()); });
+  Put(GlyphRow, ImageSwitch, 24.f);
   for (const auto& [Keyboard, Pad, Label] : TArray<TTuple<FKey, FKey, FText>>{
          {EKeys::Enter, EKeys::Gamepad_FaceButton_Bottom, LOCTEXT("PBothOk", "확인")}, {EKeys::Escape, EKeys::Gamepad_FaceButton_Right, LOCTEXT("PBothBack", "뒤로")},
          {EKeys::Tab, EKeys::Gamepad_Special_Right, LOCTEXT("PBothMenu", "메뉴")}}) {

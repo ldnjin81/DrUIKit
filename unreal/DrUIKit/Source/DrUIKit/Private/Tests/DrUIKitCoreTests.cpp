@@ -6,6 +6,12 @@
 #include "Core/DrUIStagger.h"
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
+#include "Engine/Texture2D.h"
+#include "HAL/FileManager.h"
+#include "ImageUtils.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Theme/DrUIGlyphImages.h"
 #include "Theme/DrUIStyle.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrToggle.h"
@@ -540,6 +546,30 @@ bool FDrGamepadInventoryTest::RunTest(const FString&) {
   DrUIFeedback::HapticFor(EDrUIFeedback::Focus, Focus, FocusTime);
   DrUIFeedback::HapticFor(EDrUIFeedback::Error, Error, ErrorTime);
   TestTrue(TEXT("오류 진동이 포커스 진동보다 세고 길다"), Error > Focus && ErrorTime > FocusTime);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGlyphImagesTest, "DrUIKit.Gamepad.GlyphImageSet", DrUIKitTestFlags)
+bool FDrGlyphImagesTest::RunTest(const FString&) {
+  // 작은 PNG를 써서 세트를 등록하고, 이미지가 실행 중에 텍스처로 읽히는지 본다.
+  const FString Dir = FPaths::ProjectSavedDir() / TEXT("DrUIGlyphImageTest");
+  IFileManager::Get().MakeDirectory(*Dir, true);
+  TArray<FColor> Pixels;
+  Pixels.Init(FColor::Red, 8 * 6);
+  TArray64<uint8> Png;
+  FImageUtils::PNGCompressImageArray(8, 6, Pixels, Png);
+  TestTrue(TEXT("PNG 저장"), FFileHelper::SaveArrayToFile(Png, *(Dir / TEXT("a.png"))));
+  // order를 크게: 실제 세트(Kenney 등)가 같은 키를 가지면 그쪽이 이긴다. Scroll Lock은 실제 세트에 거의 없는 키.
+  const FString Json = TEXT(R"({"id":"test","name":"test","order":999,"license":"CC0","sets":{"keyboard":{"ScrollLock":"a.png","NotAKey":"a.png","Pause":"missing.png"}}})");
+  FDrUIGlyphImageSetInfo Info;
+  FString Error;
+  TestTrue(TEXT("등록"), DrUIGlyphImages::Register(Json, Dir, TEXT("Test"), Info, Error));
+  TestEqual(TEXT("이미지 1개(모르는 키·없는 파일은 뺌)"), Info.ImageCount, 1);
+  TestTrue(TEXT("빠진 것을 알림"), Error.Contains(TEXT("2")));
+  TestEqual(TEXT("경로"), DrUIGlyphImages::FindPath(TEXT("keyboard"), EKeys::ScrollLock), Dir / TEXT("a.png"));
+  if (UTexture2D* Texture = DrUIGlyphImages::Find(EDrUIGamepadGlyphs::PlayStation, EKeys::ScrollLock); TestNotNull(TEXT("키보드 키는 패드 표기와 무관하게 keyboard 세트"), Texture))
+    TestEqual(TEXT("실행 중 텍스처 크기"), FIntPoint(Texture->GetSizeX(), Texture->GetSizeY()), FIntPoint(8, 6));
+  TestNull(TEXT("없는 키는 벡터로(nullptr)"), DrUIGlyphImages::Find(EDrUIGamepadGlyphs::Xbox, EKeys::Pause));
   return true;
 }
 

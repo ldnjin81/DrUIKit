@@ -39,6 +39,9 @@ public:
   /** 패드 버튼 표기. Auto면 설정 → CommonInput 패드 종류. 바뀌면 알린다. */
   EDrUIGamepadGlyphs GetGamepadGlyphs() const { return GamepadGlyphs; }
   void SetGamepadGlyphs(EDrUIGamepadGlyphs Glyphs);
+  /** 버튼 이미지 세트를 쓸지(끄면 벡터). 바뀌면 알린다. */
+  bool IsUseGlyphImages() const { return bUseGlyphImages; }
+  void SetUseGlyphImages(bool bUse);
   bool IsUISounds() const { return bUISounds; }
   void SetUISounds(bool bOn) { bUISounds = bOn; }
   bool IsUIHaptics() const { return bUIHaptics; }
@@ -55,6 +58,6 @@ private:
   bool bReduceMotion = false;
   float TextScale = 1.f;
   EDrUIGamepadGlyphs GamepadGlyphs = EDrUIGamepadGlyphs::Auto;
-  bool bUISounds = true, bUIHaptics = true;
+  bool bUISounds = true, bUIHaptics = true, bUseGlyphImages = true;
   void Broadcast();
 };
