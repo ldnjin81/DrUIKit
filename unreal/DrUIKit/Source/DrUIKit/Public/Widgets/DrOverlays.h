@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Core/DrUIInput.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Widget.h"
 #include "Core/DrUIMotion.h"
@@ -90,6 +91,7 @@ private:
   void ApplyPresence();
   UPROPERTY(Transient) TObjectPtr<UWidget> PendingBody;
   FDrUISpring Presence;
+  FDrUIFocusMemory FocusMemory;
   bool bOpen = false, bDragging = false;
   float DragStartY = 0.f, DragY = 0.f;
   FDelegateHandle ThemeHandle;
@@ -146,6 +148,7 @@ private:
   void ShowStep();
   TArray<FStep> Steps;
   int32 StepIndex = INDEX_NONE;
+  FDrUIFocusMemory FocusMemory;
   FDrUISpring HoleX, HoleY, HoleW, HoleH;
   bool bHolePlaced = false;
 };
@@ -158,10 +161,14 @@ public:
   UDrPopoverPanel(const FObjectInitializer& Initializer);
   void SetBody(UWidget* Content);
   FSimpleDelegate OnDismiss;
+  /** 팝오버가 팝업으로 띄운 판(열려 있는 동안 단축키의 맨 위 층). */
+  bool bAsPopup = false;
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Surface;
   virtual TSharedRef<SWidget> RebuildWidget() override;
   virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
+  virtual void NativeConstruct() override;
+  virtual void NativeDestruct() override;
 private:
   UPROPERTY(Transient) TObjectPtr<UWidget> PendingBody;
 };
@@ -184,6 +191,8 @@ protected:
   virtual TSharedRef<SWidget> RebuildWidget() override;
 private:
   UFUNCTION() UUserWidget* HandleGetMenu();
+  UFUNCTION() void HandleMenuOpenChanged(bool bIsOpen);
+  FDrUIFocusMemory FocusMemory;
   UPROPERTY(Transient) TObjectPtr<UDrPopoverPanel> Panel;
   UPROPERTY(Transient) TObjectPtr<UWidget> PendingTrigger;
   UPROPERTY(Transient) TObjectPtr<UWidget> PendingBody;

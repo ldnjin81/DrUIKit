@@ -1,4 +1,5 @@
 #include "Widgets/DrConfirmDialog.h"
+#include "Core/DrUIInput.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/HorizontalBox.h"
@@ -86,6 +87,7 @@ void UDrConfirmDialog::ApplyContent() {
 
 void UDrConfirmDialog::NativeOnActivated() {
   Super::NativeOnActivated();
+  DrUIInput::PushModal(this);  // 떠 있는 동안 단축키는 대화상자 안만
   bResolved = false;
   const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
   if (Subsystem && Subsystem->IsReduceMotion()) Presence.Snap(1.f);
@@ -98,6 +100,7 @@ void UDrConfirmDialog::NativeOnActivated() {
 }
 
 void UDrConfirmDialog::NativeOnDeactivated() {
+  DrUIInput::PopModal(this);
   if (Ticker.IsValid()) FTSTicker::GetCoreTicker().RemoveTicker(Ticker);
   Ticker.Reset();
   Super::NativeOnDeactivated();

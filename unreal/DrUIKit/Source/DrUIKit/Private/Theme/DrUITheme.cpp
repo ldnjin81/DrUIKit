@@ -1,4 +1,5 @@
 #include "Theme/DrUITheme.h"
+#include "Theme/DrUIThemeSubsystem.h"
 #include "DrUIKit.h"
 #include "Engine/Font.h"
 #include "Styling/CoreStyle.h"
@@ -71,7 +72,9 @@ FName UDrUITheme::PickTypeface(const FCompositeFont& Font, int32 Weight) {
 }
 
 FSlateFontInfo UDrUITheme::MakeFont(FName TextToken) const {
-  const FDrUITextStyle Style = GetTextStyle(TextToken);
+  FDrUITextStyle Style = GetTextStyle(TextToken);
+  // 접근성 글자 크기 배율(설정·실행 중 변경). 테마가 바뀐 것처럼 알려 모든 글자가 다시 칠해진다.
+  if (const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Style.Size *= Subsystem->GetTextScale();
   // 엔진 기본 글꼴(Roboto)의 서체: Light / Regular / Bold.
   const FName EngineTypeface = Style.Weight >= 600 ? TEXT("Bold") : Style.Weight <= 300 ? TEXT("Light") : TEXT("Regular");
   FSlateFontInfo Font = FCoreStyle::GetDefaultFontStyle(EngineTypeface, FMath::RoundToInt(Style.Size));

@@ -1,6 +1,13 @@
 #include "Widgets/DrButtonBase.h"
 #include "Blueprint/WidgetTree.h"
+#include "CommonInputSubsystem.h"
+#include "Core/DrUIFeedback.h"
+#include "Core/DrUIInput.h"
 #include "Theme/DrUIThemeSubsystem.h"
+
+namespace { TWeakObjectPtr<UDrButtonBase> GHintFocus; }
+
+UDrButtonBase* UDrButtonBase::GetHintFocus() { return GHintFocus.Get(); }
 
 UDrButtonStyle::UDrButtonStyle() {
   for (FSlateBrush* Brush : {&NormalBase, &NormalHovered, &NormalPressed, &SelectedBase, &SelectedHovered, &SelectedPressed, &Disabled})
@@ -37,7 +44,27 @@ void UDrButtonBase::NativeOnInitialized() {
   RefreshState();
 }
 
+void UDrButtonBase::NativeConstruct() {
+  Super::NativeConstruct();
+  if (HasShortcut()) DrUIInput::RegisterShortcutButton(this);
+  if (UCommonInputSubsystem* Input = UCommonInputSubsystem::Get(GetOwningLocalPlayer()); Input && !InputHandle.IsValid())
+    InputHandle = Input->OnInputMethodChangedNative.AddUObject(this, &ThisClass::HandleInputMethodChanged);
+}
+
+void UDrButtonBase::ResetInteractionState() {
+  bFocusedNow = false;
+  bPressedNow = false;
+  if (GHintFocus == this) GHintFocus.Reset();
+  RefreshState();
+}
+
 void UDrButtonBase::NativeDestruct() {
+  bFocusedNow = false;
+  bPressedNow = false;
+  DrUIInput::UnregisterShortcutButton(this);
+  if (GHintFocus == this) GHintFocus.Reset();
+  if (UCommonInputSubsystem* Input = UCommonInputSubsystem::Get(GetOwningLocalPlayer())) Input->OnInputMethodChangedNative.Remove(InputHandle);
+  InputHandle.Reset();
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
   ThemeHandle.Reset();
   Super::NativeDestruct();
@@ -48,6 +75,8 @@ FDrUIStateInputs UDrButtonBase::GetStateInputs() const {
   In.bHovered = IsHovered();
   In.bPressed = bPressedNow;
   In.bFocused = bFocusedNow;
+  // 마우스로 눌러 생긴 포커스는 숨긴다. 그 뒤 패드로 조작하기 시작하면 보인다.
+  In.bFocusVisible = !bFocusFromPointer || DrUIInput::IsUsingGamepad(this);
   In.bDisabled = !GetIsEnabled();
   In.bSelected = GetSelected();
   return In;
@@ -88,5 +117,55 @@ void UDrButtonBase::NativeOnSelected(bool bBroadcast) { Super::NativeOnSelected(
 void UDrButtonBase::NativeOnDeselected(bool bBroadcast) { Super::NativeOnDeselected(bBroadcast); RefreshState(); }
 void UDrButtonBase::NativeOnEnabled() { Super::NativeOnEnabled(); RefreshState(); }
 void UDrButtonBase::NativeOnDisabled() { Super::NativeOnDisabled(); RefreshState(); }
-void UDrButtonBase::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) { Super::NativeOnAddedToFocusPath(InFocusEvent); bFocusedNow = true; RefreshState(); }
-void UDrButtonBase::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent) { Super::NativeOnRemovedFromFocusPath(InFocusEvent); bFocusedNow = false; RefreshState(); }
+void UDrButtonBase::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) {
+  Super::NativeOnAddedToFocusPath(InFocusEvent);
+  bFocusedNow = true;
+  bFocusFromPointer = InFocusEvent.GetCause() == EFocusCause::Mouse;
+  GHintFocus = this;
+  if (InFocusEvent.GetCause() == EFocusCause::Navigation) DrUIFeedback::Play(this, EDrUIFeedback::Focus);
+  RefreshState();
+}
+
+void UDrButtonBase::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent) {
+  Super::NativeOnRemovedFromFocusPath(InFocusEvent);
+  bFocusedNow = false;
+  if (GHintFocus == this) GHintFocus.Reset();
+  RefreshState();
+}
+
+void UDrButtonBase::NativeOnClicked() {
+  Super::NativeOnClicked();
+  DrUIFeedback::Play(this, EDrUIFeedback::Confirm);
+}
+
+void UDrButtonBase::HandleInputMethodChanged(ECommonInputType InputType) {
+  // 마우스 포커스였던 버튼은 패드로 바꾸면 링이 보여야 한다.
+  if (bFocusedNow) RefreshState();
+}
+
+void UDrButtonBase::SetShortcut(FKey InKeyboardKey, FKey InGamepadKey) {
+  ShortcutKeyboardKey = InKeyboardKey;
+  ShortcutGamepadKey = InGamepadKey;
+  if (HasShortcut() && IsConstructed()) DrUIInput::RegisterShortcutButton(this);
+  else if (!HasShortcut()) DrUIInput::UnregisterShortcutButton(this);
+  OnShortcutChanged();
+}
+
+void UDrButtonBase::TriggerShortcut() {
+  if (!GetIsEnabled() || !IsInteractionEnabled()) { DrUIFeedback::Play(this, EDrUIFeedback::Error); return; }
+  // 누름 모양을 잠깐 보이고 클릭한다(CommonUI 클릭 경로: 선택·토글·OnClicked 모두).
+  bPressedNow = true;
+  RefreshState();
+  HandleButtonClicked();
+  bPressedNow = false;
+  RefreshState();
+}
+
+void UDrButtonBase::TriggerHint(FName HintId) { OnHintAction.Broadcast(HintId); DrUIFeedback::Play(this, EDrUIFeedback::Confirm); }
+
+FReply UDrButtonBase::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
+  if (!Event.IsRepeat())
+    for (const FDrActionHint& Hint : ActionHints)
+      if (Event.GetKey().IsValid() && (Event.GetKey() == Hint.GamepadKey || Event.GetKey() == Hint.KeyboardKey)) { TriggerHint(Hint.Id); return FReply::Handled(); }
+  return Super::NativeOnKeyDown(Geometry, Event);
+}

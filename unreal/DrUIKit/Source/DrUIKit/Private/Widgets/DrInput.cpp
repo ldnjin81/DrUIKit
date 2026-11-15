@@ -1,4 +1,5 @@
 #include "Widgets/DrInput.h"
+#include "Core/DrUIInput.h"
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateColorBrush.h"
 #include "Components/Border.h"
@@ -317,12 +318,15 @@ void UDrDropdownMenu::Fill() {
 }
 
 FReply UDrDropdownMenu::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
-  if (Event.GetKey() == EKeys::Escape || Event.GetKey() == EKeys::Gamepad_FaceButton_Right) {
+  if (DrUIInput::GetAction(Event) == EDrUIInputAction::Back) {
     OnDismiss.ExecuteIfBound();
     return FReply::Handled();
   }
   return Super::NativeOnKeyDown(Geometry, Event);
 }
+
+void UDrDropdownMenu::NativeConstruct() { Super::NativeConstruct(); if (bAsPopup) DrUIInput::PushModal(this); }
+void UDrDropdownMenu::NativeDestruct() { DrUIInput::PopModal(this); Super::NativeDestruct(); }
 
 // ---------------------------------------------------------------- 드롭다운
 
@@ -389,6 +393,7 @@ void UDrDropdown::NativeOnClicked() {
 UUserWidget* UDrDropdown::HandleGetMenu() {
   UDrDropdownMenu* Menu = CreateWidget<UDrDropdownMenu>(this, MenuClass ? MenuClass.Get() : UDrDropdownMenu::StaticClass());
   if (!Menu) return nullptr;
+  Menu->bAsPopup = true;
   Menu->SetOptions(Options, SelectedIndex, GetCachedGeometry().GetLocalSize().X);
   Menu->OnPicked.BindWeakLambda(this, [this](int32 Index) {
     SetSelectedIndex(Index, true);

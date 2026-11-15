@@ -8,8 +8,8 @@ EDrUIState DrUIState::Resolve(const FDrUIStateInputs& In) {
   if (In.bPressed) return EDrUIState::Pressed;
   if (In.bHovered) return EDrUIState::Hover;
   if (In.bSelected) return EDrUIState::Selected;
-  if (In.bFocused) return EDrUIState::Focus;
+  if (In.bFocused && In.bFocusVisible) return EDrUIState::Focus;
   return EDrUIState::Default;
 }
 
-bool DrUIState::IsFocusRingVisible(const FDrUIStateInputs& In) { return In.bFocused && !In.bDisabled; }
+bool DrUIState::IsFocusRingVisible(const FDrUIStateInputs& In) { return In.bFocused && In.bFocusVisible && !In.bDisabled; }

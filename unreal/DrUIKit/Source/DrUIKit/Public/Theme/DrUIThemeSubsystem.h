@@ -33,6 +33,16 @@ public:
   void SetSurfaceTransparency(float Transparency);
   bool IsReduceMotion() const { return bReduceMotion; }
   void SetReduceMotion(bool bReduce) { bReduceMotion = bReduce; }
+  /** 글자 크기 배율(.8~2). 바뀌면 다시 칠하라고 알린다. */
+  float GetTextScale() const { return TextScale; }
+  void SetTextScale(float Scale);
+  /** 패드 버튼 표기. Auto면 설정 → CommonInput 패드 종류. 바뀌면 알린다. */
+  EDrGamepadGlyphs GetGamepadGlyphs() const { return GamepadGlyphs; }
+  void SetGamepadGlyphs(EDrGamepadGlyphs Glyphs);
+  bool IsUISounds() const { return bUISounds; }
+  void SetUISounds(bool bOn) { bUISounds = bOn; }
+  bool IsUIHaptics() const { return bUIHaptics; }
+  void SetUIHaptics(bool bOn) { bUIHaptics = bOn; }
 
   /** 테마나 표면 품질·투명도가 바뀌면 알린다. DrUIKit 위젯은 이걸 받아 다시 칠한다. */
   FDrUIOnThemeChanged OnThemeChanged;
@@ -43,5 +53,8 @@ private:
   EDrUISurfaceQuality SurfaceQuality = EDrUISurfaceQuality::High;
   float SurfaceTransparency = .5f;
   bool bReduceMotion = false;
+  float TextScale = 1.f;
+  EDrGamepadGlyphs GamepadGlyphs = EDrGamepadGlyphs::Auto;
+  bool bUISounds = true, bUIHaptics = true;
   void Broadcast();
 };

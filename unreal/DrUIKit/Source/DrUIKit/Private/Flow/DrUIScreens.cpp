@@ -1,9 +1,14 @@
 #include "Flow/DrUIScreens.h"
+#include "Core/DrUIFeedback.h"
 #include "Flow/DrUIFlowSubsystem.h"
 #include "InputMappingContext.h"
 #include "Theme/DrUIKitSettings.h"
 
-UDrUIMenuWidget::UDrUIMenuWidget(const FObjectInitializer& Initializer) : Super(Initializer) { bIsBackHandler = true; }
+UDrUIMenuWidget::UDrUIMenuWidget(const FObjectInitializer& Initializer) : Super(Initializer) {
+  bIsBackHandler = true;
+  // 하위 메뉴에서 돌아오면 마지막으로 포커스했던 항목으로(패드로 처음부터 다시 내려오지 않게).
+  bAutoRestoreFocus = true;
+}
 
 void UDrUIMenuWidget::NativeOnActivated() {
   InputMapping = GetDefault<UDrUIKitSettings>()->UIInputContext.LoadSynchronous();
@@ -16,6 +21,7 @@ TOptional<FUIInputConfig> UDrUIMenuWidget::GetDesiredInputConfig() const { retur
 UWidget* UDrUIMenuWidget::NativeGetDesiredFocusTarget() const { return FirstFocus ? FirstFocus.Get() : Super::NativeGetDesiredFocusTarget(); }
 
 bool UDrUIMenuWidget::NativeOnHandleBackAction() {
+  DrUIFeedback::Play(this, EDrUIFeedback::Back);
   if (UDrUIFlowSubsystem* Flow = UDrUIFlowSubsystem::Get(this)) Flow->Back();
   return true;
 }

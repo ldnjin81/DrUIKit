@@ -15,6 +15,10 @@ TArray<TArray<FVector2f>> DrGlyph::Strokes(EDrGlyphShape Shape) {
   case EDrGlyphShape::ChevronDown: return {{{.22f, .4f}, {.5f, .66f}, {.78f, .4f}}};
   // 느낌표: 긴 세로획 + 아래 짧은 획(점).
   case EDrGlyphShape::Alert: return {{{.5f, .14f}, {.5f, .6f}}, {{.5f, .74f}, {.5f, .88f}}};
+  case EDrGlyphShape::ChevronUp: return {{{.22f, .6f}, {.5f, .34f}, {.78f, .6f}}};
+  // 오르내림 화살(능력치 비교): 세로획 + 촉.
+  case EDrGlyphShape::ArrowUp: return {{{.5f, .8f}, {.5f, .2f}}, {{.28f, .42f}, {.5f, .2f}, {.72f, .42f}}};
+  case EDrGlyphShape::ArrowDown: return {{{.5f, .2f}, {.5f, .8f}}, {{.28f, .58f}, {.5f, .8f}, {.72f, .58f}}};
   default: return {};
   }
 }

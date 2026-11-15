@@ -49,6 +49,13 @@
 
 **UI 흐름(2026-11-13)**: `UDrUIFlowSubsystem`·`UDrUIRootLayout`(게임·메뉴·모달·알림)·`UDrUIMenuWidget`·`UDrUIHUDWidget`·`UDrConfirmDialog`를 DrUIKit에 만들었다. 흐름은 게임이 `EnterTitle`·`EnterGame`을 부른 뒤에만 입력 모드를 바꾼다. DrFramework 쪽 UI 제거(0.3.0)는 0.2.0 위 브랜치로 준비하며, 두 플러그인을 함께 쓰는 DrSample은 0.3.0이 병합될 때까지 DrUIKit을 넣지 않는다(`UDrUIRootLayout` 이름 겹침). 2차 22개는 아래 표의 우선순위대로.
 
+**게임패드 UX(2026-11-16, 사용자 요청 '게임패드 지원을 고려해서 추가 및 확장', '게임패드를 사용하는 UX 위주로')**:
+- 기반 `DrUIInput`(입력 뜻 판정, 패드 표기, 덮개 층, 포커스 기억, 전역 입력 처리기) · `DrUIFeedback`(소리·진동). 버튼 공통 틀에 포커스 원인(마우스면 링 숨김)·단축키(인라인 버튼 프롬프트)·행동 안내(ActionHints)를 더했다.
+- 부품: `UDrKeyGlyph`(Xbox·PlayStation·Nintendo 버튼 모양, 키캡·마우스), `UDrButtonPrompt` Both 모드, `UDrActionBar`, `UDrPressAnyKey`, `UDrItemSlot`·`UDrItemGrid`, `UDrStatCompare`. 탭 목록 LB/RB·LT/RT 넘김과 양 끝 키 모양, 탭에서 아래로 내용 들어가기(Slate 방향 이동은 바로 아래 띠만 찾음).
+- 설정: 패드 표기(자동·Xbox·PlayStation·Nintendo), 글자 크기 배율, UI 소리(포커스·확인·뒤로·오류·한 칸)·진동 켜기와 세기.
+- 샘플: 갤러리 '게임패드' 페이지와 콘솔 게임 메뉴(`UDrGlassConsoleMenu`: 메인 탭 / 서브 탭 / 1뎁스 · 2뎁스 · 정보 / 상태 표시줄). `-DrUIGamepadTour`로 합성 패드 입력 둘러보기 캡처.
+- 남은 것: 스틱으로 탭에서 내려가기(D패드·방향키만), 패드 포커스 시 툴팁, 키 다시 지정 행, 패드 연결 끊김 안내.
+
 **스타일 여러 개(2026-11-16, 결정: 네 가지 모두, 토큰 로더를 코어로)**: 글래스 외에 플랫·머티리얼(`UISample/Flat`), 네오 브루탈리즘(`Brutal`), 뉴모피즘(`Neu`), 레트로 터미널(`Retro`)을 더했다. 각각 코드 없는 플러그인(`DrUI<스타일>`)에 `Tokens/tokens.json`(Glass와 같은 토큰 이름, 값만 다름)과 `Tokens/style.json`(id·이름·순서·글꼴·반투명 토큰·기본 테두리 두께)만 둔다.
 - 코어 `DrUIStyle`: 켜진 플러그인 중 `Tokens/style.json`이 있는 것을 찾아 엔진이 뜬 뒤 모두 읽는다(설정 `bLoadStylePlugins`). 테마 id는 `<스타일>-light|dark`. Glass도 같은 방식이며 `DrGlassTheme`은 없앴다.
 - 코어에 더한 것: 그림자 토큰의 여러 겹(`ShadowLayers`, 뉴모피즘의 밝은·어두운 겹), 흐림 없는 그림자는 옮긴 둥근 상자로(브루탈리즘), 테마 기본 테두리 두께(`StrokeWidth`, 부품의 강조 두께는 그 위에 더함), 글자 스타일의 글꼴 갈래(`Family`: sans·mono)와 갈래별 글꼴, 라틴 글꼴에 없는 한국어 글자(한글·₩·CJK 기호)만 다른 서체로 그리는 대체 서체.

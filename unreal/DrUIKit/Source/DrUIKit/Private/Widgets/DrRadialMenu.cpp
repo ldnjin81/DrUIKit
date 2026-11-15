@@ -1,4 +1,5 @@
 #include "Widgets/DrRadialMenu.h"
+#include "Core/DrUIInput.h"
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/SizeBox.h"
@@ -172,9 +173,9 @@ FReply UDrRadialMenu::NativeOnAnalogValueChanged(const FGeometry& Geometry, cons
 }
 
 FReply UDrRadialMenu::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
-  const FKey Key = Event.GetKey();
-  if (Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Gamepad_FaceButton_Bottom) { Confirm(); return FReply::Handled(); }
-  if (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right) { OnCancelled.Broadcast(); return FReply::Handled(); }
+  const EDrUIInputAction Action = DrUIInput::GetAction(Event);
+  if (Action == EDrUIInputAction::Accept) { Confirm(); return FReply::Handled(); }
+  if (Action == EDrUIInputAction::Back) { OnCancelled.Broadcast(); return FReply::Handled(); }
   return Super::NativeOnKeyDown(Geometry, Event);
 }
 

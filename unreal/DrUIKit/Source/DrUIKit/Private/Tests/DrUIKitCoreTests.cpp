@@ -1,5 +1,7 @@
-// 상태 판정, C++ 버튼이 CommonUI 내부 버튼으로 감싸지는지(마우스 누름), 움직임 계산, 테마 토큰, 스타일 로더(CSS 값 읽기·불러온 스타일이 모든 토큰을 가짐), 표면 품질 단계·투명도·테두리 두께, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
+// 상태 판정, C++ 버튼이 CommonUI 내부 버튼으로 감싸지는지(마우스 누름), 움직임 계산, 테마 토큰, 스타일 로더(CSS 값 읽기·불러온 스타일이 모든 토큰을 가짐), 표면 품질 단계·투명도·테두리 두께, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 게임패드(입력 뜻·패드별 키 이름·키 모양·포커스 링·칸 격자 넘김·능력치 비교·피드백 세기), 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
+#include "Core/DrUIFeedback.h"
+#include "Core/DrUIInput.h"
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIStagger.h"
 #include "Core/DrUIState.h"
@@ -12,6 +14,9 @@
 #include "Widgets/DrCooldown.h"
 #include "Widgets/DrData.h"
 #include "Widgets/DrFeedback.h"
+#include "Widgets/DrGamepadUX.h"
+#include "Widgets/DrInventory.h"
+#include "Widgets/DrKeyGlyph.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
 #include "Widgets/DrNavigation.h"
@@ -449,6 +454,88 @@ bool FDrUISurfaceStrokeTest::RunTest(const FString&) {
   Surface->StrokeToken = NAME_None;
   TestEqual(TEXT("테두리 토큰이 없으면 0"), Surface->ResolveStrokeWidth(), 0.f);
   Subsystem->SetTheme(TEXT("default"));
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGamepadInputTest, "DrUIKit.Gamepad.InputAndGlyphs", DrUIKitTestFlags)
+bool FDrGamepadInputTest::RunTest(const FString&) {
+  TestEqual(TEXT("A는 확인"), DrUIInput::GetActionForKey(EKeys::Gamepad_FaceButton_Bottom), EDrUIInputAction::Accept);
+  TestEqual(TEXT("Esc는 뒤로"), DrUIInput::GetActionForKey(EKeys::Escape), EDrUIInputAction::Back);
+  TestEqual(TEXT("RB는 다음 탭"), DrUIInput::GetActionForKey(EKeys::Gamepad_RightShoulder), EDrUIInputAction::NextTab);
+  TestEqual(TEXT("LT는 이전 하위 탭"), DrUIInput::GetActionForKey(EKeys::Gamepad_LeftTrigger), EDrUIInputAction::PrevSubTab);
+  TestEqual(TEXT("Q는 이전 탭(키보드)"), DrUIInput::GetActionForKey(EKeys::Q), EDrUIInputAction::PrevTab);
+  TestEqual(TEXT("D패드는 뜻 없음(이동은 Slate)"), DrUIInput::GetActionForKey(EKeys::Gamepad_DPad_Up), EDrUIInputAction::None);
+  auto Name = [](FKey Key, EDrGamepadGlyphs G) { return DrUIInput::GlyphName(Key, G).ToString(); };
+  TestEqual(TEXT("Xbox 아래 = A"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrGamepadGlyphs::Xbox), FString(TEXT("A")));
+  TestEqual(TEXT("PlayStation 아래 = ✕"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrGamepadGlyphs::PlayStation), FString(TEXT("✕")));
+  TestEqual(TEXT("Nintendo 아래 = B(자리로 정함)"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrGamepadGlyphs::Nintendo), FString(TEXT("B")));
+  TestEqual(TEXT("PlayStation RB = R1"), Name(EKeys::Gamepad_RightShoulder, EDrGamepadGlyphs::PlayStation), FString(TEXT("R1")));
+  TestEqual(TEXT("Nintendo LT = ZL"), Name(EKeys::Gamepad_LeftTrigger, EDrGamepadGlyphs::Nintendo), FString(TEXT("ZL")));
+  TestEqual(TEXT("키보드 키는 패드 표기와 무관"), Name(EKeys::Escape, EDrGamepadGlyphs::PlayStation), FString(TEXT("Esc")));
+  TestEqual(TEXT("PS5 패드 이름 → PlayStation"), DrUIInput::GlyphsForGamepadName(TEXT("PS5")), EDrGamepadGlyphs::PlayStation);
+  TestEqual(TEXT("Switch 패드 이름 → Nintendo"), DrUIInput::GlyphsForGamepadName(TEXT("Switch")), EDrGamepadGlyphs::Nintendo);
+  TestEqual(TEXT("모르는 이름 → Xbox"), DrUIInput::GlyphsForGamepadName(TEXT("Generic")), EDrGamepadGlyphs::Xbox);
+  TestEqual(TEXT("얼굴 버튼 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_FaceButton_Top), EDrKeyShape::Face);
+  TestEqual(TEXT("트리거 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_RightTrigger), EDrKeyShape::Trigger);
+  TestEqual(TEXT("D패드 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_DPad_Left), EDrKeyShape::DPad);
+  TestEqual(TEXT("스틱 기울기 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_Left2D), EDrKeyShape::StickAxis);
+  TestEqual(TEXT("마우스 모양"), DrKeyGlyph::ShapeFor(EKeys::RightMouseButton), EDrKeyShape::Mouse);
+  TestEqual(TEXT("키보드 키캡"), DrKeyGlyph::ShapeFor(EKeys::F1), EDrKeyShape::Keyboard);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGamepadFocusTest, "DrUIKit.Gamepad.FocusRingAndPrompt", DrUIKitTestFlags)
+bool FDrGamepadFocusTest::RunTest(const FString&) {
+  FDrUIStateInputs In;
+  In.bFocused = true;
+  TestTrue(TEXT("패드·키보드 포커스는 링"), DrUIState::IsFocusRingVisible(In));
+  TestEqual(TEXT("패드·키보드 포커스는 Focus 상태"), DrUIState::Resolve(In), EDrUIState::Focus);
+  In.bFocusVisible = false;
+  TestFalse(TEXT("마우스로 생긴 포커스는 링 없음"), DrUIState::IsFocusRingVisible(In));
+  TestEqual(TEXT("마우스로 생긴 포커스는 기본 모양"), DrUIState::Resolve(In), EDrUIState::Default);
+  UDrButtonPrompt* Prompt = NewObject<UDrButtonPrompt>();
+  Prompt->KeyboardKey = EKeys::Enter;
+  Prompt->GamepadKey = EKeys::Gamepad_FaceButton_Bottom;
+  bool bPad = false, bKey = false;
+  Prompt->Device = EDrPromptDevice::Both;
+  Prompt->GetShownKeys(bPad, bKey);
+  TestTrue(TEXT("Both는 둘 다"), bPad && bKey);
+  Prompt->Device = EDrPromptDevice::Keyboard;
+  Prompt->GetShownKeys(bPad, bKey);
+  TestTrue(TEXT("Keyboard는 키보드만"), !bPad && bKey);
+  Prompt->GamepadKey = EKeys::Invalid;
+  Prompt->Device = EDrPromptDevice::Gamepad;
+  Prompt->GetShownKeys(bPad, bKey);
+  TestTrue(TEXT("패드 키가 없으면 키보드로 대신"), !bPad && bKey);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGamepadInventoryTest, "DrUIKit.Gamepad.InventoryMath", DrUIKitTestFlags)
+bool FDrGamepadInventoryTest::RunTest(const FString&) {
+  // 6칸씩 3줄(18칸): 줄 끝에서 오른쪽은 다음 줄 처음, 줄 처음에서 왼쪽은 이전 줄 끝.
+  TestEqual(TEXT("줄 안 오른쪽"), UDrItemGrid::WrapNeighbor(2, 1, 18, 6, true), 3);
+  TestEqual(TEXT("줄 끝 오른쪽 → 다음 줄"), UDrItemGrid::WrapNeighbor(5, 1, 18, 6, true), 6);
+  TestEqual(TEXT("줄 처음 왼쪽 → 이전 줄 끝"), UDrItemGrid::WrapNeighbor(6, -1, 18, 6, true), 5);
+  TestEqual(TEXT("맨 끝 오른쪽은 없음"), UDrItemGrid::WrapNeighbor(17, 1, 18, 6, true), INDEX_NONE);
+  TestEqual(TEXT("넘김 끄면 줄 끝에서 멈춤"), UDrItemGrid::WrapNeighbor(5, 1, 18, 6, false), INDEX_NONE);
+  TestEqual(TEXT("마지막 줄이 짧으면 마지막 칸이 줄 끝"), UDrItemGrid::WrapNeighbor(13, 1, 14, 6, true), INDEX_NONE);
+  FDrStatRow Row;
+  Row.Current = 10.f; Row.New = 12.f;
+  TestEqual(TEXT("높을수록 좋음: 오르면 +1"), UDrStatCompare::CompareDelta(Row), 1);
+  Row.bHigherIsBetter = false;
+  TestEqual(TEXT("낮을수록 좋음(무게): 오르면 -1"), UDrStatCompare::CompareDelta(Row), -1);
+  Row.Current = 1.04f; Row.New = 1.01f; Row.Decimals = 1;
+  TestEqual(TEXT("보이는 자릿수에서 같으면 0"), UDrStatCompare::CompareDelta(Row), 0);
+  TestEqual(TEXT("희귀 → accent"), UDrItemSlot::RarityToken(EDrItemRarity::Rare), DrUITokens::Accent);
+  for (float T : {0.f, .6f, 1.2f, 2.4f}) {
+    const float O = UDrPressAnyKey::PulseOpacity(T);
+    TestTrue(FString::Printf(TEXT("숨쉬기 밝기 %.1f초는 .35~1"), T), O >= .349f && O <= 1.001f);
+  }
+  TestEqual(TEXT("처음은 가장 밝게"), UDrPressAnyKey::PulseOpacity(0.f), 1.f);
+  float Focus = 0.f, FocusTime = 0.f, Error = 0.f, ErrorTime = 0.f;
+  DrUIFeedback::HapticFor(EDrUIFeedback::Focus, Focus, FocusTime);
+  DrUIFeedback::HapticFor(EDrUIFeedback::Error, Error, ErrorTime);
+  TestTrue(TEXT("오류 진동이 포커스 진동보다 세고 길다"), Error > Focus && ErrorTime > FocusTime);
   return true;
 }
 

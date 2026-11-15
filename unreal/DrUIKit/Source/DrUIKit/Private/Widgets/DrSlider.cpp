@@ -1,4 +1,5 @@
 #include "Widgets/DrSlider.h"
+#include "Core/DrUIFeedback.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Fonts/FontMeasure.h"
 #include "Framework/Application/SlateApplication.h"
@@ -109,13 +110,19 @@ void UDrSlider::HandleCaptureEnd() { bCaptured = false; BubbleUntil = FSlateAppl
 void UDrSlider::HandleValueChangedForBubble(float) {
   // 키보드·패드로 바꿀 때는 잡기 이벤트가 없으므로 바꾼 직후 잠깐 보인다.
   // 코드의 SetValue도 이 이벤트를 부르므로(5.8) 슬라이더가 키보드 포커스를 가졌을 때만(사람이 조작 중일 때만).
-  if (!bCaptured && MySlider.IsValid() && MySlider->HasKeyboardFocus()) BubbleUntil = FSlateApplication::Get().GetCurrentTime() + .8;
+  if (!bCaptured && MySlider.IsValid() && MySlider->HasKeyboardFocus()) {
+    BubbleUntil = FSlateApplication::Get().GetCurrentTime() + .8;
+    DrUIFeedback::Play(this, EDrUIFeedback::Tick);  // 한 칸 움직임(패드면 짧은 진동)
+  }
   if (Track) Track->KeepPainting();
 }
 
 UDrSlider::UDrSlider() {
   // 키보드·패드 한 칸: 범위의 5%.
   SetStepSize(.05f);
+  // 패드: 포커스가 오면 바로 D패드·스틱 좌우로 조절한다(엔진 기본은 A로 잡은 뒤에야 조절 — 게임 설정 화면에서 한 번 더 누르게 됨).
+  // 위·아래는 그대로 이웃 부품으로 이동한다.
+  RequiresControllerLock = false;
 }
 
 float UDrSlider::GetFraction() const {

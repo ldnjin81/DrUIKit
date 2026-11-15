@@ -3,6 +3,7 @@
 #include "Core/DrUIDraw.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/SLeafWidget.h"
+#include "Types/ISlateMetaData.h"
 #include "Widgets/SOverlay.h"
 
 /** 스크롤 가장자리 그늘(더 볼 내용이 있는 쪽에만). */
@@ -53,6 +54,9 @@ void UDrScrollBox::ApplyTheme() {
   Box.SetTopShadowBrush(None).SetBottomShadowBrush(None).SetLeftShadowBrush(None).SetRightShadowBrush(None);
   SetWidgetStyle(Box);
   SetScrollbarThickness(FVector2D(BarThickness));
+  // 패드·키보드로 포커스가 화면 밖 항목으로 가면 따라 굴린다(움직임 줄이기면 바로).
+  const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
+  SetScrollWhenFocusChanges(Subsystem && Subsystem->IsReduceMotion() ? EScrollWhenFocusChanges::InstantScroll : EScrollWhenFocusChanges::AnimatedScroll);
   const FLinearColor Edge = Theme.GetColor(EdgeToken).CopyWithNewOpacity(.08f);
   const bool bVertical = GetOrientation() == Orient_Vertical;
   for (SDrScrollEdge* E : {StartEdge.Get(), EndEdge.Get()})
@@ -63,6 +67,8 @@ TSharedRef<SWidget> UDrScrollBox::RebuildWidget() {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get(); Subsystem && !ThemeHandle.IsValid())
     ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyTheme(); });
   TSharedRef<SWidget> Box = Super::RebuildWidget();
+  // 전역 입력 처리기가 오른쪽 스틱으로 굴릴 상자를 알아보는 표시(포커스에서 위로 올라가며 찾는다).
+  Box->AddMetadata(MakeShared<FTagMetaData>(TEXT("DrScrollBox")));
   // 더 볼 내용이 있을 때만(시작 쪽은 조금이라도 내려갔을 때, 끝 쪽은 끝에 닿기 전).
   SAssignNew(StartEdge, SDrScrollEdge).Active(TAttribute<bool>::CreateWeakLambda(this, [this] { return bEdgeShadows && GetScrollOffset() > 1.f; }));
   SAssignNew(EndEdge, SDrScrollEdge).Active(TAttribute<bool>::CreateWeakLambda(this, [this] { return bEdgeShadows && GetScrollOffset() < GetScrollOffsetOfEnd() - 1.f; }));

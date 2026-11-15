@@ -20,6 +20,10 @@ void UDrUIThemeSubsystem::Initialize(FSubsystemCollectionBase& Collection) {
   SurfaceQuality = Settings->SurfaceQuality;
   SurfaceTransparency = Settings->SurfaceTransparency;
   bReduceMotion = Settings->bReduceMotion;
+  TextScale = FMath::Clamp(Settings->TextScale, .8f, 2.f);
+  GamepadGlyphs = Settings->GamepadGlyphs;
+  bUISounds = Settings->bUISounds;
+  bUIHaptics = Settings->bUIHaptics;
   Active = Themes.IsEmpty() ? Fallback.Get() : Themes[0].Get();
   if (!Settings->StartTheme.IsNone()) SetTheme(Settings->StartTheme);
 }
@@ -61,6 +65,19 @@ void UDrUIThemeSubsystem::SetSurfaceTransparency(float Transparency) {
   const float Clamped = FMath::Clamp(Transparency, 0.f, 1.f);
   if (FMath::IsNearlyEqual(Clamped, SurfaceTransparency)) return;
   SurfaceTransparency = Clamped;
+  Broadcast();
+}
+
+void UDrUIThemeSubsystem::SetTextScale(float Scale) {
+  const float Clamped = FMath::Clamp(Scale, .8f, 2.f);
+  if (FMath::IsNearlyEqual(Clamped, TextScale)) return;
+  TextScale = Clamped;
+  Broadcast();
+}
+
+void UDrUIThemeSubsystem::SetGamepadGlyphs(EDrGamepadGlyphs Glyphs) {
+  if (Glyphs == GamepadGlyphs) return;
+  GamepadGlyphs = Glyphs;
   Broadcast();
 }
 

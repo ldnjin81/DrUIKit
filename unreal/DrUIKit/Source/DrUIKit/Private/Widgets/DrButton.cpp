@@ -1,8 +1,10 @@
 #include "Widgets/DrButton.h"
 #include "Blueprint/WidgetTree.h"
+#include "Core/DrUIFeedback.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "Widgets/DrButtonPrompt.h"
 #include "Widgets/DrStatus.h"
 #include "Widgets/DrSurface.h"
 #include "Widgets/DrText.h"
@@ -22,6 +24,9 @@ void UDrButton::BuildDefaultTree() {
   Spinner->SetRadius(7.f);
   Spinner->SetVisibility(ESlateVisibility::Collapsed);
   if (UHorizontalBoxSlot* SpinnerSlot = Row->AddChildToHorizontalBox(Spinner)) { SpinnerSlot->SetPadding(FMargin(0, 0, 6, 0)); SpinnerSlot->SetVerticalAlignment(VAlign_Center); }
+  ShortcutPrompt = WidgetTree->ConstructWidget<UDrButtonPrompt>(UDrButtonPrompt::StaticClass(), TEXT("ShortcutPrompt"));
+  ShortcutPrompt->KeyHeight = 18.f;
+  if (UHorizontalBoxSlot* PromptSlot = Row->AddChildToHorizontalBox(ShortcutPrompt)) { PromptSlot->SetPadding(FMargin(0, 0, 8, 0)); PromptSlot->SetVerticalAlignment(VAlign_Center); }
   LabelText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("LabelText"));
   LabelText->TextStyle = TEXT("label");
   if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(LabelText)) LabelSlot->SetVerticalAlignment(VAlign_Center);
@@ -30,6 +35,13 @@ void UDrButton::BuildDefaultTree() {
 void UDrButton::NativeOnInitialized() {
   ShownLabel = Label;
   Super::NativeOnInitialized();
+  OnShortcutChanged();
+}
+
+void UDrButton::OnShortcutChanged() {
+  if (!ShortcutPrompt) return;
+  ShortcutPrompt->SetKeys(ShortcutKeyboardKey, ShortcutGamepadKey, FText::GetEmpty());
+  ShortcutPrompt->SetVisibility(HasShortcut() ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 }
 
 FDrUIStateInputs UDrButton::GetStateInputs() const {
@@ -61,7 +73,9 @@ void UDrButton::ApplyVisualState() {
   Surface->FillStrongToken = NAME_None;
   Surface->StrokeToken = Stroke;
   Surface->StrokeWidth = VisualState == EDrUIState::Focus ? 2.f : 1.f;
-  if (VisualState == EDrUIState::Focus) Surface->StrokeToken = TEXT("focus");
+  // 포커스 링: 채움이 진한 버튼(Primary·Destructive)은 focus 색이 채움(accent)과 같아 안 보이므로 ink로.
+  const bool bSolid = Variant == EDrButtonVariant::Primary || Variant == EDrButtonVariant::Destructive;
+  if (VisualState == EDrUIState::Focus) Surface->StrokeToken = bSolid ? TEXT("ink") : TEXT("focus");
   Surface->ApplyTheme();
   // 호버는 살짝 밝게, 눌림은 살짝 어둡게(채움 색은 같은 토큰).
   Surface->SetContentColorAndOpacity(FLinearColor::White);
@@ -101,6 +115,7 @@ void UDrButton::ShowSuccess(const FText& SuccessLabel) {
 }
 
 void UDrButton::SetError(bool bInError, const FText& ErrorLabel) {
+  if (bInError && !bError) DrUIFeedback::Play(this, EDrUIFeedback::Error);
   bError = bInError;
   ShownLabel = bInError && !ErrorLabel.IsEmpty() ? ErrorLabel : Label;
   RefreshState();

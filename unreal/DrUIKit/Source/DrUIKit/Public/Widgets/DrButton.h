@@ -6,6 +6,7 @@
 class UDrSurface;
 class UDrText;
 class UDrSpinner;
+class UDrButtonPrompt;
 
 UENUM(BlueprintType)
 enum class EDrButtonVariant : uint8 { Primary, Secondary, Ghost, Destructive };
@@ -13,6 +14,7 @@ enum class EDrButtonVariant : uint8 { Primary, Secondary, Ghost, Destructive };
 /**
  * 버튼(디자인 시스템 '버튼 상태 9가지'). 공통 상태 판정은 UDrButtonBase, 여기서는 로딩·성공·오류와 4종 칠하기를 더한다.
  * 하위 부품은 BindWidgetOptional: 위젯 블루프린트가 같은 이름으로 두면 그걸 쓰고, 없으면 C++가 기본 구성을 만든다.
+ * 단축키(SetShortcut)를 정하면 라벨 앞에 그 키 모양(ShortcutPrompt: 패드면 패드 버튼, 아니면 키보드 키)이 붙는다.
  */
 UCLASS()
 class DRUIKIT_API UDrButton : public UDrButtonBase {
@@ -36,11 +38,13 @@ protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Surface;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrText> LabelText;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSpinner> Spinner;
+  UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrButtonPrompt> ShortcutPrompt;
 
   virtual void BuildDefaultTree() override;
   virtual void ApplyVisualState() override;
   virtual void NativeOnInitialized() override;
   virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
+  virtual void OnShortcutChanged() override;
 
 private:
   bool bLoading = false, bError = false;

@@ -3,39 +3,38 @@
 #include "CommonInputSubsystem.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
-#include "Components/SizeBox.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "Widgets/DrKeyGlyph.h"
 #include "Widgets/DrStatus.h"
-#include "Widgets/DrSurface.h"
 #include "Widgets/DrText.h"
 
-FText UDrButtonPrompt::ShortKeyName(const FKey& Key) {
-  static const TMap<FKey, const TCHAR*> Names = {
-    {EKeys::Gamepad_FaceButton_Bottom, TEXT("A")}, {EKeys::Gamepad_FaceButton_Right, TEXT("B")},
-    {EKeys::Gamepad_FaceButton_Left, TEXT("X")}, {EKeys::Gamepad_FaceButton_Top, TEXT("Y")},
-    {EKeys::Gamepad_LeftShoulder, TEXT("LB")}, {EKeys::Gamepad_RightShoulder, TEXT("RB")},
-    {EKeys::Gamepad_LeftTrigger, TEXT("LT")}, {EKeys::Gamepad_RightTrigger, TEXT("RT")},
-    {EKeys::Gamepad_LeftThumbstick, TEXT("LS")}, {EKeys::Gamepad_RightThumbstick, TEXT("RS")},
-    {EKeys::Gamepad_Special_Left, TEXT("View")}, {EKeys::Gamepad_Special_Right, TEXT("Menu")},
-    {EKeys::Gamepad_DPad_Up, TEXT("↑")}, {EKeys::Gamepad_DPad_Down, TEXT("↓")}, {EKeys::Gamepad_DPad_Left, TEXT("←")}, {EKeys::Gamepad_DPad_Right, TEXT("→")},
-    {EKeys::Escape, TEXT("Esc")}, {EKeys::Enter, TEXT("Enter")}, {EKeys::SpaceBar, TEXT("Space")}, {EKeys::Tab, TEXT("Tab")},
-    {EKeys::BackSpace, TEXT("Back")}, {EKeys::LeftShift, TEXT("Shift")}, {EKeys::LeftControl, TEXT("Ctrl")}, {EKeys::LeftAlt, TEXT("Alt")},
-    {EKeys::Up, TEXT("↑")}, {EKeys::Down, TEXT("↓")}, {EKeys::Left, TEXT("←")}, {EKeys::Right, TEXT("→")},
-    {EKeys::LeftMouseButton, TEXT("LMB")}, {EKeys::RightMouseButton, TEXT("RMB")}, {EKeys::MiddleMouseButton, TEXT("MMB")}};
-  if (const TCHAR* const* Found = Names.Find(Key)) return FText::FromString(*Found);
-  return Key.IsValid() ? Key.GetDisplayName(false) : FText::GetEmpty();
-}
+FText UDrButtonPrompt::ShortKeyName(const FKey& Key) { return DrUIInput::GlyphName(Key, EDrGamepadGlyphs::Xbox); }
 
 bool UDrButtonPrompt::IsRoundKey(const FKey& Key) {
-  return Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Gamepad_FaceButton_Left || Key == EKeys::Gamepad_FaceButton_Top
-    || Key == EKeys::Gamepad_LeftThumbstick || Key == EKeys::Gamepad_RightThumbstick;
+  const EDrKeyShape Shape = DrKeyGlyph::ShapeFor(Key);
+  return Shape == EDrKeyShape::Face || Shape == EDrKeyShape::Stick || Shape == EDrKeyShape::StickAxis;
+}
+
+void UDrButtonPrompt::GetShownKeys(bool& bOutGamepad, bool& bOutKeyboard) const {
+  const bool bHasPad = GamepadKey.IsValid(), bHasKey = KeyboardKey.IsValid();
+  switch (Device) {
+    case EDrPromptDevice::Both: bOutGamepad = bHasPad; bOutKeyboard = bHasKey; break;
+    case EDrPromptDevice::Gamepad: bOutGamepad = bHasPad; bOutKeyboard = !bHasPad && bHasKey; break;
+    case EDrPromptDevice::Keyboard: bOutKeyboard = bHasKey; bOutGamepad = !bHasKey && bHasPad; break;
+    default: {
+      const bool bPad = LastInputType == ECommonInputType::Gamepad;
+      bOutGamepad = bHasPad && (bPad || !bHasKey);
+      bOutKeyboard = bHasKey && !bOutGamepad;
+    }
+  }
 }
 
 FKey UDrButtonPrompt::GetShownKey() const {
-  const bool bGamepad = Device == EDrPromptDevice::Gamepad || (Device == EDrPromptDevice::Auto && LastInputType == ECommonInputType::Gamepad);
-  return bGamepad && GamepadKey.IsValid() ? GamepadKey : KeyboardKey.IsValid() ? KeyboardKey : GamepadKey;
+  bool bPad = false, bKey = false;
+  GetShownKeys(bPad, bKey);
+  return bPad ? GamepadKey : KeyboardKey;
 }
 
 void UDrButtonPrompt::SetKeys(FKey InKeyboardKey, FKey InGamepadKey, const FText& InLabel) {
@@ -46,6 +45,7 @@ void UDrButtonPrompt::SetKeys(FKey InKeyboardKey, FKey InGamepadKey, const FText
 }
 
 void UDrButtonPrompt::SetDevice(EDrPromptDevice InDevice) { Device = InDevice; ApplyTheme(); }
+void UDrButtonPrompt::SetGlyphs(EDrGamepadGlyphs InGlyphs) { Glyphs = InGlyphs; ApplyTheme(); }
 
 void UDrButtonPrompt::SetHoldProgress(float Progress) {
   HoldProgress = FMath::Clamp(Progress, 0.f, 1.f);
@@ -59,26 +59,21 @@ TSharedRef<SWidget> UDrButtonPrompt::RebuildWidget() {
   if (WidgetTree && !WidgetTree->RootWidget) {
     UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Row"));
     WidgetTree->RootWidget = Row;
-    UVerticalBox* CapColumn = WidgetTree->ConstructWidget<UVerticalBox>();
-    CapBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CapBox"));
-    CapBox->SetMinDesiredWidth(24.f);
-    CapBox->SetHeightOverride(24.f);
-    Cap = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Cap"));
-    Cap->FillToken = DrUITokens::GlassStrong;
-    Cap->BackdropToken = NAME_None;
-    Cap->StrokeToken = DrUITokens::InkFaint;
-    Cap->PaddingToken = NAME_None;
-    Cap->SetPadding(FMargin(6.f, 0.f));
-    Cap->SetHorizontalAlignment(HAlign_Center);
-    Cap->SetVerticalAlignment(VAlign_Center);
-    KeyText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("KeyText"));
-    Cap->SetContent(KeyText);
-    CapBox->AddChild(Cap);
-    CapColumn->AddChildToVerticalBox(CapBox);
+    // 키(패드 · 구분 · 키보드) 아래에 길게 누르기 막대.
+    UVerticalBox* KeyColumn = WidgetTree->ConstructWidget<UVerticalBox>();
+    UHorizontalBox* Keys = WidgetTree->ConstructWidget<UHorizontalBox>();
+    GamepadGlyph = WidgetTree->ConstructWidget<UDrKeyGlyph>(UDrKeyGlyph::StaticClass(), TEXT("GamepadGlyph"));
+    if (UHorizontalBoxSlot* S = Keys->AddChildToHorizontalBox(GamepadGlyph)) S->SetVerticalAlignment(VAlign_Center);
+    Separator = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("Separator"));
+    Separator->SetText(FText::FromString(TEXT("/")));
+    if (UHorizontalBoxSlot* S = Keys->AddChildToHorizontalBox(Separator)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(4, 0)); }
+    KeyboardGlyph = WidgetTree->ConstructWidget<UDrKeyGlyph>(UDrKeyGlyph::StaticClass(), TEXT("KeyboardGlyph"));
+    if (UHorizontalBoxSlot* S = Keys->AddChildToHorizontalBox(KeyboardGlyph)) S->SetVerticalAlignment(VAlign_Center);
+    KeyColumn->AddChildToVerticalBox(Keys);
     HoldBar = WidgetTree->ConstructWidget<UDrProgressBar>(UDrProgressBar::StaticClass(), TEXT("HoldBar"));
     HoldBar->Thickness = 2.f;
-    if (UVerticalBoxSlot* S = CapColumn->AddChildToVerticalBox(HoldBar)) S->SetPadding(FMargin(0, 3, 0, 0));
-    if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(CapColumn)) S->SetVerticalAlignment(VAlign_Center);
+    if (UVerticalBoxSlot* S = KeyColumn->AddChildToVerticalBox(HoldBar)) S->SetPadding(FMargin(0, 3, 0, 0));
+    if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(KeyColumn)) S->SetVerticalAlignment(VAlign_Center);
     LabelText = WidgetTree->ConstructWidget<UDrText>(UDrText::StaticClass(), TEXT("LabelText"));
     if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(LabelText)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(8, 0, 0, 0)); }
     ApplyTheme();
@@ -113,19 +108,20 @@ void UDrButtonPrompt::HandleInputMethodChanged(ECommonInputType InputType) {
 }
 
 void UDrButtonPrompt::ApplyTheme() {
-  const FKey Key = GetShownKey();
-  const bool bRound = IsRoundKey(Key);
-  if (Cap) {
-    Cap->RadiusToken = bRound ? DrUITokens::RadiusPill : DrUITokens::RadiusXs;
-    Cap->ApplyTheme();
+  bool bPad = false, bKey = false;
+  GetShownKeys(bPad, bKey);
+  for (UDrKeyGlyph* Glyph : {GamepadGlyph.Get(), KeyboardGlyph.Get()}) {
+    if (!Glyph) continue;
+    Glyph->Key = Glyph == GamepadGlyph ? GamepadKey : KeyboardKey;
+    Glyph->Glyphs = Glyphs;
+    Glyph->Height = KeyHeight;
+    Glyph->bBrandColors = bBrandColors;
+    Glyph->ApplyTheme();
+    Glyph->SetVisibility((Glyph == GamepadGlyph ? bPad : bKey) ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
   }
-  if (CapBox) {  // 원은 정사각(24×24), 키캡은 글자만큼 넓어짐
-    if (bRound) CapBox->SetMaxDesiredWidth(24.f);
-    else CapBox->ClearMaxDesiredWidth();
-  }
-  if (KeyText) {
-    KeyText->SetTokens(DrUITokens::Caption, DrUITokens::Ink);
-    KeyText->SetText(ShortKeyName(Key));
+  if (Separator) {
+    Separator->SetTokens(DrUITokens::Caption, DrUITokens::InkFaint);
+    Separator->SetVisibility(bPad && bKey ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
   }
   if (LabelText) {
     LabelText->SetTokens(DrUITokens::Label, DrUITokens::InkMuted);

@@ -47,6 +47,14 @@ private:
   UWidget* BuildExtendedPage();
   UWidget* BuildNavigation2Page();
   UWidget* BuildExpressionPage();
+  UWidget* BuildGamepadPage();
+  UFUNCTION() void HandleGlyphChoice(int32 Index);
+  UFUNCTION() void HandleTextScale(float Value);
+  UFUNCTION() void HandleSlotFocused(int32 Index);
+  UFUNCTION() void HandleSlotHint(int32 Index, FName HintId);
+  UFUNCTION() void HandleAnyKey(FKey Key, bool bGamepad);
+  /** -DrUIGamepadTour: 합성 패드 입력으로 페이지·인벤토리·콘솔 게임 메뉴를 돌며 한 장씩 찍는다. */
+  bool TourStep(float DeltaTime);
   UFUNCTION() void HandleSegmentDemo(int32 Index);
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);
@@ -89,6 +97,16 @@ private:
   UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> QualityChoice;
   UPROPERTY(Transient) TObjectPtr<UDrSwitch> MotionSwitch;
   UPROPERTY(Transient) TObjectPtr<UDrSlider> TransparencySlider;
+  UPROPERTY(Transient) TObjectPtr<class UDrGlassConsoleMenu> ConsoleMenu;
+  UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> GlyphChoice;
+  UPROPERTY(Transient) TObjectPtr<class UDrItemGrid> ItemGrid;
+  UPROPERTY(Transient) TObjectPtr<class UDrStatCompare> ItemCompare;
+  UPROPERTY(Transient) TObjectPtr<UDrText> ItemName;
+  UPROPERTY(Transient) TObjectPtr<UDrText> AnyKeyResult;
+  UPROPERTY(Transient) TObjectPtr<class UDrPressAnyKey> AnyKeyDemo;
+  FTSTicker::FDelegateHandle TourTicker;
+  int32 TourIndex = 0;
+  float TourWait = 0.f;
   /** 화면 위 가운데 토스트, 아래 가운데 스낵바(갤러리 전체 위에 뜬다). */
   UPROPERTY(Transient) TObjectPtr<UDrToastStack> Toasts;
   UPROPERTY(Transient) TObjectPtr<UDrSnackbar> Snackbar;

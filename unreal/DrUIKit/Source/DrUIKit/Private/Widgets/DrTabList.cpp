@@ -1,5 +1,9 @@
 #include "Widgets/DrTabList.h"
+#include "Core/DrUIFeedback.h"
+#include "Core/DrUIInput.h"
+#include "Widgets/DrButtonPrompt.h"
 #include "Blueprint/WidgetTree.h"
+#include "CommonAnimatedSwitcher.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Overlay.h"
@@ -52,10 +56,17 @@ UDrTabList::UDrTabList(const FObjectInitializer& Initializer) : Super(Initialize
 
 void UDrTabList::EnsureTree() {
   if (!WidgetTree || WidgetTree->RootWidget) return;
+  // [이전 키] 트랙 [다음 키]. 키 모양은 넘기기를 켠 탭 목록에서만 보인다.
+  UHorizontalBox* Frame = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Frame"));
+  WidgetTree->RootWidget = Frame;
+  PrevKey = WidgetTree->ConstructWidget<UDrButtonPrompt>(UDrButtonPrompt::StaticClass(), TEXT("PrevKey"));
+  if (UHorizontalBoxSlot* S = Frame->AddChildToHorizontalBox(PrevKey)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(0, 0, 8, 0)); }
   Track = WidgetTree->ConstructWidget<UDrSurface>(UDrSurface::StaticClass(), TEXT("Track"));
   Track->RadiusToken = TEXT("radius-pill");
   Track->PaddingToken = NAME_None;
-  WidgetTree->RootWidget = Track;
+  if (UHorizontalBoxSlot* S = Frame->AddChildToHorizontalBox(Track)) S->SetVerticalAlignment(VAlign_Center);
+  NextKey = WidgetTree->ConstructWidget<UDrButtonPrompt>(UDrButtonPrompt::StaticClass(), TEXT("NextKey"));
+  if (UHorizontalBoxSlot* S = Frame->AddChildToHorizontalBox(NextKey)) { S->SetVerticalAlignment(VAlign_Center); S->SetPadding(FMargin(8, 0, 0, 0)); }
   UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>();
   Track->SetContent(Layers);
   IndicatorBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("IndicatorBox"));
@@ -75,6 +86,15 @@ void UDrTabList::EnsureTree() {
 
 void UDrTabList::ApplyTheme() {
   const bool bPill = Style == EDrTabStyle::Pill;
+  const bool bKeys = bShowNavigationKeys && (bShoulderNavigation || bSubTabNavigation);
+  for (UDrButtonPrompt* Key : {PrevKey.Get(), NextKey.Get()}) {
+    if (!Key) continue;
+    const bool bPrev = Key == PrevKey;
+    if (bShoulderNavigation) Key->SetKeys(bPrev ? EKeys::Q : EKeys::E, bPrev ? EKeys::Gamepad_LeftShoulder : EKeys::Gamepad_RightShoulder, FText::GetEmpty());
+    else Key->SetKeys(bPrev ? EKeys::Z : EKeys::C, bPrev ? EKeys::Gamepad_LeftTrigger : EKeys::Gamepad_RightTrigger, FText::GetEmpty());
+    Key->KeyHeight = 20.f;
+    Key->SetVisibility(bKeys ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+  }
   if (Track) {
     Track->FillToken = bPill ? FName(TEXT("glass")) : NAME_None;
     Track->FillStrongToken = bPill ? FName(TEXT("glass-strong")) : NAME_None;
@@ -106,7 +126,50 @@ void UDrTabList::NativeOnInitialized() {
     ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyTheme(); });
 }
 
+void UDrTabList::NativeConstruct() {
+  Super::NativeConstruct();
+  DrUIInput::RegisterTabList(this);
+  ApplyTheme();
+}
+
+void UDrTabList::SetTabNavigation(bool bShoulder, bool bSubTab) {
+  bShoulderNavigation = bShoulder;
+  bSubTabNavigation = bSubTab;
+  ApplyTheme();
+}
+
+bool UDrTabList::SelectAdjacentTab(int32 Direction, bool bFocusTab) {
+  const int32 Count = GetTabCount();
+  if (Count < 2 || Direction == 0) return false;
+  int32 Current = 0;
+  for (int32 I = 0; I < Count; ++I) if (GetTabIdAtIndex(I) == GetSelectedTabId()) { Current = I; break; }
+  int32 Next = Current + (Direction > 0 ? 1 : -1);
+  if (bWrapNavigation) Next = (Next + Count) % Count;
+  else if (Next < 0 || Next >= Count) { DrUIFeedback::Play(this, EDrUIFeedback::Error); return false; }
+  const FName Id = GetTabIdAtIndex(Next);
+  SelectTabByID(Id);
+  DrUIFeedback::Play(this, EDrUIFeedback::Tick);
+  // 패드로 넘기면 내용이 바뀌며 포커스를 잃지 않도록 고른 탭 버튼으로 옮긴다(아래로 내려 내용에 들어간다).
+  if (bFocusTab) if (UCommonButtonBase* Button = GetTabButtonBaseByID(Id)) Button->SetFocus();
+  return true;
+}
+
+bool UDrTabList::OwnsTabButton(const UWidget* Button) const {
+  if (!Button) return false;
+  for (int32 I = 0; I < GetTabCount(); ++I) if (GetTabButtonBaseByID(GetTabIdAtIndex(I)) == Button) return true;
+  return false;
+}
+
+bool UDrTabList::FocusContent() {
+  UCommonAnimatedSwitcher* Switcher = GetLinkedSwitcher();
+  UWidget* Target = Switcher ? DrUIInput::FindFirstFocusable(Switcher->GetActiveWidget()) : nullptr;
+  if (!Target) return false;
+  Target->SetFocus();
+  return true;
+}
+
 void UDrTabList::NativeDestruct() {
+  DrUIInput::UnregisterTabList(this);
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get()) Subsystem->OnThemeChanged.Remove(ThemeHandle);
   ThemeHandle.Reset();
   Super::NativeDestruct();
@@ -131,9 +194,11 @@ void UDrTabList::HandleTabCreation_Implementation(FName TabNameID, UCommonButton
   } else if (UHorizontalBox* Box = Cast<UHorizontalBox>(Row)) {
     if (UHorizontalBoxSlot* S = Box->AddChildToHorizontalBox(TabButton)) S->SetVerticalAlignment(VAlign_Fill);
   }
+
 }
 
 void UDrTabList::HandleTabRemoval_Implementation(FName TabNameID, UCommonButtonBase* TabButton) {
+  if (UDrButtonBase* Button = Cast<UDrButtonBase>(TabButton)) Button->ResetInteractionState();  // 다시 쓸 때 옛 포커스 링이 남지 않게
   if (!Row || !TabButton) return;
   Row->RemoveChild(TabButton);
   // 균등 격자는 칸 번호가 비지 않게 다시 매긴다.

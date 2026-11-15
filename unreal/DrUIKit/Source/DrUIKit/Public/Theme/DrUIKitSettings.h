@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Core/DrUIInput.h"
 #include "Engine/DeveloperSettings.h"
 #include "DrUIKitSettings.generated.h"
 
@@ -9,6 +10,7 @@ class UDrUIHUDWidget;
 class UDrUIMenuWidget;
 class UInputAction;
 class UInputMappingContext;
+class USoundBase;
 
 /** 표면(유리 등) 품질. 낮음은 뒤 흐림 없이 불투명 채움. */
 UENUM(BlueprintType)
@@ -29,6 +31,23 @@ public:
   UPROPERTY(Config, EditAnywhere, Category = "표면", meta = (ClampMin = 0, ClampMax = 1)) float SurfaceTransparency = .5f;
   /** 위치 이동을 페이드로 바꾸고 카운트 업 등을 끈다. */
   UPROPERTY(Config, EditAnywhere, Category = "움직임") bool bReduceMotion = false;
+  /** 모든 DrUIKit 글자 크기 배율(접근성: 글자 크기 조절). 실행 중에는 테마 서브시스템 SetTextScale. */
+  UPROPERTY(Config, EditAnywhere, Category = "접근성", meta = (ClampMin = .8, ClampMax = 2)) float TextScale = 1.f;
+
+  // 게임패드
+  /** 패드 버튼 표기(Xbox·PlayStation·Nintendo). 자동이면 CommonInput이 알려 주는 패드 종류를 따른다. */
+  UPROPERTY(Config, EditAnywhere, Category = "게임패드") EDrGamepadGlyphs GamepadGlyphs = EDrGamepadGlyphs::Auto;
+
+  // UI 피드백(포커스 이동·확인·뒤로·오류·값 한 칸). 소리는 게임이 지정하고, 진동은 패드로 조작 중일 때만 짧게 준다.
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") bool bUISounds = true;
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") bool bUIHaptics = true;
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") TSoftObjectPtr<USoundBase> FocusSound;
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") TSoftObjectPtr<USoundBase> ConfirmSound;
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") TSoftObjectPtr<USoundBase> BackSound;
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") TSoftObjectPtr<USoundBase> ErrorSound;
+  UPROPERTY(Config, EditAnywhere, Category = "피드백") TSoftObjectPtr<USoundBase> TickSound;
+  /** 진동 세기 배율(0~1). */
+  UPROPERTY(Config, EditAnywhere, Category = "피드백", meta = (ClampMin = 0, ClampMax = 1)) float HapticStrength = 1.f;
 
   // UI 흐름(UDrUIFlowSubsystem). DrFramework 0.2.0 UDrUISettings의 메뉴·HUD·UI 입력을 옮긴 것(맵 흐름은 DrFramework에 남음).
   /** 로컬 플레이어마다 화면 층을 자동으로 만든다(끄면 게임이 직접 만든다). */

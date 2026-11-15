@@ -12,12 +12,14 @@ enum class EDrUIState : uint8 {
 struct FDrUIStateInputs {
   bool bHovered = false, bPressed = false, bFocused = false, bDisabled = false;
   bool bLoading = false, bSuccess = false, bError = false, bSelected = false;
+  /** 포커스를 보일지. 마우스로 눌러 생긴 포커스는 숨기고, 패드·키보드로 옮긴 포커스(또는 패드로 조작 중)는 보인다. */
+  bool bFocusVisible = true;
 };
 
 namespace DrUIState {
 /** 우선순위: 비활성 > 로딩 > 성공 > 오류 > 눌림 > 호버 > 선택됨 > 포커스 > 기본.
     포커스 링은 상태와 별개로 그리므로(IsFocusRingVisible) 다른 상태가 이긴다. */
 DRUIKIT_API EDrUIState Resolve(const FDrUIStateInputs& In);
-/** 키보드·패드 포커스 링을 그릴지. 비활성일 때만 숨긴다. */
+/** 키보드·패드 포커스 링을 그릴지. 비활성이거나 마우스로 생긴 포커스(bFocusVisible 거짓)면 숨긴다. */
 DRUIKIT_API bool IsFocusRingVisible(const FDrUIStateInputs& In);
 }

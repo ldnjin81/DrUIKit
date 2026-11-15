@@ -30,12 +30,34 @@
 | 상태 표시 | `UDrBadge`(숫자·99+·점, 색 6종), `UDrProgressBar`(UProgressBar, 둥근 트랙·채움 움직임·끝없는 진행), `UDrProgressRing`(원형 진행률, 스프링·끝없는 회전), `UDrSkeleton`(불러오는 중 자리 표시), `UDrSpinner`(UCircularThrobber, 토큰 색) |
 | 알림 | `UDrNoticeBase`(떴다 사라지는 부품 공통 틀, 추상), `UDrToast`(유리 알약 + 색·모양 표시 4종), `UDrToastStack`(토스트 쌓기, 최대 개수 넘으면 오래된 것부터 물러남), `UDrSnackbar`(진한 알약 + 행동 버튼, 한 번에 하나·차례 줄, 호버 중 시간 멈춤) |
 | 입력 | `UDrTextField`(UEditableText + 라벨·안내·글자 수·오류), `UDrDropdown`·`UDrDropdownMenu`·`UDrDropdownItem`(UMenuAnchor 목록, 고른 항목부터 포커스), `UDrHorizontalSelector`(◀ 값 ▶, 패드 좌우·감쌈/멈춤) |
+| 게임패드 | `DrUIInput`(확인·뒤로는 엔진 내비게이션 설정을 따름, Xbox·PlayStation·Nintendo 버튼 이름, 덮개 층, 포커스 기억, 전역 처리기: 오른쪽 스틱 스크롤·LB/RB·LT/RT 탭 넘김·버튼 단축키·아무 키 대기), `UDrKeyGlyph`(에셋 없이 그리는 버튼 모양: 얼굴 버튼(✕○□△ 포함)·숄더·트리거·스틱·D패드·보기/메뉴, 키캡, 마우스), `UDrActionBar`(상태 글 + 포커스 부품의 행동 + 화면 공통 안내), `UDrPressAnyKey`, `UDrItemSlot`·`UDrItemGrid`(인벤토리 칸: 희귀도·장착·NEW·수량, 줄 끝 넘김), `UDrStatCompare`(장착 대비 ▲▼), `DrUIFeedback`(UI 소리·짧은 진동) |
 | 게임용 | `UDrHoldButton`(길게 눌러 실행, CommonUI 길게 누르기 + 차오르는 채움·되감기), `UDrRadialMenu`(파이 메뉴: 마우스 방향·패드 스틱·키보드, 강조가 스프링으로 미끄러짐), `UDrCooldown`(아이콘 위 시계 방향 막·남은 시간·반짝임), `UDrFeed`·`UDrFeedEntry`(획득 로그, 같은 글은 ×N으로 합침) |
 | UI 흐름 | `UDrUIFlowSubsystem`(로컬 플레이어 서브시스템: 화면 층 자동 생성, 타이틀·HUD·일시정지·설정·뒤로·입력 모드·확인 대화상자·알림), `UDrUIRootLayout`(게임·메뉴·모달·알림 층), `UDrUIMenuWidget`·`UDrUIHUDWidget`(메뉴·HUD 기반), `UDrConfirmDialog`(모달 확인 창). 설정은 `UDrUIKitSettings`의 '흐름'·'입력'. DrFramework 0.2.0 UI를 옮긴 것 |
 | 2차·확장 | `UDrScrollBox`(얇은 막대·가장자리 그늘), `UDrCountUp`(세어 올라가는 숫자), `UDrAnimatedSwitcher`(페이드·밀기·확대, 움직임 줄이기면 바로), `UDrExpandableArea`·`UDrExpanderHeader`(높이 스프링), `UDrTextArea`(여러 줄 입력), `UDrMorphButton`(로딩이면 원으로 줄고 체크 뒤 펴짐), `UDrQuantityStepper`·`UDrIconButton`(− 값 +, 길게 누르면 가속 반복), `UDrChip`(필터·선택·입력 칩) |
 | 2차·탐색 | `UDrSidebar`·`UDrSidebarItem`(레일 ↔ 펼침, 유리 렌즈), `UDrDock`·`UDrDockItem`(가리키면 확대), `UDrBottomTabBar`·`UDrBottomTabButton`(표시+이름 탭), `UDrBanner`(화면 안 알림 줄), `UDrBottomSheet`(아래에서 올라오는 판, 끌어 닫기), `UDrCoachMark`·`UDrCoachScrim`(구멍 뚫린 막 + 단계 말풍선), `UDrPopover`·`UDrPopoverPanel`(누른 자리 옆 유리 판) |
 | 2차·표현 | `UDrStepIndicator`(단계 표시), `UDrCompletion`(체크 그리기 완료 표시), `UDrEmptyState`(빈 화면: 이유 + 다음 행동), `UDrTextReveal`(글자 등장: 타이핑·스크램블·올라오기), `UDrSparkline`·`UDrDonut`·`UDrStatCard`(데이터 표시) |
 | 탐색·표시 | `UDrTooltip`(엔진 툴팁 창에 넣는 유리 말풍선, 제목+설명, 나타날 때 내려오며 밝아짐, `Attach`), `UDrListRow`(목록 행: 호버 렌즈·선택·포커스. 짧은 목록은 버튼 묶음, 긴 목록은 UCommonListView 항목 — 에디터에서는 이 클래스를 부모로 한 위젯 블루프린트가 필요), `UDrListItem`(항목 데이터), `UDrPageIndicator`(페이지 점, 지금 점이 알약으로 늘어나 미끄러짐), `UDrButtonPrompt`(키캡 칩 + 행동 이름, 키보드↔패드 자동 전환, 길게 누르기 진행) |
+
+## 게임패드
+
+모든 부품은 패드나 키보드만으로 조작할 수 있다.
+
+- 포커스 링은 패드·키보드로 옮긴 포커스에만 보이고, 마우스로 누른 뒤에는 남지 않는다. 덮개(대화상자·팝오버·시트·드롭다운·코치마크)는 연 곳을 기억했다가 닫을 때 포커스를 돌려주고, 메뉴는 돌아오면 마지막 항목으로 간다.
+- 확인·뒤로는 엔진 내비게이션 설정을 따르므로, 두 버튼을 바꿔 쓰는 플랫폼에도 맞는다. 슬라이더는 잠그지 않고 D패드로 바로 조절하고, 스크롤 상자는 포커스를 따라 굴러가며 오른쪽 스틱으로도 굴린다. 탭 목록은 LB/RB(하위 탭은 LT/RT)로 넘기고 양 끝에 그 키를 보이며, 탭에서 아래로 가면 내용으로 들어간다.
+- **인라인 버튼 프롬프트:** 버튼에 `SetShortcut(키보드 키, 패드 키)`를 주면 버튼 안에 키 모양이 붙는다. 화면 어디서든 그 키로 눌리고, 덮개가 열려 있으면 그 덮개 안 버튼만 반응한다.
+- **키 모양:** 버튼 프롬프트와 행동 안내 바는 Xbox·PlayStation·Nintendo 패드 모양으로 그린다. 자동이면 연결된 패드를 따르고, `Both`면 패드 키와 키보드 키를 함께 보인다.
+- **접근성·피드백:** 글자 크기 배율(`SetTextScale`), UI 소리(프로젝트 설정에서 지정), 짧은 진동. 셋 다 끌 수 있다.
+
+**콘솔 게임 메뉴 샘플**(`UDrGlassConsoleMenu`, 갤러리 '게임패드' 페이지에서 열거나 View·M)은 전형적인 패드 메뉴 배치다.
+
+- 위: 메인 탭(LB/RB)과 서브 탭(LT/RT)
+- 가운데 세 칸: 1뎁스 목록, 2뎁스 목록, 정보 패널(능력치 비교 포함)
+- 아래: 쓸 수 있는 행동이 보이는 상태 표시줄
+- 2뎁스에서 A는 장착, X는 버리기이고, B를 누르면 한 단계씩 돌아가다가 닫힌다.
+
+| 콘솔 게임 메뉴 | 게임패드 페이지(PlayStation 표기) |
+| --- | --- |
+| ![콘솔 게임 메뉴](Docs/images/console-menu-light.jpg) | ![게임패드 페이지](Docs/images/gamepad-light.jpg) |
 
 ## 스타일
 
@@ -57,7 +79,7 @@
 | 확인 대화상자(모달 층) | 표현(빈 화면·글자 등장·데이터) |
 | ![확인 대화상자](Docs/images/dialog-light.jpg) | ![표현](Docs/images/expression-dark.jpg) |
 
-`UISample/Glass`의 `L_DrUIGallery`(호스트 기본 맵)를 열면 모든 부품이 탭별 페이지에 놓여 있고, 탭 줄 오른쪽에서 스타일을 바꾼다. 새 부품은 같은 작업에서 갤러리 페이지와 `UDrGlassGallery::CoveredClasses()`에 넣는다(빠뜨리면 `DrUIGlass.Gallery.CoversAllKitWidgets` 실패). `-game -DrUIGalleryCapture -RenderOffscreen`으로 실행하면 스타일 × 밝게·어둡게 × 페이지마다 `Saved/Screenshots`에 찍고 끝난다(`-DrUIGalleryStyles=glass,flat`으로 스타일을 줄일 수 있다).
+`UISample/Glass`의 `L_DrUIGallery`(호스트 기본 맵)를 열면 모든 부품이 탭별 페이지에 놓여 있고, 탭 줄 오른쪽에서 스타일을 바꾼다. 새 부품은 같은 작업에서 갤러리 페이지와 `UDrGlassGallery::CoveredClasses()`에 넣는다(빠뜨리면 `DrUIGlass.Gallery.CoversAllKitWidgets` 실패). `-game -DrUIGalleryCapture -RenderOffscreen`으로 실행하면 스타일 × 밝게·어둡게 × 페이지마다 `Saved/Screenshots`에 찍고 끝난다(`-DrUIGalleryStyles=glass,flat`으로 스타일을 줄일 수 있다). `-DrUIGamepadTour`로 실행하면 합성 패드 입력으로 게임패드 페이지와 콘솔 게임 메뉴를 돌며 단계마다 찍는다(`DrUITour_*.png`).
 
 ## 검증
 

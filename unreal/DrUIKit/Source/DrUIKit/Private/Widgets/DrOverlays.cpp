@@ -1,4 +1,6 @@
 #include "Widgets/DrOverlays.h"
+#include "Core/DrUIFeedback.h"
+#include "Core/DrUIInput.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/HorizontalBox.h"
@@ -194,7 +196,10 @@ void UDrBottomSheet::Open() {
   if (IsOverlayReduceMotion()) Presence.Snap(1.f);
   else Presence.Target = 1.f;
   ApplyPresence();
-  SetFocus();
+  // 연 곳을 기억하고 이 판을 단축키의 맨 위 층으로. 패드면 판 안 첫 항목으로 바로 들어간다.
+  FocusMemory.Save();
+  DrUIInput::PushModal(this);
+  if (!DrUIInput::FocusFirstIn(Body)) SetFocus();
 }
 
 void UDrBottomSheet::Close() {
@@ -204,6 +209,9 @@ void UDrBottomSheet::Close() {
   if (IsOverlayReduceMotion()) Presence.Snap(0.f);
   else Presence.Target = 0.f;
   ApplyPresence();
+  DrUIInput::PopModal(this);
+  FocusMemory.Restore();
+  DrUIFeedback::Play(this, EDrUIFeedback::Back);
   OnClosed.Broadcast();
 }
 
@@ -261,7 +269,7 @@ FReply UDrBottomSheet::NativeOnMouseButtonUp(const FGeometry& Geometry, const FP
 }
 
 FReply UDrBottomSheet::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
-  if (bOpen && (Event.GetKey() == EKeys::Escape || Event.GetKey() == EKeys::Gamepad_FaceButton_Right)) { Close(); return FReply::Handled(); }
+  if (bOpen && DrUIInput::GetAction(Event) == EDrUIInputAction::Back) { Close(); return FReply::Handled(); }
   return Super::NativeOnKeyDown(Geometry, Event);
 }
 
@@ -421,6 +429,8 @@ void UDrCoachMark::Start() {
   bHolePlaced = false;
   SetVisibility(ESlateVisibility::Visible);  // 나머지 화면 누름을 막는다
   ShowStep();
+  FocusMemory.Save();
+  DrUIInput::PushModal(this);
   SetFocus();
 }
 
@@ -434,6 +444,8 @@ void UDrCoachMark::Next() {
 void UDrCoachMark::Finish(bool bSkipped) {
   StepIndex = INDEX_NONE;
   SetVisibility(ESlateVisibility::Collapsed);
+  DrUIInput::PopModal(this);
+  FocusMemory.Restore();
   OnFinished.Broadcast(bSkipped);
 }
 
@@ -474,9 +486,9 @@ void UDrCoachMark::NativeTick(const FGeometry& Geometry, float DeltaTime) {
 
 FReply UDrCoachMark::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
   if (!IsRunning()) return Super::NativeOnKeyDown(Geometry, Event);
-  const FKey Key = Event.GetKey();
-  if (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right) { Finish(true); return FReply::Handled(); }
-  if (Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Gamepad_FaceButton_Bottom) { Next(); return FReply::Handled(); }
+  const EDrUIInputAction Action = DrUIInput::GetAction(Event);
+  if (Action == EDrUIInputAction::Back) { Finish(true); return FReply::Handled(); }
+  if (Action == EDrUIInputAction::Accept) { Next(); return FReply::Handled(); }
   return Super::NativeOnKeyDown(Geometry, Event);
 }
 
@@ -511,8 +523,20 @@ void UDrPopoverPanel::SetBody(UWidget* Content) {
 }
 
 FReply UDrPopoverPanel::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
-  if (Event.GetKey() == EKeys::Escape || Event.GetKey() == EKeys::Gamepad_FaceButton_Right) { OnDismiss.ExecuteIfBound(); return FReply::Handled(); }
+  if (DrUIInput::GetAction(Event) == EDrUIInputAction::Back) { OnDismiss.ExecuteIfBound(); return FReply::Handled(); }
   return Super::NativeOnKeyDown(Geometry, Event);
+}
+
+void UDrPopoverPanel::NativeConstruct() {
+  Super::NativeConstruct();
+  if (bAsPopup) DrUIInput::PushModal(this);  // 열려 있는 동안 단축키는 이 판 안만
+  // 패드로 열었으면 판 안 첫 항목으로(판 자체에 포커스가 머물면 십자키로 들어갈 수 없다).
+  if (DrUIInput::IsUsingGamepad(this)) DrUIInput::FocusFirstIn(Surface);
+}
+
+void UDrPopoverPanel::NativeDestruct() {
+  DrUIInput::PopModal(this);
+  Super::NativeDestruct();
 }
 
 TSharedRef<SWidget> UDrPopover::RebuildWidget() {
@@ -524,8 +548,14 @@ TSharedRef<SWidget> UDrPopover::RebuildWidget() {
     Anchor->OnGetUserMenuContentEvent.BindUFunction(this, GET_FUNCTION_NAME_CHECKED(UDrPopover, HandleGetMenu));
     WidgetTree->RootWidget = Anchor;
     if (PendingTrigger) Anchor->SetContent(PendingTrigger);
+    Anchor->OnMenuOpenChanged.AddUniqueDynamic(this, &ThisClass::HandleMenuOpenChanged);
   }
   return Super::RebuildWidget();
+}
+
+void UDrPopover::HandleMenuOpenChanged(bool bIsOpen) {
+  // 닫히면(바깥 누름·B·Close) 연 곳으로 포커스를 돌려준다.
+  if (!bIsOpen) FocusMemory.Restore();
 }
 
 void UDrPopover::SetTrigger(UWidget* Trigger) {
@@ -543,16 +573,17 @@ void UDrPopover::SetBody(UWidget* Content) {
 UUserWidget* UDrPopover::HandleGetMenu() {
   if (!Panel) {
     Panel = CreateWidget<UDrPopoverPanel>(this, UDrPopoverPanel::StaticClass());
+    Panel->bAsPopup = true;
     Panel->SetBody(PendingBody);
     Panel->OnDismiss.BindWeakLambda(this, [this] { Close(); });
   }
   return Panel;
 }
 
-void UDrPopover::Open() { if (Anchor && !Anchor->IsOpen()) Anchor->Open(true); }
+void UDrPopover::Open() { if (Anchor && !Anchor->IsOpen()) { FocusMemory.Save(); Anchor->Open(true); } }
 void UDrPopover::Close() { if (Anchor) Anchor->Close(); }
 void UDrPopover::Toggle() {
   if (!Anchor) return;
   if (Anchor->IsOpen()) Anchor->Close();
-  else if (Anchor->ShouldOpenDueToClick()) Anchor->Open(true);
+  else if (Anchor->ShouldOpenDueToClick()) { FocusMemory.Save(); Anchor->Open(true); }
 }
