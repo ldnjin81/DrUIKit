@@ -7,18 +7,18 @@
 #include "Rendering/SlateRenderer.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SBackgroundBlur.h"
+#include "Components/BorderSlot.h"
+#include "Widgets/Layout/SBorder.h"
 #include "Widgets/SLeafWidget.h"
 #include "Widgets/SOverlay.h"
 
-/** 표면 장식: 뒤 그림자(표면 바깥 고리 겹) 또는 앞 윗면 반사광(윗변 안쪽 1px 선). 눌림 판정 없음. */
+/** 표면 뒤 그림자(표면 바깥 고리 겹). 눌림 판정 없음. */
 class SDrSurfaceDecor : public SLeafWidget {
 public:
   SLATE_BEGIN_ARGS(SDrSurfaceDecor) {}
-  SLATE_ARGUMENT(bool, bShadow)
   SLATE_END_ARGS()
-  void Construct(const FArguments& Args) { bShadow = Args._bShadow; SetVisibility(EVisibility::HitTestInvisible); }
+  void Construct(const FArguments&) { SetVisibility(EVisibility::HitTestInvisible); }
   FDrUIShadow Shadow;
-  FLinearColor HighlightColor = FLinearColor::Transparent;
   float Radius = 0.f;
   bool bPill = false;
 
@@ -27,7 +27,7 @@ public:
     const FVector2f Size = Geometry.GetLocalSize();
     const float R = bPill ? Size.Y * .5f : FMath::Min(Radius, FMath::Min(Size.X, Size.Y) * .5f);
     const FLinearColor Tint = Style.GetColorAndOpacityTint();
-    if (bShadow) {
+    {
       if (Shadow.Color.A <= 0.f) return LayerId;
       // CSS 그림자 근사: 그림자 사각형 = 표면을 Offset만큼 옮기고 Spread만큼 넓힌 것, 가장자리는 표준편차 Blur/2로 흐림.
       // 표면 바깥 거리 D의 진하기 = A·Φ(-(D - Spread)/σ) (정규 분포 누적, 로지스틱 근사).
@@ -62,15 +62,32 @@ public:
       FSlateDrawElement::MakeCustomVerts(Out, LayerId, Handle, Verts, Indices, nullptr, 0, 0);
       return LayerId;
     }
-    if (HighlightColor.A <= 0.f || Size.X <= 2.f * R) return LayerId;
+  }
+};
+
+/**
+ * 채움·테두리 위, 내용 아래에 윗면 반사광(윗변 안쪽 1px 선)을 그리는 SBorder.
+ * SBorder는 브러시를 LayerId에, 내용을 LayerId + 1부터 그린다. 반사광을 LayerId에 더하면 내용이 표면 밖으로
+ * 커져 윗변을 넘어도(독 확대 등) 선이 내용 위로 올라오지 않는다.
+ */
+class SDrSurfaceBorder : public SBorder {
+public:
+  void Construct(const SBorder::FArguments& Args) { SBorder::Construct(Args); }
+  FLinearColor HighlightColor = FLinearColor::Transparent;
+  float Radius = 0.f;
+  bool bPill = false;
+
+  virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Culling, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style, bool bParentEnabled) const override {
+    const int32 MaxLayer = SBorder::OnPaint(Args, Geometry, Culling, Out, LayerId, Style, bParentEnabled);
+    const FVector2f Size = Geometry.GetLocalSize();
+    const float R = bPill ? Size.Y * .5f : FMath::Min(Radius, FMath::Min(Size.X, Size.Y) * .5f);
+    if (HighlightColor.A <= 0.f || Size.X <= 2.f * R) return MaxLayer;
     // 윗변의 곧은 부분에만 1px 선(모서리 곡선 앞에서 멈춤).
     const float Inset = FMath::Max(R * .7f, 2.f);
     const TArray<FVector2f> Line = {FVector2f(Inset, .75f), FVector2f(Size.X - Inset, .75f)};
-    FSlateDrawElement::MakeLines(Out, LayerId, Geometry.ToPaintGeometry(), Line, ESlateDrawEffect::None, HighlightColor * Tint, true, 1.f);
-    return LayerId;
+    FSlateDrawElement::MakeLines(Out, LayerId, Geometry.ToPaintGeometry(), Line, ESlateDrawEffect::None, HighlightColor * Style.GetColorAndOpacityTint(), true, 1.f);
+    return MaxLayer;
   }
-private:
-  bool bShadow = true;
 };
 
 UDrSurface::UDrSurface() { SetHorizontalAlignment(HAlign_Fill); SetVerticalAlignment(VAlign_Fill); }
@@ -117,11 +134,11 @@ void UDrSurface::ApplyTheme() {
     Shadow->bPill = bPill;
     Shadow->Invalidate(EInvalidateWidgetReason::Paint);
   }
-  if (Highlight) {
-    Highlight->HighlightColor = HighlightToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(HighlightToken);
-    Highlight->Radius = Radius;
-    Highlight->bPill = bPill;
-    Highlight->Invalidate(EInvalidateWidgetReason::Paint);
+  if (SurfaceBorder) {
+    SurfaceBorder->HighlightColor = HighlightToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(HighlightToken);
+    SurfaceBorder->Radius = Radius;
+    SurfaceBorder->bPill = bPill;
+    SurfaceBorder->Invalidate(EInvalidateWidgetReason::Paint);
   }
   if (Blur) {
     Blur->SetBlurStrength(ResolveBlur());
@@ -136,14 +153,15 @@ void UDrSurface::SynchronizeProperties() { ApplyTheme(); Super::SynchronizePrope
 TSharedRef<SWidget> UDrSurface::RebuildWidget() {
   if (UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get(); Subsystem && !ThemeHandle.IsValid())
     ThemeHandle = Subsystem->OnThemeChanged.AddWeakLambda(this, [this](const UDrUITheme&) { ApplyTheme(); });
-  TSharedRef<SWidget> Inner = Super::RebuildWidget();
+  // UBorder::RebuildWidget과 같되, 반사광을 내용 아래에 그리는 SDrSurfaceBorder를 쓴다.
+  MyBorder = SAssignNew(SurfaceBorder, SDrSurfaceBorder).FlipForRightToLeftFlowDirection(bFlipForRightToLeftFlowDirection);
+  if (GetChildrenCount() > 0) Cast<UBorderSlot>(GetContentSlot())->BuildSlot(MyBorder.ToSharedRef());
   // 흐림 강도 0이면 SBackgroundBlur는 그리지 않는다. 품질이 바뀌어도 트리를 다시 만들 필요가 없게 늘 감싼다.
-  SAssignNew(Blur, SBackgroundBlur).BlurStrength(0.f).bApplyAlphaToBlur(true).Padding(0.f)[Inner];
-  // 뒤 그림자 · 흐림+표면 · 앞 반사광(내용 위에 1px). 장식이 없으면 그리지 않는다.
-  SAssignNew(Shadow, SDrSurfaceDecor).bShadow(true);
-  SAssignNew(Highlight, SDrSurfaceDecor).bShadow(false);
+  SAssignNew(Blur, SBackgroundBlur).BlurStrength(0.f).bApplyAlphaToBlur(true).Padding(0.f)[MyBorder.ToSharedRef()];
+  // 뒤 그림자 · 흐림+표면(채움·테두리 → 반사광 → 내용). 그림자가 없으면 그리지 않는다.
+  SAssignNew(Shadow, SDrSurfaceDecor);
   ApplyTheme();
-  return SNew(SOverlay) + SOverlay::Slot()[Shadow.ToSharedRef()] + SOverlay::Slot()[Blur.ToSharedRef()] + SOverlay::Slot()[Highlight.ToSharedRef()];
+  return SNew(SOverlay) + SOverlay::Slot()[Shadow.ToSharedRef()] + SOverlay::Slot()[Blur.ToSharedRef()];
 }
 
 void UDrSurface::ReleaseSlateResources(bool bReleaseChildren) {
@@ -151,6 +169,6 @@ void UDrSurface::ReleaseSlateResources(bool bReleaseChildren) {
   ThemeHandle.Reset();
   Blur.Reset();
   Shadow.Reset();
-  Highlight.Reset();
+  SurfaceBorder.Reset();
   Super::ReleaseSlateResources(bReleaseChildren);
 }

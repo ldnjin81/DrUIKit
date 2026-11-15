@@ -5,12 +5,14 @@
 
 class SBackgroundBlur;
 class SDrSurfaceDecor;
+class SDrSurfaceBorder;
 
 /**
  * 표면(패널·카드 공통). 슬롯: 뒤 흐림, 채움 + 테두리(둥근 모서리), 내용.
  * 코어는 토큰 값대로 칠하기만 한다. 유리처럼 보이는지는 테마(샘플)가 정한다.
  * 표면 품질이 낮음이면 흐림을 끄고 FillStrongToken으로 칠한다(글자 대비 유지).
- * 그림자(ShadowToken)와 윗면 반사광(HighlightToken)은 정한 표면만 그린다(기본 끔). 그림자는 표면 바깥에만 그려
+ * 그림자(ShadowToken)와 윗면 반사광(HighlightToken)은 정한 표면만 그린다(기본 끔). 반사광은 채움 위·내용 아래에 그려
+ * 내용이 표면 밖으로 커져도 선이 내용을 덮지 않는다. 그림자는 표면 바깥에만 그려
  * 반투명 유리 안쪽이 탁해지지 않는다(CSS box-shadow처럼). 흐린 가장자리는 둥근 고리 여러 겹으로 흉내 낸다.
  */
 UCLASS()
@@ -44,6 +46,7 @@ protected:
   virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 private:
   TSharedPtr<SBackgroundBlur> Blur;
-  TSharedPtr<SDrSurfaceDecor> Shadow, Highlight;
+  TSharedPtr<SDrSurfaceDecor> Shadow;
+  TSharedPtr<SDrSurfaceBorder> SurfaceBorder;
   FDelegateHandle ThemeHandle;
 };
