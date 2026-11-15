@@ -529,15 +529,10 @@ FReply UDrPopoverPanel::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEve
 
 void UDrPopoverPanel::NativeConstruct() {
   Super::NativeConstruct();
-  if (bAsPopup) DrUIInput::PushModal(this);  // 열려 있는 동안 단축키는 이 판 안만
   // 패드로 열었으면 판 안 첫 항목으로(판 자체에 포커스가 머물면 십자키로 들어갈 수 없다).
   if (DrUIInput::IsUsingGamepad(this)) DrUIInput::FocusFirstIn(Surface);
 }
 
-void UDrPopoverPanel::NativeDestruct() {
-  DrUIInput::PopModal(this);
-  Super::NativeDestruct();
-}
 
 TSharedRef<SWidget> UDrPopover::RebuildWidget() {
   if (WidgetTree && !WidgetTree->RootWidget) {
@@ -554,8 +549,9 @@ TSharedRef<SWidget> UDrPopover::RebuildWidget() {
 }
 
 void UDrPopover::HandleMenuOpenChanged(bool bIsOpen) {
-  // 닫히면(바깥 누름·B·Close) 연 곳으로 포커스를 돌려준다.
-  if (!bIsOpen) FocusMemory.Restore();
+  // 열린 동안은 이 팝오버가 단축키의 맨 위 층(판은 이 팝오버가 만든 위젯이라 그 안에 든다). 닫히면(바깥 누름·B·Close) 연 곳으로 포커스.
+  if (bIsOpen) DrUIInput::PushModal(this);
+  else { DrUIInput::PopModal(this); FocusMemory.Restore(); }
 }
 
 void UDrPopover::SetTrigger(UWidget* Trigger) {
@@ -573,7 +569,6 @@ void UDrPopover::SetBody(UWidget* Content) {
 UUserWidget* UDrPopover::HandleGetMenu() {
   if (!Panel) {
     Panel = CreateWidget<UDrPopoverPanel>(this, UDrPopoverPanel::StaticClass());
-    Panel->bAsPopup = true;
     Panel->SetBody(PendingBody);
     Panel->OnDismiss.BindWeakLambda(this, [this] { Close(); });
   }

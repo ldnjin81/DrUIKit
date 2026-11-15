@@ -87,6 +87,7 @@ void UDrConfirmDialog::ApplyContent() {
 
 void UDrConfirmDialog::NativeOnActivated() {
   Super::NativeOnActivated();
+  FocusMemory.Save();
   DrUIInput::PushModal(this);  // 떠 있는 동안 단축키는 대화상자 안만
   bResolved = false;
   const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
@@ -99,8 +100,14 @@ void UDrConfirmDialog::NativeOnActivated() {
   ApplyPresence();
 }
 
+FReply UDrConfirmDialog::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
+  if (DrUIInput::GetAction(Event) == EDrUIInputAction::Back && !Event.IsRepeat()) { Resolve(false); return FReply::Handled(); }
+  return Super::NativeOnKeyDown(Geometry, Event);
+}
+
 void UDrConfirmDialog::NativeOnDeactivated() {
   DrUIInput::PopModal(this);
+  FocusMemory.Restore();
   if (Ticker.IsValid()) FTSTicker::GetCoreTicker().RemoveTicker(Ticker);
   Ticker.Reset();
   Super::NativeOnDeactivated();

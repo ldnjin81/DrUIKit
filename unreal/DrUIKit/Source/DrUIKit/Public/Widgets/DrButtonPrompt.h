@@ -35,14 +35,14 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FText Label;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrPromptDevice Device = EDrPromptDevice::Auto;
   /** 패드 표기. 자동이면 설정·지금 패드 종류. */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrGamepadGlyphs Glyphs = EDrGamepadGlyphs::Auto;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrUIGamepadGlyphs Glyphs = EDrUIGamepadGlyphs::Auto;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float KeyHeight = 24.f;
   /** 얼굴 버튼을 패드 고유색으로. */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") bool bBrandColors = false;
 
   UFUNCTION(BlueprintCallable, Category = "DrUI") void SetKeys(FKey InKeyboardKey, FKey InGamepadKey, const FText& InLabel);
   UFUNCTION(BlueprintCallable, Category = "DrUI") void SetDevice(EDrPromptDevice InDevice);
-  UFUNCTION(BlueprintCallable, Category = "DrUI") void SetGlyphs(EDrGamepadGlyphs InGlyphs);
+  UFUNCTION(BlueprintCallable, Category = "DrUI") void SetGlyphs(EDrUIGamepadGlyphs InGlyphs);
   /** 0이면 막대 숨김. */
   UFUNCTION(BlueprintCallable, Category = "DrUI") void SetHoldProgress(float Progress);
 

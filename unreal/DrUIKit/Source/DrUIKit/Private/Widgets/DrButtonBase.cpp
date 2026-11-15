@@ -163,6 +163,12 @@ void UDrButtonBase::TriggerShortcut() {
 
 void UDrButtonBase::TriggerHint(FName HintId) { OnHintAction.Broadcast(HintId); DrUIFeedback::Play(this, EDrUIFeedback::Confirm); }
 
+FNavigationReply UDrButtonBase::NativeOnNavigation(const FGeometry& Geometry, const FNavigationEvent& Event, const FNavigationReply& DefaultReply) {
+  FNavigationReply Reply = DefaultReply;
+  if (NavTargets.Handle(this, Event.GetNavigationType(), Reply)) return Reply;
+  return Super::NativeOnNavigation(Geometry, Event, DefaultReply);
+}
+
 FReply UDrButtonBase::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
   if (!Event.IsRepeat())
     for (const FDrActionHint& Hint : ActionHints)

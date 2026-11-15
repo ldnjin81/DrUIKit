@@ -27,6 +27,16 @@ protected:
   virtual void ApplyVisualState() override;
 };
 
+/** 탭 넘기기 키(화면의 위 탭은 숄더, 그 아래 하위 탭은 트리거가 흔한 배치). */
+UENUM(BlueprintType)
+enum class EDrTabPaging : uint8 {
+  None,
+  /** LB·RB(키보드 Q·E). */
+  Bumpers,
+  /** LT·RT(키보드 Z·C). */
+  Triggers
+};
+
 UENUM(BlueprintType)
 enum class EDrTabStyle : uint8 {
   /** 유리 바 위에서 진한 알약(chip)이 선택 탭으로 미끄러진다. */
@@ -39,8 +49,8 @@ enum class EDrTabStyle : uint8 {
  * 탭 목록(디자인 시스템 '탭 인디케이터'). 탭 등록·선택·패드 좌우 이동·화면 전환 연결은 CommonUI 탭 목록이 맡고,
  * 여기서는 탭 바 모양과 선택 탭을 따라 미끄러지는 인디케이터(스프링)를 더한다.
  * 쓰는 법: SetLinkedSwitcher(UCommonAnimatedSwitcher) → AddTab(아이디, 이름, 내용). 내용은 미리 스위처에 넣어 둔다.
- * 게임패드: bShoulderNavigation이면 포커스가 어디 있든 LB·RB(키보드 Q·E)로 탭을 넘기고 양 끝에 그 키 모양을 붙인다.
- * 하위 탭은 bSubTabNavigation(LT·RT, Z·C). 패드로 넘기면 고른 탭 버튼으로 포커스가 간다(내용이 바뀌어도 포커스를 잃지 않게).
+ * 게임패드: Paging(Bumpers·Triggers)을 정하면 포커스가 어디 있든 그 키(LB·RB / LT·RT, 키보드 Q·E / Z·C)로 탭을 넘기고
+ * 양 끝에 그 키 모양을 붙인다. 키로 넘기면 고른 탭 버튼으로 포커스가 간다(bFocusTabOnPaging, 내용이 바뀌어도 포커스를 잃지 않게).
  */
 UCLASS()
 class DRUIKIT_API UDrTabList : public UCommonTabListWidgetBase {
@@ -50,17 +60,17 @@ public:
   /** 탭 버튼 너비를 가장 긴 탭에 맞춰 똑같이 할지(세그먼트). 트리를 만들기 전에 정한다. */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") bool bEqualWidth = false;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") TSubclassOf<UDrTabButton> TabButtonClass;
-  /** LB·RB(Q·E)로 넘긴다(화면의 위 탭). */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bShoulderNavigation = false;
-  /** LT·RT(Z·C)로 넘긴다(하위 탭). */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bSubTabNavigation = false;
+  /** 어느 키로 넘길지(없음이면 키로 넘기지 않음). */
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") EDrTabPaging Paging = EDrTabPaging::None;
   /** 넘기기 키 모양을 양 끝에 보인다. */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bShowNavigationKeys = true;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bShowPagingKeys = true;
   /** 끝에서 넘기면 처음으로. */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bWrapNavigation = true;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bWrapPaging = true;
   /** 탭 버튼에서 아래(탭이 내용 위에 있을 때)로 가면 연결된 스위처의 지금 내용 중 첫 조작 부품으로 들어간다.
-      Slate 방향 이동은 버튼 바로 아래 띠만 찾아서, 아래에 부품이 없으면 탭에서 내려가지 못한다(전역 입력 처리기가 D패드·방향키 아래를 받는다). */
+      Slate 방향 이동은 버튼 바로 아래 띠만 찾아서, 아래에 부품이 없으면 탭에서 내려가지 못한다. 연결된 스위처가 없으면 엔진 기본 이동. */
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bDownEntersContent = true;
+  /** 키로 넘기면 고른 탭 버튼에 포커스(내용이 바뀌어도 포커스를 잃지 않게). 화면이 넘긴 뒤 포커스를 직접 정하면 끈다. */
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI|Gamepad") bool bFocusTabOnPaging = true;
 
   UDrTabList(const FObjectInitializer& Initializer);
   /** 탭 하나를 더한다. Content가 있으면 연결된 스위처에서 이 탭을 고를 때 보인다. */
@@ -73,8 +83,8 @@ public:
   bool OwnsTabButton(const UWidget* Button) const;
   /** 연결된 스위처의 지금 내용 중 첫 조작 부품에 포커스(bDownEntersContent일 때 전역 입력 처리기가 부른다). 했으면 true. */
   bool FocusContent();
-  /** 넘기기 플래그를 바꾼 뒤 양 끝 키 모양을 맞춘다. */
-  UFUNCTION(BlueprintCallable, Category = "DrUI|Gamepad") void SetTabNavigation(bool bShoulder, bool bSubTab);
+  /** 넘기기 키를 바꾸고 양 끝 키 모양을 맞춘다. */
+  UFUNCTION(BlueprintCallable, Category = "DrUI|Gamepad") void SetPaging(EDrTabPaging InPaging);
 
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Track;

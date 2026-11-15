@@ -64,8 +64,12 @@
 #include "Core/DrUIInput.h"
 #include "DrGlassConsoleMenu.h"
 #include "Framework/Application/SlateApplication.h"
-#include "Widgets/DrGamepadUX.h"
-#include "Widgets/DrInventory.h"
+#include "Widgets/DrActionBar.h"
+#include "Widgets/DrOptionRow.h"
+#include "Widgets/DrPressAnyKey.h"
+#include "Widgets/DrItemGrid.h"
+#include "Widgets/DrItemSlot.h"
+#include "Widgets/DrStatCompare.h"
 #include "Widgets/DrKeyGlyph.h"
 
 #define LOCTEXT_NAMESPACE "DrGlassGallery"
@@ -87,7 +91,7 @@ TArray<UClass*> UDrGlassGallery::CoveredClasses() {
     UDrStepIndicator::StaticClass(), UDrCompletion::StaticClass(), UDrEmptyState::StaticClass(),
     UDrTextReveal::StaticClass(), UDrSparkline::StaticClass(), UDrDonut::StaticClass(), UDrStatCard::StaticClass(),
     UDrUIRootLayout::StaticClass(), UDrConfirmDialog::StaticClass(),
-    UDrKeyGlyph::StaticClass(), UDrActionBar::StaticClass(), UDrPressAnyKey::StaticClass(), UDrItemSlot::StaticClass(), UDrItemGrid::StaticClass(), UDrStatCompare::StaticClass()};
+    UDrKeyGlyph::StaticClass(), UDrActionBar::StaticClass(), UDrPressAnyKey::StaticClass(), UDrItemSlot::StaticClass(), UDrItemGrid::StaticClass(), UDrStatCompare::StaticClass(), UDrOptionRow::StaticClass()};
 }
 
 UDrText* UDrGlassGallery::MakeText(const FText& Text, FName Style, FName Color) {
@@ -1183,10 +1187,10 @@ UWidget* UDrGlassGallery::BuildGamepadPage() {
     EKeys::Gamepad_LeftShoulder, EKeys::Gamepad_RightShoulder, EKeys::Gamepad_LeftTrigger, EKeys::Gamepad_RightTrigger, EKeys::Gamepad_LeftThumbstick, EKeys::Gamepad_RightThumbstick,
     EKeys::Gamepad_Left2D, EKeys::Gamepad_RightY, EKeys::Gamepad_DPad_Up, EKeys::Gamepad_DPad_Right, EKeys::Gamepad_DPad_Down, EKeys::Gamepad_DPad_Left,
     EKeys::Gamepad_Special_Left, EKeys::Gamepad_Special_Right};
-  for (const auto& [Family, Name, bBrand] : TArray<TTuple<EDrGamepadGlyphs, FText, bool>>{
-         {EDrGamepadGlyphs::Xbox, LOCTEXT("GlyphXbox", "Xbox"), false}, {EDrGamepadGlyphs::Xbox, LOCTEXT("GlyphXboxColor", "Xbox(고유색)"), true},
-         {EDrGamepadGlyphs::PlayStation, LOCTEXT("GlyphPS", "PlayStation"), false}, {EDrGamepadGlyphs::PlayStation, LOCTEXT("GlyphPSColor", "PlayStation(고유색)"), true},
-         {EDrGamepadGlyphs::Nintendo, LOCTEXT("GlyphSwitch", "Nintendo Switch"), false}}) {
+  for (const auto& [Family, Name, bBrand] : TArray<TTuple<EDrUIGamepadGlyphs, FText, bool>>{
+         {EDrUIGamepadGlyphs::Xbox, LOCTEXT("GlyphXbox", "Xbox"), false}, {EDrUIGamepadGlyphs::Xbox, LOCTEXT("GlyphXboxColor", "Xbox(고유색)"), true},
+         {EDrUIGamepadGlyphs::PlayStation, LOCTEXT("GlyphPS", "PlayStation"), false}, {EDrUIGamepadGlyphs::PlayStation, LOCTEXT("GlyphPSColor", "PlayStation(고유색)"), true},
+         {EDrUIGamepadGlyphs::Nintendo, LOCTEXT("GlyphSwitch", "Nintendo Switch"), false}}) {
     UHorizontalBox* Line = Row();
     USizeBox* Caption = WidgetTree->ConstructWidget<USizeBox>();
     Caption->SetWidthOverride(150.f);
@@ -1281,6 +1285,32 @@ UWidget* UDrGlassGallery::BuildGamepadPage() {
   if (UHorizontalBoxSlot* S = Inventory->AddChildToHorizontalBox(Detail)) S->SetVerticalAlignment(VAlign_Top);
   Add(Section(LOCTEXT("InventoryTitle", "인벤토리 칸(UDrItemSlot·UDrItemGrid) + 능력치 비교(UDrStatCompare) · 십자키로 칸 이동(줄 끝은 이웃 줄로), 희귀도·장착 E·NEW(보면 사라짐)·수량"), Inventory));
 
+  // 옵션 줄: 좌우는 줄 안 조작 부품 몫, 위아래는 이웃 줄(목록으로 이음).
+  UVerticalBox* Options = WidgetTree->ConstructWidget<UVerticalBox>();
+  TArray<UWidget*> OptionChain;
+  auto Option = [&](const FText& Label, UWidget* Control) {
+    UDrOptionRow* Row = WidgetTree->ConstructWidget<UDrOptionRow>();
+    Row->Label = Label;
+    Row->SetControl(Control);
+    if (UVerticalBoxSlot* S = Options->AddChildToVerticalBox(Row)) S->SetPadding(FMargin(0, 2));
+    OptionChain.Add(Row);
+  };
+  UDrHorizontalSelector* Difficulty = WidgetTree->ConstructWidget<UDrHorizontalSelector>();
+  Difficulty->SetOptions({LOCTEXT("OptEasy", "쉬움"), LOCTEXT("OptNormal", "보통"), LOCTEXT("OptHard", "어려움")});
+  Difficulty->SetSelectedIndex(1);
+  Option(LOCTEXT("OptDifficulty", "난이도"), Difficulty);
+  UDrSlider* Brightness = WidgetTree->ConstructWidget<UDrSlider>();
+  Brightness->SetValue(.6f);
+  Option(LOCTEXT("OptBrightness", "밝기"), Brightness);
+  UDrSwitch* Subtitles = WidgetTree->ConstructWidget<UDrSwitch>();
+  Subtitles->SetOn(true);
+  Option(LOCTEXT("OptSubtitles", "자막"), Subtitles);
+  DrUIInput::ChainVertical(OptionChain, false);
+  USizeBox* OptionsBox = WidgetTree->ConstructWidget<USizeBox>();
+  OptionsBox->SetWidthOverride(620.f);
+  OptionsBox->AddChild(Options);
+  Add(Section(LOCTEXT("OptionTitle", "옵션 줄(UDrOptionRow) · 좌우는 줄 안 조작 부품(선택기·슬라이더·스위치)이 쓰고, 위아래는 이웃 줄로"), OptionsBox));
+
   // 아무 버튼이나 누르세요 + 접근성·피드백.
   UHorizontalBox* Bottom = Row();
   UVerticalBox* AnyKey = WidgetTree->ConstructWidget<UVerticalBox>();
@@ -1325,7 +1355,7 @@ UWidget* UDrGlassGallery::BuildGamepadPage() {
 }
 
 void UDrGlassGallery::HandleGlyphChoice(int32 Index) {
-  static const EDrGamepadGlyphs Choices[] = {EDrGamepadGlyphs::Auto, EDrGamepadGlyphs::Xbox, EDrGamepadGlyphs::PlayStation, EDrGamepadGlyphs::Nintendo};
+  static const EDrUIGamepadGlyphs Choices[] = {EDrUIGamepadGlyphs::Auto, EDrUIGamepadGlyphs::Xbox, EDrUIGamepadGlyphs::PlayStation, EDrUIGamepadGlyphs::Nintendo};
   if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get(); S && Index >= 0 && Index < UE_ARRAY_COUNT(Choices)) S->SetGamepadGlyphs(Choices[Index]);
 }
 
@@ -1461,7 +1491,7 @@ void UDrGlassGallery::Build() {
   UHorizontalBox* TabRow = WidgetTree->ConstructWidget<UHorizontalBox>();
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(TabRow)) S->SetPadding(FMargin(0, 0, 0, 16));
   PageTabs = WidgetTree->ConstructWidget<UDrTabList>();
-  PageTabs->SetTabNavigation(true, false);  // LB·RB(Q·E)로 페이지 넘김, 양 끝에 키 모양
+  PageTabs->SetPaging(EDrTabPaging::Bumpers);  // LB·RB(Q·E)로 페이지 넘김, 양 끝에 키 모양
   if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(PageTabs)) S->SetVerticalAlignment(VAlign_Center);
   if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(WidgetTree->ConstructWidget<USpacer>())) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
   TArray<FText> StyleNames;
@@ -1649,40 +1679,107 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   return true;
 }
 
+namespace {
+// 합성 마우스 입력(둘러보기용): 위젯 가운데로 옮기고 누른다.
+FVector2D GTourCursor(10.f, 10.f);
+FVector2D CenterOf(const UWidget* Widget) {
+  if (!Widget) return GTourCursor;
+  const FGeometry& G = Widget->GetCachedGeometry();
+  return FVector2D(G.LocalToAbsolute(G.GetLocalSize() * .5f));
+}
+void TourMouseMove(FVector2D To) {
+  FSlateApplication& App = FSlateApplication::Get();
+  // 몇 번에 나눠 옮긴다(입력 종류가 마우스로 바뀌는 문턱을 넘게).
+  for (int32 I = 1; I <= 4; ++I) {
+    const FVector2D Next = FMath::Lerp(GTourCursor, To, I / 4.f), Last = FMath::Lerp(GTourCursor, To, (I - 1) / 4.f);
+    App.ProcessMouseMoveEvent(FPointerEvent(0, Next, Last, TSet<FKey>(), EKeys::Invalid, 0.f, FModifierKeysState()));
+  }
+  GTourCursor = To;
+}
+void TourClick(FVector2D At, FKey Button) {
+  TourMouseMove(At);
+  FSlateApplication& App = FSlateApplication::Get();
+  App.ProcessMouseButtonDownEvent(nullptr, FPointerEvent(0, At, At, TSet<FKey>{Button}, Button, 0.f, FModifierKeysState()));
+  App.ProcessMouseButtonUpEvent(FPointerEvent(0, At, At, TSet<FKey>(), Button, 0.f, FModifierKeysState()));
+}
+}
+
 bool UDrGlassGallery::TourStep(float DeltaTime) {
-  // 합성 패드 입력(슬레이트에 키 누름·뗌을 넣는다 — CommonInput도 패드로 본다)으로 둘러보며 찍는다. 프레임으로 센다.
+  // 합성 입력(슬레이트에 키·마우스를 넣는다 — CommonInput도 그 장치로 본다)으로 둘러보며 찍는다. 프레임으로 센다.
   struct FStep { FKey Key; TFunction<void()> Action; const TCHAR* Shot; };
-  const FStep Steps[] = {
+  auto Click = [](TFunction<UWidget*()> Target, FKey Button = EKeys::LeftMouseButton) { return [Target, Button] { TourClick(CenterOf(Target()), Button); }; };
+  auto Hover = [](TFunction<UWidget*()> Target) { return [Target] { TourMouseMove(CenterOf(Target())); }; };
+  auto D1 = [this](int32 I) { return TFunction<UWidget*()>([this, I] { return ConsoleMenu ? ConsoleMenu->GetDepth1Row(I) : nullptr; }); };
+  auto D2 = [this](int32 I) { return TFunction<UWidget*()>([this, I] { return ConsoleMenu ? ConsoleMenu->GetDepth2Item(I) : nullptr; }); };
+  const FKey Up = EKeys::Gamepad_DPad_Up, Down = EKeys::Gamepad_DPad_Down, Left = EKeys::Gamepad_DPad_Left, Right = EKeys::Gamepad_DPad_Right, A = EKeys::Gamepad_FaceButton_Bottom, B = EKeys::Gamepad_FaceButton_Right;
+  const TArray<FStep> Steps = {
     {EKeys::Invalid, nullptr, nullptr},
     {EKeys::Gamepad_LeftShoulder, nullptr, TEXT("01_lb_wraps_to_gamepad_page")},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("02_down")},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("03_down")},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("04_down")},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("05_down")},
-    {EKeys::Gamepad_DPad_Right, nullptr, TEXT("06_right")},
-    {EKeys::Invalid, [] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetGamepadGlyphs(EDrGamepadGlyphs::PlayStation); }, TEXT("07_playstation_glyphs")},
-    {EKeys::Invalid, [] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetGamepadGlyphs(EDrGamepadGlyphs::Nintendo); }, TEXT("08_switch_glyphs")},
-    {EKeys::Invalid, [] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetGamepadGlyphs(EDrGamepadGlyphs::Xbox); }, nullptr},
+    {Down, nullptr, TEXT("02_down")},
+    {Down, nullptr, TEXT("03_down")},
+    {Down, nullptr, TEXT("04_down")},
+    {Down, nullptr, TEXT("05_down")},
+    {Right, nullptr, TEXT("06_right")},
+    {EKeys::Invalid, [] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetGamepadGlyphs(EDrUIGamepadGlyphs::PlayStation); }, TEXT("07_playstation_glyphs")},
+    {EKeys::Invalid, [] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetGamepadGlyphs(EDrUIGamepadGlyphs::Nintendo); }, TEXT("08_switch_glyphs")},
+    {EKeys::Invalid, [] { if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetGamepadGlyphs(EDrUIGamepadGlyphs::Xbox); }, nullptr},
+    // 콘솔 게임 메뉴: 뎁스 안에서만 움직이는지.
     {EKeys::Gamepad_Special_Left, nullptr, TEXT("09_view_opens_console_menu")},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("10_depth1_down")},
-    {EKeys::Gamepad_FaceButton_Bottom, nullptr, TEXT("11_a_enters_depth2")},
-    {EKeys::Gamepad_DPad_Down, nullptr, nullptr},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("12_depth2_down_info")},
-    {EKeys::Gamepad_FaceButton_Bottom, nullptr, TEXT("13_a_equips")},
-    {EKeys::Gamepad_RightTrigger, nullptr, TEXT("14_rt_sub_tab")},
-    {EKeys::Gamepad_RightShoulder, nullptr, TEXT("15_rb_main_tab")},
-    {EKeys::Gamepad_DPad_Down, nullptr, TEXT("16_down_into_list")},
-    {EKeys::Gamepad_FaceButton_Right, nullptr, TEXT("17_b_back_to_depth1")},
-    {EKeys::Gamepad_FaceButton_Right, nullptr, TEXT("18_b_closes_menu")}};
+    {Up, nullptr, TEXT("10_up_wraps_in_depth1")},
+    {Left, nullptr, TEXT("11_left_stays_in_depth1")},
+    {Right, nullptr, TEXT("12_right_enters_depth2")},
+    {Down, nullptr, nullptr},
+    {Down, nullptr, TEXT("13_depth2_down_info")},
+    {Left, nullptr, TEXT("14_left_back_to_depth1")},
+    {Right, nullptr, TEXT("15_right_returns_to_same_row")},
+    {A, nullptr, TEXT("16_a_equips")},
+    {EKeys::Gamepad_RightShoulder, nullptr, nullptr},
+    {EKeys::Gamepad_RightShoulder, nullptr, nullptr},
+    {EKeys::Gamepad_RightShoulder, nullptr, TEXT("17_rb_settings_focus_depth1")},
+    // 설정 2뎁스: 좌우는 줄 안 조작 부품, 위아래는 이웃 줄.
+    {Right, nullptr, TEXT("18_right_into_options")},
+    {Right, nullptr, TEXT("19_right_changes_selector")},
+    {Down, nullptr, nullptr},
+    {Right, nullptr, nullptr},
+    {Right, nullptr, TEXT("20_slider_adjusted")},
+    {Down, nullptr, nullptr},
+    {Right, nullptr, TEXT("21_segment_right_within_row")},
+    {Down, nullptr, nullptr},
+    {Down, nullptr, nullptr},
+    {Down, nullptr, nullptr},
+    {Right, nullptr, TEXT("22_radio_right_within_row")},
+    {Down, nullptr, nullptr},
+    {Right, nullptr, nullptr},
+    {Right, nullptr, TEXT("23_stepper_right_stays_in_row")},
+    {Down, nullptr, nullptr},
+    {A, nullptr, TEXT("24_a_opens_dropdown")},
+    {Down, nullptr, TEXT("24b_down_in_list")},
+    {B, nullptr, TEXT("25_b_closes_dropdown_focus_back")},
+    {Down, nullptr, nullptr},
+    {Down, nullptr, nullptr},
+    {Down, nullptr, TEXT("26_scrolled_to_dialog_button")},
+    {A, nullptr, TEXT("27_a_opens_confirm_over_menu")},
+    {Up, nullptr, TEXT("28_up_stays_in_dialog")},
+    {B, nullptr, TEXT("29_b_closes_dialog_focus_back")},
+    {B, nullptr, TEXT("30_b_back_to_depth1")},
+    // 키보드·마우스 ↔ 패드 전환.
+    {EKeys::Invalid, Click(D1(1)), TEXT("31_mouse_click_depth1_no_ring")},
+    {EKeys::Invalid, Hover(D2(2)), TEXT("32_mouse_hover_depth2_info")},
+    {EKeys::Invalid, Click(D2(1)), TEXT("33_mouse_clicks_depth2_directly")},
+    {Down, nullptr, TEXT("34_pad_after_mouse_ring_back")},
+    {EKeys::Up, nullptr, TEXT("35_keyboard_up_keys_shown")},
+    {EKeys::Invalid, Click([this] { return ConsoleMenu ? ConsoleMenu->GetInfoText() : nullptr; }), TEXT("36_mouse_click_empty_area")},
+    {Down, nullptr, TEXT("37_pad_restores_focus")},
+    {EKeys::Invalid, Click(D1(0), EKeys::RightMouseButton), TEXT("38_right_click_closes")}};
   TourWait -= 1.f;
   if (TourWait > 0.f) return true;
-  if (TourIndex >= UE_ARRAY_COUNT(Steps)) { FPlatformMisc::RequestExit(false, TEXT("DrUIGamepadTour")); return false; }
+  if (TourIndex >= Steps.Num()) { FPlatformMisc::RequestExit(false, TEXT("DrUIGamepadTour")); return false; }
   const FStep& Step = Steps[TourIndex++];
   if (Step.Key.IsValid()) {
     FSlateApplication& App = FSlateApplication::Get();
-    const FKeyEvent Down(Step.Key, FModifierKeysState(), 0, false, 0, 0);
-    App.ProcessKeyDownEvent(Down);
-    App.ProcessKeyUpEvent(Down);
+    const FKeyEvent Press(Step.Key, FModifierKeysState(), 0, false, 0, 0);
+    App.ProcessKeyDownEvent(Press);
+    App.ProcessKeyUpEvent(Press);
   }
   if (Step.Action) Step.Action();
   if (Step.Shot) {

@@ -37,8 +37,8 @@ public:
   float GetTextScale() const { return TextScale; }
   void SetTextScale(float Scale);
   /** 패드 버튼 표기. Auto면 설정 → CommonInput 패드 종류. 바뀌면 알린다. */
-  EDrGamepadGlyphs GetGamepadGlyphs() const { return GamepadGlyphs; }
-  void SetGamepadGlyphs(EDrGamepadGlyphs Glyphs);
+  EDrUIGamepadGlyphs GetGamepadGlyphs() const { return GamepadGlyphs; }
+  void SetGamepadGlyphs(EDrUIGamepadGlyphs Glyphs);
   bool IsUISounds() const { return bUISounds; }
   void SetUISounds(bool bOn) { bUISounds = bOn; }
   bool IsUIHaptics() const { return bUIHaptics; }
@@ -54,7 +54,7 @@ private:
   float SurfaceTransparency = .5f;
   bool bReduceMotion = false;
   float TextScale = 1.f;
-  EDrGamepadGlyphs GamepadGlyphs = EDrGamepadGlyphs::Auto;
+  EDrUIGamepadGlyphs GamepadGlyphs = EDrUIGamepadGlyphs::Auto;
   bool bUISounds = true, bUIHaptics = true;
   void Broadcast();
 };

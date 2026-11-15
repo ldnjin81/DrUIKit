@@ -325,8 +325,6 @@ FReply UDrDropdownMenu::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEve
   return Super::NativeOnKeyDown(Geometry, Event);
 }
 
-void UDrDropdownMenu::NativeConstruct() { Super::NativeConstruct(); if (bAsPopup) DrUIInput::PushModal(this); }
-void UDrDropdownMenu::NativeDestruct() { DrUIInput::PopModal(this); Super::NativeDestruct(); }
 
 // ---------------------------------------------------------------- 드롭다운
 
@@ -382,6 +380,15 @@ void UDrDropdown::SetSelectedIndex(int32 Index, bool bBroadcast) {
 
 bool UDrDropdown::IsMenuOpen() const { return Anchor && Anchor->IsOpen(); }
 
+FReply UDrDropdown::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
+  // 목록이 같은 창 안에 그려지면 목록의 키가 이 드롭다운을 거쳐 올라온다. 뒤로는 화면이 아니라 목록 닫기.
+  if (IsMenuOpen() && DrUIInput::GetAction(Event) == EDrUIInputAction::Back) {
+    Anchor->Close();
+    return FReply::Handled();
+  }
+  return Super::NativeOnKeyDown(Geometry, Event);
+}
+
 void UDrDropdown::NativeOnClicked() {
   Super::NativeOnClicked();
   if (!Anchor) return;
@@ -393,7 +400,6 @@ void UDrDropdown::NativeOnClicked() {
 UUserWidget* UDrDropdown::HandleGetMenu() {
   UDrDropdownMenu* Menu = CreateWidget<UDrDropdownMenu>(this, MenuClass ? MenuClass.Get() : UDrDropdownMenu::StaticClass());
   if (!Menu) return nullptr;
-  Menu->bAsPopup = true;
   Menu->SetOptions(Options, SelectedIndex, GetCachedGeometry().GetLocalSize().X);
   Menu->OnPicked.BindWeakLambda(this, [this](int32 Index) {
     SetSelectedIndex(Index, true);
@@ -404,6 +410,9 @@ UUserWidget* UDrDropdown::HandleGetMenu() {
 }
 
 void UDrDropdown::HandleMenuOpenChanged(bool bIsOpen) {
+  // 펼친 동안은 이 드롭다운이 단축키의 맨 위 층(목록은 이 드롭다운이 만든 위젯이라 그 안에 든다).
+  if (bIsOpen) DrUIInput::PushModal(this);
+  else DrUIInput::PopModal(this);
   bOpen = bIsOpen;
   DriveSpring(ChevronTurn, bIsOpen ? 1.f : 0.f);
   if (Chevron && ChevronTurn.IsSettled()) Chevron->SetRenderTransformAngle(180.f * ChevronTurn.Value);

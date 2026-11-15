@@ -75,7 +75,7 @@ void UDrUIThemeSubsystem::SetTextScale(float Scale) {
   Broadcast();
 }
 
-void UDrUIThemeSubsystem::SetGamepadGlyphs(EDrGamepadGlyphs Glyphs) {
+void UDrUIThemeSubsystem::SetGamepadGlyphs(EDrUIGamepadGlyphs Glyphs) {
   if (Glyphs == GamepadGlyphs) return;
   GamepadGlyphs = Glyphs;
   Broadcast();

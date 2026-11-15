@@ -1,5 +1,6 @@
 #include "Flow/DrUIScreens.h"
 #include "Core/DrUIFeedback.h"
+#include "Core/DrUIInput.h"
 #include "Flow/DrUIFlowSubsystem.h"
 #include "InputMappingContext.h"
 #include "Theme/DrUIKitSettings.h"
@@ -27,7 +28,8 @@ bool UDrUIMenuWidget::NativeOnHandleBackAction() {
 }
 
 FReply UDrUIMenuWidget::NativeOnPreviewKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
-  if (Event.GetKey() == EKeys::Escape || Event.GetKey() == EKeys::Gamepad_Special_Right) {
+  // 뒤로: Esc·패드 메뉴 버튼, 그리고 B(CommonUI 뒤로 동작이 입력 데이터에 없어도 동작하게).
+  if (Event.GetKey() == EKeys::Escape || Event.GetKey() == EKeys::Gamepad_Special_Right || DrUIInput::GetAction(Event) == EDrUIInputAction::Back) {
     if (!Event.IsRepeat()) NativeOnHandleBackAction();
     return FReply::Handled();
   }

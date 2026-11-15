@@ -36,7 +36,7 @@ public:
 
   // 게임패드
   /** 패드 버튼 표기(Xbox·PlayStation·Nintendo). 자동이면 CommonInput이 알려 주는 패드 종류를 따른다. */
-  UPROPERTY(Config, EditAnywhere, Category = "게임패드") EDrGamepadGlyphs GamepadGlyphs = EDrGamepadGlyphs::Auto;
+  UPROPERTY(Config, EditAnywhere, Category = "게임패드") EDrUIGamepadGlyphs GamepadGlyphs = EDrUIGamepadGlyphs::Auto;
 
   // UI 피드백(포커스 이동·확인·뒤로·오류·값 한 칸). 소리는 게임이 지정하고, 진동은 패드로 조작 중일 때만 짧게 준다.
   UPROPERTY(Config, EditAnywhere, Category = "피드백") bool bUISounds = true;

@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "CommonButtonBase.h"
 #include "CommonInputTypeEnum.h"
+#include "Core/DrUIInput.h"
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIState.h"
 #include "InputCoreTypes.h"
@@ -66,6 +67,8 @@ public:
   UFUNCTION(BlueprintCallable, Category = "DrUI|Gamepad") void TriggerHint(FName HintId);
   /** 지금 행동 안내를 보일 버튼(포커스가 든 DrUIKit 버튼, 없으면 nullptr). */
   static UDrButtonBase* GetHintFocus();
+  /** 방향 이동 대상(목록 잇기, 뎁스 오가기 등). 정하지 않은 방향은 엔진 기본. */
+  FDrUINavTargets NavTargets;
   /** 눌림·포커스 상태를 지운다(목록이 버튼을 빼서 다시 쓸 때: 포커스를 가진 채 빠지면 해제 알림이 오지 않는다). */
   void ResetInteractionState();
 
@@ -105,6 +108,7 @@ protected:
   virtual void NativeOnClicked() override;
   virtual void NativeConstruct() override;
   virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
+  virtual FNavigationReply NativeOnNavigation(const FGeometry& Geometry, const FNavigationEvent& Event, const FNavigationReply& DefaultReply) override;
   /** 단축키가 바뀌면(버튼 안 키 모양 갱신용). */
   virtual void OnShortcutChanged() {}
 

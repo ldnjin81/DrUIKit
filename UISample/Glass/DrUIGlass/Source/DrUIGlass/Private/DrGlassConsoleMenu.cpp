@@ -1,5 +1,6 @@
 #include "DrGlassConsoleMenu.h"
 #include "Blueprint/WidgetTree.h"
+#include "CommonButtonBase.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Overlay.h"
@@ -10,13 +11,22 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Core/DrUIFeedback.h"
 #include "DrGlassBackdrop.h"
-#include "Widgets/DrGamepadUX.h"
+#include "Flow/DrUIFlowSubsystem.h"
+#include "Groups/CommonButtonGroupBase.h"
+#include "Theme/DrUITheme.h"
+#include "Widgets/DrActionBar.h"
+#include "Widgets/DrButton.h"
+#include "Widgets/DrHoldButton.h"
+#include "Widgets/DrInput.h"
 #include "Widgets/DrListRow.h"
+#include "Widgets/DrOptionRow.h"
+#include "Widgets/DrQuantityStepper.h"
 #include "Widgets/DrScrollBox.h"
+#include "Widgets/DrSlider.h"
 #include "Widgets/DrSurface.h"
 #include "Widgets/DrTabList.h"
-#include "Theme/DrUITheme.h"
 #include "Widgets/DrText.h"
+#include "Widgets/DrToggle.h"
 
 #define LOCTEXT_NAMESPACE "DrGlassConsoleMenu"
 
@@ -93,13 +103,15 @@ void UDrGlassConsoleMenu::Build() {
 
   // 메인 탭(LB·RB)은 가운데, 서브 탭(LT·RT)은 그 아래 왼쪽.
   MainTabs = WidgetTree->ConstructWidget<UDrTabList>();
-  MainTabs->SetTabNavigation(true, false);
+  MainTabs->SetPaging(EDrTabPaging::Bumpers);
+  MainTabs->bFocusTabOnPaging = false;  // 넘긴 뒤 포커스는 메뉴가 1뎁스로 보낸다
   for (int32 I = 0; I < UE_ARRAY_COUNT(MainNames); ++I) MainTabs->AddTab(FName(TEXT("Main"), I + 1), FText::FromString(MainNames[I]));
   MainTabs->OnTabSelected.AddUniqueDynamic(this, &ThisClass::HandleMainTab);
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(MainTabs)) { S->SetHorizontalAlignment(HAlign_Center); S->SetPadding(FMargin(0, 0, 0, 14)); }
   SubTabs = WidgetTree->ConstructWidget<UDrTabList>();
   SubTabs->Style = EDrTabStyle::Underline;
-  SubTabs->SetTabNavigation(false, true);
+  SubTabs->SetPaging(EDrTabPaging::Triggers);
+  SubTabs->bFocusTabOnPaging = false;
   SubTabs->OnTabSelected.AddUniqueDynamic(this, &ThisClass::HandleSubTab);
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(SubTabs)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 18)); }
 
@@ -135,7 +147,8 @@ void UDrGlassConsoleMenu::Build() {
   InfoBody = Text(FText::GetEmpty(), DrUITokens::Body, DrUITokens::InkMuted);
   InfoBody->SetAutoWrapText(true);
   if (UVerticalBoxSlot* S = Info->AddChildToVerticalBox(InfoBody)) S->SetPadding(FMargin(0, 0, 0, 14));
-  Info->AddChildToVerticalBox(Text(LOCTEXT("CompareTitle", "장착 중인 것과 비교"), TEXT("overline"), DrUITokens::InkMuted));
+  CompareTitle = Text(LOCTEXT("CompareTitle", "장착 중인 것과 비교"), TEXT("overline"), DrUITokens::InkMuted);
+  Info->AddChildToVerticalBox(CompareTitle);
   Compare = WidgetTree->ConstructWidget<UDrStatCompare>();
   if (UVerticalBoxSlot* S = Info->AddChildToVerticalBox(Compare)) S->SetPadding(FMargin(0, 6, 0, 0));
   USizeBox* InfoBox = WidgetTree->ConstructWidget<USizeBox>();
@@ -153,13 +166,17 @@ void UDrGlassConsoleMenu::Build() {
   FillSubTabs();
 }
 
+UWidget* UDrGlassConsoleMenu::GetDepth1Row(int32 Index) const { return Depth1Rows.IsValidIndex(Index) ? Depth1Rows[Index].Get() : nullptr; }
+UWidget* UDrGlassConsoleMenu::GetDepth2Item(int32 Index) const { return Depth2Items.IsValidIndex(Index) ? Depth2Items[Index].Get() : nullptr; }
+UWidget* UDrGlassConsoleMenu::GetInfoText() const { return InfoBody; }
+
 void UDrGlassConsoleMenu::Open() {
   if (bOpen) return;
   bOpen = true;
   SetVisibility(ESlateVisibility::Visible);
   FocusMemory.Save();
   DrUIInput::PushModal(this);
-  if (Depth1Rows.IsValidIndex(Depth1Index)) Depth1Rows[Depth1Index]->SetFocus();
+  FocusDepth1();
   DrUIFeedback::Play(this, EDrUIFeedback::Confirm);
 }
 
@@ -176,12 +193,15 @@ void UDrGlassConsoleMenu::Close() {
 void UDrGlassConsoleMenu::HandleMainTab(FName TabId) {
   MainIndex = FMath::Clamp(TabId.GetNumber() - 1, 0, int32(UE_ARRAY_COUNT(MainNames)) - 1);
   FillSubTabs();
+  // 패드·키보드로 넘겼으면 1뎁스 첫 줄로(마우스로 탭을 눌렀으면 포커스를 옮기지 않는다).
+  if (bOpen && DrUIInput::GetLastInputKind() != EDrUIInputKind::Pointer) FocusDepth1();
 }
 
 void UDrGlassConsoleMenu::HandleSubTab(FName TabId) {
   SubIndex = FMath::Clamp(TabId.GetNumber() - 1, 0, 2);
   Depth1Index = 0;
   FillDepth1();
+  if (bOpen && DrUIInput::GetLastInputKind() != EDrUIInputKind::Pointer) FocusDepth1();
 }
 
 void UDrGlassConsoleMenu::FillSubTabs() {
@@ -198,26 +218,34 @@ void UDrGlassConsoleMenu::FillDepth1() {
   if (!Depth1List) return;
   Depth1List->ClearChildren();
   Depth1Rows.Reset();
+  bInDepth2 = false;
   Depth1Title->SetText(FText::FromString(SubNames[MainIndex][SubIndex]));
   const TArray<FString> Names = Depth1Names(MainIndex, SubIndex);
+  TArray<UWidget*> Chain;
   for (int32 I = 0; I < Names.Num(); ++I) {
     UDrListRow* Row = WidgetTree->ConstructWidget<UDrListRow>();
-    Row->SetContent(FText::FromString(Names[I]), FText::GetEmpty(), FText::AsNumber(UE_ARRAY_COUNT(Prefixes)));
+    Row->SetContent(FText::FromString(Names[I]), FText::GetEmpty(), IsSettings() ? FText::GetEmpty() : FText::AsNumber(UE_ARRAY_COUNT(Prefixes)));
     Row->SetIsSelectable(true);
     Row->ActionHints = {{OpenHint, EKeys::Gamepad_FaceButton_Bottom, EKeys::Enter, LOCTEXT("HintOpen", "열기")}};
-    // A: 2뎁스로 들어간다(1뎁스는 고른 표시로 남는다).
     Row->OnClicked().AddWeakLambda(this, [this, I] {
-      Depth1Index = I;
-      MarkDepth1(I);
-      if (!Depth2Rows.IsEmpty()) Depth2Rows[0]->SetFocus();
+      // 마우스: 2뎁스만 바꾸고 포커스는 그대로(뎁스 없이 2뎁스를 바로 누르면 된다). 패드·키보드: 2뎁스로 들어간다.
+      if (I != Depth1Index) { Depth1Index = I; MarkDepth1(I); FillDepth2(); }
+      if (DrUIInput::GetLastInputKind() != EDrUIInputKind::Pointer) EnterDepth2();
     });
+    // 오른쪽은 2뎁스(그 1뎁스에서 마지막으로 있던 줄), 왼쪽은 멈춤. 위아래는 목록 안에서 돈다.
+    Row->NavTargets.Set(EUINavigation::Right, [this]() -> UWidget* {
+      const int32 Index = FMath::Clamp(Depth2Focus.FindRef(Key()), 0, FMath::Max(Depth2Items.Num() - 1, 0));
+      if (Depth2Items.IsValidIndex(Index)) bInDepth2 = true;
+      return Depth2Items.IsValidIndex(Index) ? Depth2Items[Index].Get() : Depth1Rows.IsValidIndex(Depth1Index) ? Depth1Rows[Depth1Index].Get() : nullptr;
+    });
+    Row->NavTargets.Set(EUINavigation::Left, [Row]() -> UWidget* { return Row; });
     if (UVerticalBoxSlot* S = Depth1List->AddChildToVerticalBox(Row)) S->SetPadding(FMargin(0, 2));
     Depth1Rows.Add(Row);
+    Chain.Add(Row);
   }
+  DrUIInput::ChainVertical(Chain, true);
   MarkDepth1(Depth1Index);
   FillDepth2();
-  // 탭을 넘기는 동안 포커스는 탭 버튼에 있다. 메뉴가 열려 있고 포커스가 사라진 목록에 있었다면 1뎁스 첫 줄로.
-  if (bOpen && !LastFocus.IsValid() && Depth1Rows.IsValidIndex(Depth1Index)) Depth1Rows[Depth1Index]->SetFocus();
   UpdateStatus();
 }
 
@@ -237,9 +265,14 @@ void UDrGlassConsoleMenu::FillDepth2() {
   if (!Depth2List) return;
   Depth2List->ClearChildren();
   Depth2Rows.Reset();
+  Depth2Options.Reset();
+  Depth2Items.Reset();
+  InfoIndex = INDEX_NONE;
   const TArray<FString> Names = Depth1Names(MainIndex, SubIndex);
   Depth2Title->SetText(Names.IsValidIndex(Depth1Index) ? FText::FromString(Names[Depth1Index]) : FText::GetEmpty());
+  if (IsSettings()) { FillOptions(); return; }
   TArray<FEntry>& List = Entries();
+  TArray<UWidget*> Chain;
   for (int32 I = 0; I < List.Num(); ++I) {
     const FDrItemData& Item = List[I].Item;
     UDrListRow* Row = WidgetTree->ConstructWidget<UDrListRow>();
@@ -249,10 +282,114 @@ void UDrGlassConsoleMenu::FillDepth2() {
     Row->ActionHints = {{EquipHint, EKeys::Gamepad_FaceButton_Bottom, EKeys::Enter, LOCTEXT("HintEquip", "장착")}, {DropHint, EKeys::Gamepad_FaceButton_Left, EKeys::R, LOCTEXT("HintDrop", "버리기")}};
     Row->OnClicked().AddWeakLambda(this, [this, I] { Equip(I); });
     Row->OnHintAction.AddUniqueDynamic(this, &ThisClass::HandleRowHint);
+    // 왼쪽은 1뎁스(고른 분류), 오른쪽은 멈춤(정보 칸에는 조작이 없다).
+    Row->NavTargets.Set(EUINavigation::Left, [this]() -> UWidget* { bInDepth2 = false; return Depth1Rows.IsValidIndex(Depth1Index) ? Depth1Rows[Depth1Index].Get() : nullptr; });
+    Row->NavTargets.Set(EUINavigation::Right, [Row]() -> UWidget* { return Row; });
     if (UVerticalBoxSlot* S = Depth2List->AddChildToVerticalBox(Row)) S->SetPadding(FMargin(0, 2));
     Depth2Rows.Add(Row);
+    Depth2Items.Add(Row);
+    Chain.Add(Row);
   }
-  ShowInfo(0);
+  DrUIInput::ChainVertical(Chain, true);
+  ShowInfo(Depth2Focus.FindRef(Key()));
+}
+
+void UDrGlassConsoleMenu::FillOptions() {
+  // '설정' 2뎁스: 좌우로 조작하는 부품이 든 옵션 줄. 좌우는 부품 몫이라 1뎁스로는 B로 돌아간다.
+  const TArray<FString> Names = Depth1Names(MainIndex, SubIndex);
+  const FString Base = Names.IsValidIndex(Depth1Index) ? Names[Depth1Index] : FString();
+  TArray<UWidget*> Chain;
+  auto AddRow = [&](const FText& Label, const FText& Description, UWidget* Control) {
+    UDrOptionRow* Row = WidgetTree->ConstructWidget<UDrOptionRow>();
+    Row->Label = Label;
+    Row->Description = Description;
+    Row->SetControl(Control);
+    const int32 Index = Depth2Options.Num();
+    Row->OnFocusedNative.AddWeakLambda(this, [this, Index] { ShowInfo(Index); });
+    if (UVerticalBoxSlot* S = Depth2List->AddChildToVerticalBox(Row)) S->SetPadding(FMargin(0, 2));
+    Depth2Options.Add(Row);
+    Depth2Items.Add(Row);
+    Chain.Add(Row);
+  };
+  // 여러 종류를 한 목록에 둬서 패드·키보드·마우스로 같이 시험한다. 목록이 길어 스크롤도 포커스를 따라간다.
+  const FText BaseText = FText::FromString(Base);
+  UDrHorizontalSelector* Level = WidgetTree->ConstructWidget<UDrHorizontalSelector>();
+  Level->SetOptions({LOCTEXT("OptLow", "낮음"), LOCTEXT("OptMid", "보통"), LOCTEXT("OptHigh", "높음"), LOCTEXT("OptMax", "최고")});
+  Level->SetSelectedIndex(1);
+  AddRow(FText::Format(LOCTEXT("OptLevel", "{0} 단계"), BaseText), LOCTEXT("OptLevelDesc", "수평 선택기: 좌우로 값을 고른다(끝에서 처음으로 돈다). 마우스는 왼쪽·오른쪽 절반을 누른다."), Level);
+  UDrSlider* Amount = WidgetTree->ConstructWidget<UDrSlider>();
+  Amount->SetValue(.7f);
+  AddRow(FText::Format(LOCTEXT("OptAmount", "{0} 세기"), BaseText), LOCTEXT("OptAmountDesc", "슬라이더: 좌우 한 칸 5%. 패드는 잠그지 않고 바로 조절, 마우스는 끈다."), Amount);
+  UDrSegmentedControl* Quality = WidgetTree->ConstructWidget<UDrSegmentedControl>();
+  Quality->SetOptions({LOCTEXT("OptQLow", "낮음"), LOCTEXT("OptQMid", "보통"), LOCTEXT("OptQHigh", "높음")});
+  Quality->SetSelectedIndex(1);
+  AddRow(LOCTEXT("OptQuality", "품질"), LOCTEXT("OptQualityDesc", "세그먼트: 좌우로 칸을 옮기고 A로 고른다. 줄 끝에서는 멈춘다(줄 밖으로 나가지 않음)."), Quality);
+  UDrSwitch* Toggle = WidgetTree->ConstructWidget<UDrSwitch>();
+  Toggle->SetOn(true);
+  AddRow(FText::Format(LOCTEXT("OptOn", "{0} 사용"), BaseText), LOCTEXT("OptOnDesc", "스위치: A로 켜고 끈다."), Toggle);
+  UDrCheckBox* Check = WidgetTree->ConstructWidget<UDrCheckBox>();
+  Check->Label = LOCTEXT("OptCheckLabel", "배경 어둡게");
+  AddRow(LOCTEXT("OptCheck", "자막 배경"), LOCTEXT("OptCheckDesc", "체크박스: A로 켜고 끈다."), Check);
+  UHorizontalBox* Radios = WidgetTree->ConstructWidget<UHorizontalBox>();
+  UCommonButtonGroupBase* Group = NewObject<UCommonButtonGroupBase>(this);
+  Group->SetSelectionRequired(true);
+  RadioGroups.Add(Group);
+  for (const FText& Label : {LOCTEXT("OptRadioOff", "끔"), LOCTEXT("OptRadioRG", "적록"), LOCTEXT("OptRadioBY", "청황")}) {
+    UDrRadio* Radio = WidgetTree->ConstructWidget<UDrRadio>();
+    Radio->Label = Label;
+    Group->AddWidget(Radio);
+    if (UHorizontalBoxSlot* S = Radios->AddChildToHorizontalBox(Radio)) S->SetPadding(FMargin(0, 0, 14, 0));
+  }
+  Group->SelectButtonAtIndex(0, false);
+  AddRow(LOCTEXT("OptRadio", "색맹 보정"), LOCTEXT("OptRadioDesc", "라디오: 좌우로 옮기고 A로 고른다(하나만)."), Radios);
+  UDrQuantityStepper* Repeat = WidgetTree->ConstructWidget<UDrQuantityStepper>();
+  Repeat->MaxValue = 10;
+  Repeat->SetValue(3);
+  AddRow(LOCTEXT("OptRepeat", "반복 횟수"), LOCTEXT("OptRepeatDesc", "수량: 좌우로 −·+ 사이를 옮기고 A로 바꾼다(길게 누르면 빨라짐)."), Repeat);
+  UDrDropdown* Language = WidgetTree->ConstructWidget<UDrDropdown>();
+  Language->SetOptions({LOCTEXT("OptKo", "한국어"), LOCTEXT("OptEn", "English"), LOCTEXT("OptJa", "日本語"), LOCTEXT("OptZh", "中文")});
+  Language->SetSelectedIndex(0);
+  AddRow(LOCTEXT("OptLanguage", "언어"), LOCTEXT("OptLanguageDesc", "드롭다운: A로 펼치고 위아래로 골라 A, B로 닫으면 이 줄로 돌아온다(덮개 층·포커스 복원 시험)."), Language);
+  UDrTextField* Name = WidgetTree->ConstructWidget<UDrTextField>();
+  Name->Hint = LOCTEXT("OptNameHint", "이름 입력");
+  Name->MaxLength = 12;
+  AddRow(LOCTEXT("OptName", "캐릭터 이름"), LOCTEXT("OptNameDesc", "텍스트 입력: 키보드로 바로 쓰고, 패드는 포커스가 오면 입력(콘솔은 가상 키보드). 글 입력 중에는 Q·E 같은 단축키를 가로채지 않는다."), Name);
+  UDrHoldButton* Reset = WidgetTree->ConstructWidget<UDrHoldButton>();
+  Reset->Label = LOCTEXT("OptResetLabel", "길게 눌러 초기화");
+  Reset->Variant = EDrButtonVariant::Destructive;
+  Reset->SetHoldSeconds(1.f);
+  AddRow(LOCTEXT("OptReset", "기본값"), LOCTEXT("OptResetDesc", "길게 누르기: A를 누른 채 채워지면 실행, 떼면 되감긴다."), Reset);
+  UDrButton* Dialog = WidgetTree->ConstructWidget<UDrButton>();
+  Dialog->Label = LOCTEXT("OptDialogLabel", "확인 대화상자 열기");
+  Dialog->Variant = EDrButtonVariant::Secondary;
+  Dialog->OnClicked().AddWeakLambda(this, [this] {
+    if (UDrUIFlowSubsystem* Flow = UDrUIFlowSubsystem::Get(this))
+      Flow->ShowConfirm(LOCTEXT("OptDialogTitle", "설정을 저장할까요?"), LOCTEXT("OptDialogBody", "닫으면 연 줄로 포커스가 돌아온다."), LOCTEXT("OptDialogSave", "저장"), FText::GetEmpty(), false);
+  });
+  AddRow(LOCTEXT("OptDialog", "저장"), LOCTEXT("OptDialogDesc", "버튼 → 확인 대화상자(덮개 안에서 또 덮개): 대화상자 밖으로 포커스가 나가지 않고, 닫으면 이 버튼으로 돌아온다."), Dialog);
+  DrUIInput::ChainVertical(Chain, true);
+  ShowInfo(Depth2Focus.FindRef(Key()));
+}
+
+void UDrGlassConsoleMenu::EnterDepth2() {
+  const int32 Index = FMath::Clamp(Depth2Focus.FindRef(Key()), 0, FMath::Max(Depth2Items.Num() - 1, 0));
+  if (!Depth2Items.IsValidIndex(Index)) return;
+  bInDepth2 = true;
+  DrUIInput::FocusWidget(Depth2Items[Index]);
+}
+
+void UDrGlassConsoleMenu::FocusDepth1() {
+  bInDepth2 = false;
+  if (Depth1Rows.IsValidIndex(Depth1Index)) Depth1Rows[Depth1Index]->SetFocus();
+}
+
+int32 UDrGlassConsoleMenu::Depth2IndexOf(const UWidget* Widget) const {
+  if (!Widget) return INDEX_NONE;
+  for (int32 I = 0; I < Depth2Items.Num(); ++I) {
+    if (Depth2Items[I] == Widget) return I;
+    if (const UDrOptionRow* Row = Cast<UDrOptionRow>(Depth2Items[I]); Row && Row == Widget) return I;
+  }
+  return INDEX_NONE;
 }
 
 void UDrGlassConsoleMenu::HandleRowHint(FName HintId) {
@@ -274,13 +411,27 @@ void UDrGlassConsoleMenu::Equip(int32 Index) {
   if (!List.IsValidIndex(Index)) return;
   for (int32 I = 0; I < List.Num(); ++I) List[I].Item.bEquipped = I == Index;
   List[Index].Item.bNew = false;
+  const bool bPointer = DrUIInput::GetLastInputKind() == EDrUIInputKind::Pointer;
   FillDepth2();
-  if (Depth2Rows.IsValidIndex(Index)) Depth2Rows[Index]->SetFocus();
+  // 다시 만든 줄로 포커스를 돌려준다(마우스면 포커스 없이 정보만).
+  if (!bPointer && Depth2Rows.IsValidIndex(Index)) Depth2Rows[Index]->SetFocus();
   ShowInfo(Index);
   UpdateStatus();
 }
 
 void UDrGlassConsoleMenu::ShowInfo(int32 Index) {
+  const bool bOption = IsSettings();
+  Preview->SetVisibility(bOption ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+  for (UWidget* W : {static_cast<UWidget*>(InfoRarity.Get()), static_cast<UWidget*>(CompareTitle.Get()), static_cast<UWidget*>(Compare.Get())})
+    if (W) W->SetVisibility(bOption ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+  if (bOption) {
+    if (!Depth2Options.IsValidIndex(Index)) return;
+    InfoIndex = Index;
+    InfoName->SetTokens(TEXT("title"), DrUITokens::Ink);
+    InfoName->SetText(Depth2Options[Index]->Label);
+    InfoBody->SetText(Depth2Options[Index]->Description);
+    return;
+  }
   TArray<FEntry>& List = Entries();
   if (!List.IsValidIndex(Index)) return;
   InfoIndex = Index;
@@ -308,27 +459,53 @@ void UDrGlassConsoleMenu::UpdateStatus() {
 void UDrGlassConsoleMenu::NativeTick(const FGeometry& Geometry, float DeltaTime) {
   Super::NativeTick(Geometry, DeltaTime);
   if (!bOpen) return;
-  // 포커스가 1뎁스 줄로 오면 2뎁스를 바꾸고, 2뎁스 줄로 오면 정보를 바꾼다.
+  const EDrUIInputKind Kind = DrUIInput::GetLastInputKind();
+  // 패드·키보드를 쓰는데 포커스가 메뉴 안에 없으면(마우스로 빈 곳을 누른 뒤 등) 마지막 자리로 되돌린다.
+  // 메뉴 위에 덮개(드롭다운 목록·확인 대화상자)가 떠 있으면 포커스는 그쪽이 맞으므로 건드리지 않는다.
+  if (Kind != EDrUIInputKind::Pointer && !HasFocusedDescendants() && DrUIInput::GetTopModal() == this) {
+    if (bInDepth2 && !Depth2Items.IsEmpty()) EnterDepth2();
+    else FocusDepth1();
+  }
+  // 포커스가 1뎁스 줄로 오면 2뎁스를 바꾸고(패드·키보드만: 마우스는 눌러야 바뀜), 2뎁스 줄로 오면 정보를 바꾸고 자리를 기억한다.
   UDrButtonBase* Focused = UDrButtonBase::GetHintFocus();
-  if (Focused == LastFocus.Get()) return;
-  LastFocus = Focused;
-  if (const int32 Row = Depth1Rows.IndexOfByKey(Cast<UDrListRow>(Focused)); Row != INDEX_NONE && Row != Depth1Index) {
-    Depth1Index = Row;
-    MarkDepth1(Row);
-    FillDepth2();
-  } else if (const int32 Item = Depth2Rows.IndexOfByKey(Cast<UDrListRow>(Focused)); Item != INDEX_NONE) ShowInfo(Item);
+  const UDrOptionRow* FocusedRow = UDrOptionRow::GetFocusedRow();
+  const int32 Row1 = Depth1Rows.IndexOfByKey(Cast<UDrListRow>(Focused));
+  const int32 Row2 = FocusedRow ? Depth2IndexOf(FocusedRow) : Depth2IndexOf(Focused);
+  if (Row1 != INDEX_NONE) {
+    bInDepth2 = false;
+    if (Row1 != Depth1Index && Kind != EDrUIInputKind::Pointer) { Depth1Index = Row1; MarkDepth1(Row1); FillDepth2(); }
+  } else if (Row2 != INDEX_NONE) {
+    bInDepth2 = true;
+    Depth2Focus.Add(Key(), Row2);
+    if (Row2 != InfoIndex && Kind != EDrUIInputKind::Pointer) ShowInfo(Row2);
+  }
+  // 마우스: 2뎁스 줄에 올리기만 해도 정보가 바뀐다(뎁스를 거치지 않고 바로 본다). 본 줄을 기억해 패드로 바꾸면 거기서 이어 간다.
+  if (Kind == EDrUIInputKind::Pointer)
+    for (int32 I = 0; I < Depth2Items.Num(); ++I)
+      if (Depth2Items[I] && Depth2Items[I]->IsHovered() && I != InfoIndex) {
+        ShowInfo(I);
+        Depth2Focus.Add(Key(), I);
+        bInDepth2 = true;
+        break;
+      }
 }
 
 FReply UDrGlassConsoleMenu::NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) {
   if (bOpen && DrUIInput::GetAction(Event) == EDrUIInputAction::Back) {
     // 2뎁스면 1뎁스로, 1뎁스(또는 탭)면 닫기.
-    if (Depth2Rows.Contains(Cast<UDrListRow>(UDrButtonBase::GetHintFocus())) && Depth1Rows.IsValidIndex(Depth1Index)) {
-      Depth1Rows[Depth1Index]->SetFocus();
+    if (bInDepth2 && Depth1Rows.IsValidIndex(Depth1Index)) {
+      FocusDepth1();
       DrUIFeedback::Play(this, EDrUIFeedback::Back);
     } else Close();
     return FReply::Handled();
   }
   return Super::NativeOnKeyDown(Geometry, Event);
+}
+
+FReply UDrGlassConsoleMenu::NativeOnMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& Event) {
+  // 마우스는 뎁스가 없다: 오른쪽 클릭은 바로 닫기.
+  if (bOpen && Event.GetEffectingButton() == EKeys::RightMouseButton) { Close(); return FReply::Handled(); }
+  return Super::NativeOnMouseButtonDown(Geometry, Event);
 }
 
 #undef LOCTEXT_NAMESPACE

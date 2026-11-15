@@ -14,8 +14,12 @@
 #include "Widgets/DrCooldown.h"
 #include "Widgets/DrData.h"
 #include "Widgets/DrFeedback.h"
-#include "Widgets/DrGamepadUX.h"
-#include "Widgets/DrInventory.h"
+#include "Widgets/DrActionBar.h"
+#include "Widgets/DrOptionRow.h"
+#include "Widgets/DrPressAnyKey.h"
+#include "Widgets/DrItemGrid.h"
+#include "Widgets/DrItemSlot.h"
+#include "Widgets/DrStatCompare.h"
 #include "Widgets/DrKeyGlyph.h"
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrInput.h"
@@ -465,16 +469,16 @@ bool FDrGamepadInputTest::RunTest(const FString&) {
   TestEqual(TEXT("LT는 이전 하위 탭"), DrUIInput::GetActionForKey(EKeys::Gamepad_LeftTrigger), EDrUIInputAction::PrevSubTab);
   TestEqual(TEXT("Q는 이전 탭(키보드)"), DrUIInput::GetActionForKey(EKeys::Q), EDrUIInputAction::PrevTab);
   TestEqual(TEXT("D패드는 뜻 없음(이동은 Slate)"), DrUIInput::GetActionForKey(EKeys::Gamepad_DPad_Up), EDrUIInputAction::None);
-  auto Name = [](FKey Key, EDrGamepadGlyphs G) { return DrUIInput::GlyphName(Key, G).ToString(); };
-  TestEqual(TEXT("Xbox 아래 = A"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrGamepadGlyphs::Xbox), FString(TEXT("A")));
-  TestEqual(TEXT("PlayStation 아래 = ✕"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrGamepadGlyphs::PlayStation), FString(TEXT("✕")));
-  TestEqual(TEXT("Nintendo 아래 = B(자리로 정함)"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrGamepadGlyphs::Nintendo), FString(TEXT("B")));
-  TestEqual(TEXT("PlayStation RB = R1"), Name(EKeys::Gamepad_RightShoulder, EDrGamepadGlyphs::PlayStation), FString(TEXT("R1")));
-  TestEqual(TEXT("Nintendo LT = ZL"), Name(EKeys::Gamepad_LeftTrigger, EDrGamepadGlyphs::Nintendo), FString(TEXT("ZL")));
-  TestEqual(TEXT("키보드 키는 패드 표기와 무관"), Name(EKeys::Escape, EDrGamepadGlyphs::PlayStation), FString(TEXT("Esc")));
-  TestEqual(TEXT("PS5 패드 이름 → PlayStation"), DrUIInput::GlyphsForGamepadName(TEXT("PS5")), EDrGamepadGlyphs::PlayStation);
-  TestEqual(TEXT("Switch 패드 이름 → Nintendo"), DrUIInput::GlyphsForGamepadName(TEXT("Switch")), EDrGamepadGlyphs::Nintendo);
-  TestEqual(TEXT("모르는 이름 → Xbox"), DrUIInput::GlyphsForGamepadName(TEXT("Generic")), EDrGamepadGlyphs::Xbox);
+  auto Name = [](FKey Key, EDrUIGamepadGlyphs G) { return DrUIInput::GlyphName(Key, G).ToString(); };
+  TestEqual(TEXT("Xbox 아래 = A"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrUIGamepadGlyphs::Xbox), FString(TEXT("A")));
+  TestEqual(TEXT("PlayStation 아래 = ✕"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrUIGamepadGlyphs::PlayStation), FString(TEXT("✕")));
+  TestEqual(TEXT("Nintendo 아래 = B(자리로 정함)"), Name(EKeys::Gamepad_FaceButton_Bottom, EDrUIGamepadGlyphs::Nintendo), FString(TEXT("B")));
+  TestEqual(TEXT("PlayStation RB = R1"), Name(EKeys::Gamepad_RightShoulder, EDrUIGamepadGlyphs::PlayStation), FString(TEXT("R1")));
+  TestEqual(TEXT("Nintendo LT = ZL"), Name(EKeys::Gamepad_LeftTrigger, EDrUIGamepadGlyphs::Nintendo), FString(TEXT("ZL")));
+  TestEqual(TEXT("키보드 키는 패드 표기와 무관"), Name(EKeys::Escape, EDrUIGamepadGlyphs::PlayStation), FString(TEXT("Esc")));
+  TestEqual(TEXT("PS5 패드 이름 → PlayStation"), DrUIInput::GlyphsForGamepadName(TEXT("PS5")), EDrUIGamepadGlyphs::PlayStation);
+  TestEqual(TEXT("Switch 패드 이름 → Nintendo"), DrUIInput::GlyphsForGamepadName(TEXT("Switch")), EDrUIGamepadGlyphs::Nintendo);
+  TestEqual(TEXT("모르는 이름 → Xbox"), DrUIInput::GlyphsForGamepadName(TEXT("Generic")), EDrUIGamepadGlyphs::Xbox);
   TestEqual(TEXT("얼굴 버튼 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_FaceButton_Top), EDrKeyShape::Face);
   TestEqual(TEXT("트리거 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_RightTrigger), EDrKeyShape::Trigger);
   TestEqual(TEXT("D패드 모양"), DrKeyGlyph::ShapeFor(EKeys::Gamepad_DPad_Left), EDrKeyShape::DPad);

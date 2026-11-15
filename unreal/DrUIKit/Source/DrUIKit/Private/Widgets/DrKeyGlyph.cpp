@@ -31,7 +31,7 @@ public:
   }
 
   FKey Key;
-  EDrGamepadGlyphs Glyphs = EDrGamepadGlyphs::Xbox;
+  EDrUIGamepadGlyphs Glyphs = EDrUIGamepadGlyphs::Xbox;
   float H = 24.f;
   bool bBrand = false;
   FLinearColor Body, Ink, Dim, CapFill, CapEdge, CapInk;
@@ -42,7 +42,7 @@ public:
     if (Shape == EDrKeyShape::StickAxis) {
       const bool bRight = Key == EKeys::Gamepad_RightX || Key == EKeys::Gamepad_RightY || Key == EKeys::Gamepad_Right2D;
       Label = FText::FromString(bRight ? TEXT("R") : TEXT("L"));
-    } else Label = Shape == EDrKeyShape::Face && Glyphs == EDrGamepadGlyphs::PlayStation ? FText::GetEmpty() : DrUIInput::GlyphName(Key, Glyphs);
+    } else Label = Shape == EDrKeyShape::Face && Glyphs == EDrUIGamepadGlyphs::PlayStation ? FText::GetEmpty() : DrUIInput::GlyphName(Key, Glyphs);
     Font.Size = FMath::Max(6, FMath::RoundToInt(H * (Shape == EDrKeyShape::Face || Shape == EDrKeyShape::Stick ? .38f : .34f)));
     Small = FSlateRoundedBoxBrush(FLinearColor::White, FMath::Max(2.f, H * .14f));
     Big = FSlateRoundedBoxBrush(FLinearColor::White, H * .42f);
@@ -60,7 +60,7 @@ public:
       case EDrKeyShape::Shoulder: return FVector2D(FMath::Max(H * 1.5f, W + H * .7f), H);
       case EDrKeyShape::Trigger: return FVector2D(FMath::Max(H * 1.3f, W + H * .6f), H);
       case EDrKeyShape::Keyboard: return FVector2D(IsArrow() ? H : FMath::Max(H, W + H * .55f), H);
-      case EDrKeyShape::Special: return FVector2D(Glyphs == EDrGamepadGlyphs::PlayStation ? H * 1.4f : H, H);
+      case EDrKeyShape::Special: return FVector2D(Glyphs == EDrUIGamepadGlyphs::PlayStation ? H * 1.4f : H, H);
       case EDrKeyShape::Mouse: return FVector2D(H * .75f, H);
       default: return FVector2D(H);
     }
@@ -92,7 +92,7 @@ public:
       case EDrKeyShape::Face: {
         Box(Round, FVector2f(C.X - R, C.Y - R), FVector2f(2.f * R), Body, Layer);
         const FLinearColor Mark = bBrand ? BrandColor() : Ink;
-        if (Glyphs != EDrGamepadGlyphs::PlayStation) { Text(Mark, C, Layer + 1); break; }
+        if (Glyphs != EDrUIGamepadGlyphs::PlayStation) { Text(Mark, C, Layer + 1); break; }
         // PlayStation 도형: ✕(아래) ○(오른쪽) □(왼쪽) △(위).
         const float M = R * .46f;
         if (Key == EKeys::Gamepad_FaceButton_Bottom) { Line({C - FVector2f(M), C + FVector2f(M)}, Mark, T * 1.2f, Layer + 1); Line({C + FVector2f(M, -M), C + FVector2f(-M, M)}, Mark, T * 1.2f, Layer + 1); }
@@ -140,19 +140,19 @@ public:
       }
       case EDrKeyShape::Special: {
         const bool bMenu = Key == EKeys::Gamepad_Special_Right;
-        if (Glyphs == EDrGamepadGlyphs::Nintendo) {  // −·+ 동그라미
+        if (Glyphs == EDrUIGamepadGlyphs::Nintendo) {  // −·+ 동그라미
           Box(Round, FVector2f(C.X - R, C.Y - R), FVector2f(2.f * R), Body, Layer);
           const float M = R * .42f;
           Line({C - FVector2f(M, 0.f), C + FVector2f(M, 0.f)}, Ink, T * 1.2f, Layer + 1);
           if (bMenu) Line({C - FVector2f(0.f, M), C + FVector2f(0.f, M)}, Ink, T * 1.2f, Layer + 1);
           break;
         }
-        if (Glyphs == EDrGamepadGlyphs::PlayStation) Box(Round, FVector2f(0.f, S.Y * .18f), FVector2f(S.X, S.Y * .64f), Body, Layer);
+        if (Glyphs == EDrUIGamepadGlyphs::PlayStation) Box(Round, FVector2f(0.f, S.Y * .18f), FVector2f(S.X, S.Y * .64f), Body, Layer);
         else Box(Round, FVector2f(C.X - R, C.Y - R), FVector2f(2.f * R), Body, Layer);
         const float M = R * .4f;
         if (bMenu) {  // 메뉴·옵션: 가로줄 셋
           for (float Y : {-M * .7f, 0.f, M * .7f}) Line({C + FVector2f(-M, Y), C + FVector2f(M, Y)}, Ink, T, Layer + 1);
-        } else if (Glyphs == EDrGamepadGlyphs::PlayStation) {  // 만들기: 세로줄 셋
+        } else if (Glyphs == EDrUIGamepadGlyphs::PlayStation) {  // 만들기: 세로줄 셋
           for (float X : {-M * .7f, 0.f, M * .7f}) Line({C + FVector2f(X, -M * .7f), C + FVector2f(X, M * .7f)}, Ink, T, Layer + 1);
         } else {  // 보기: 겹친 네모 둘
           const float Q = M * .9f;
@@ -204,8 +204,8 @@ private:
 
   FLinearColor BrandColor() const {
     // 얼굴 버튼 고유색(Xbox 글자색, PlayStation 도형색). 닌텐도는 단색.
-    const bool bPS = Glyphs == EDrGamepadGlyphs::PlayStation;
-    if (Glyphs == EDrGamepadGlyphs::Nintendo) return Ink;
+    const bool bPS = Glyphs == EDrUIGamepadGlyphs::PlayStation;
+    if (Glyphs == EDrUIGamepadGlyphs::Nintendo) return Ink;
     if (Key == EKeys::Gamepad_FaceButton_Bottom) return FLinearColor(bPS ? FColor(0x7f, 0xa8, 0xe0) : FColor(0x6c, 0xc2, 0x4a));
     if (Key == EKeys::Gamepad_FaceButton_Right) return FLinearColor(bPS ? FColor(0xec, 0x6a, 0x74) : FColor(0xe5, 0x4b, 0x3f));
     if (Key == EKeys::Gamepad_FaceButton_Left) return FLinearColor(bPS ? FColor(0xd9, 0x85, 0xbb) : FColor(0x3f, 0x8f, 0xe0));
@@ -214,9 +214,9 @@ private:
 };
 
 void UDrKeyGlyph::SetKey(FKey InKey) { Key = InKey; ApplyTheme(); }
-void UDrKeyGlyph::SetGlyphs(EDrGamepadGlyphs InGlyphs) { Glyphs = InGlyphs; ApplyTheme(); }
+void UDrKeyGlyph::SetGlyphs(EDrUIGamepadGlyphs InGlyphs) { Glyphs = InGlyphs; ApplyTheme(); }
 
-EDrGamepadGlyphs UDrKeyGlyph::GetResolvedGlyphs() const { return Glyphs == EDrGamepadGlyphs::Auto ? DrUIInput::ResolveGlyphs(this) : Glyphs; }
+EDrUIGamepadGlyphs UDrKeyGlyph::GetResolvedGlyphs() const { return Glyphs == EDrUIGamepadGlyphs::Auto ? DrUIInput::ResolveGlyphs(this) : Glyphs; }
 
 void UDrKeyGlyph::ApplyTheme() {
   if (!Slate) return;

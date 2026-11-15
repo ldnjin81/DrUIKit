@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Core/DrUIInput.h"
 #include "CommonActivatableWidget.h"
 #include "Containers/Ticker.h"
 #include "Core/DrUIMotion.h"
@@ -41,6 +42,12 @@ protected:
   virtual UWidget* NativeGetDesiredFocusTarget() const override;
   virtual bool NativeOnHandleBackAction() override;
   virtual void NativeOnDeactivated() override;
+  /** 떠 있는 동안 방향 이동이 대화상자 밖(아래 화면)으로 나가지 않게. */
+  virtual FNavigationReply NativeOnNavigation(const FGeometry& Geometry, const FNavigationEvent& Event, const FNavigationReply& DefaultReply) override { return FNavigationReply::Stop(); }
+  /** 뒤로(B·Esc)는 취소. CommonUI 뒤로 동작이 입력 데이터에 없어도 동작하게 직접 받는다. */
+  virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
+  /** 열 때 포커스를 기억했다가 닫을 때 돌려준다. */
+  FDrUIFocusMemory FocusMemory;
 private:
   /** 활성 위젯은 NativeTick이 꺼져 있을 수 있어(DisableNativeTick) 코어 티커로 움직인다. */
   bool StepPresence(float DeltaTime);

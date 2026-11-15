@@ -86,11 +86,11 @@ void UDrTabList::EnsureTree() {
 
 void UDrTabList::ApplyTheme() {
   const bool bPill = Style == EDrTabStyle::Pill;
-  const bool bKeys = bShowNavigationKeys && (bShoulderNavigation || bSubTabNavigation);
+  const bool bKeys = bShowPagingKeys && Paging != EDrTabPaging::None;
   for (UDrButtonPrompt* Key : {PrevKey.Get(), NextKey.Get()}) {
     if (!Key) continue;
     const bool bPrev = Key == PrevKey;
-    if (bShoulderNavigation) Key->SetKeys(bPrev ? EKeys::Q : EKeys::E, bPrev ? EKeys::Gamepad_LeftShoulder : EKeys::Gamepad_RightShoulder, FText::GetEmpty());
+    if (Paging == EDrTabPaging::Bumpers) Key->SetKeys(bPrev ? EKeys::Q : EKeys::E, bPrev ? EKeys::Gamepad_LeftShoulder : EKeys::Gamepad_RightShoulder, FText::GetEmpty());
     else Key->SetKeys(bPrev ? EKeys::Z : EKeys::C, bPrev ? EKeys::Gamepad_LeftTrigger : EKeys::Gamepad_RightTrigger, FText::GetEmpty());
     Key->KeyHeight = 20.f;
     Key->SetVisibility(bKeys ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
@@ -132,9 +132,8 @@ void UDrTabList::NativeConstruct() {
   ApplyTheme();
 }
 
-void UDrTabList::SetTabNavigation(bool bShoulder, bool bSubTab) {
-  bShoulderNavigation = bShoulder;
-  bSubTabNavigation = bSubTab;
+void UDrTabList::SetPaging(EDrTabPaging InPaging) {
+  Paging = InPaging;
   ApplyTheme();
 }
 
@@ -144,13 +143,13 @@ bool UDrTabList::SelectAdjacentTab(int32 Direction, bool bFocusTab) {
   int32 Current = 0;
   for (int32 I = 0; I < Count; ++I) if (GetTabIdAtIndex(I) == GetSelectedTabId()) { Current = I; break; }
   int32 Next = Current + (Direction > 0 ? 1 : -1);
-  if (bWrapNavigation) Next = (Next + Count) % Count;
+  if (bWrapPaging) Next = (Next + Count) % Count;
   else if (Next < 0 || Next >= Count) { DrUIFeedback::Play(this, EDrUIFeedback::Error); return false; }
   const FName Id = GetTabIdAtIndex(Next);
   SelectTabByID(Id);
   DrUIFeedback::Play(this, EDrUIFeedback::Tick);
   // 패드로 넘기면 내용이 바뀌며 포커스를 잃지 않도록 고른 탭 버튼으로 옮긴다(아래로 내려 내용에 들어간다).
-  if (bFocusTab) if (UCommonButtonBase* Button = GetTabButtonBaseByID(Id)) Button->SetFocus();
+  if (bFocusTab && bFocusTabOnPaging) if (UCommonButtonBase* Button = GetTabButtonBaseByID(Id)) Button->SetFocus();
   return true;
 }
 
@@ -194,6 +193,13 @@ void UDrTabList::HandleTabCreation_Implementation(FName TabNameID, UCommonButton
   } else if (UHorizontalBox* Box = Cast<UHorizontalBox>(Row)) {
     if (UHorizontalBoxSlot* S = Box->AddChildToHorizontalBox(TabButton)) S->SetVerticalAlignment(VAlign_Fill);
   }
+  // 아래: 연결된 내용의 첫 조작 부품으로(없으면 엔진 기본 이동).
+  if (UDrButtonBase* Button = Cast<UDrButtonBase>(TabButton))
+    Button->NavTargets.Set(EUINavigation::Down, [WeakThis = TWeakObjectPtr<UDrTabList>(this)]() -> UWidget* {
+      UDrTabList* Tabs = WeakThis.Get();
+      UCommonAnimatedSwitcher* Switcher = Tabs && Tabs->bDownEntersContent ? Tabs->GetLinkedSwitcher() : nullptr;
+      return Switcher ? DrUIInput::FindFirstFocusable(Switcher->GetActiveWidget()) : nullptr;
+    });
 
 }
 

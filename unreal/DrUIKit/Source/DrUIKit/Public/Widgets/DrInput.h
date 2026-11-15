@@ -127,16 +127,12 @@ public:
   TDelegate<void(int32)> OnPicked;
   /** Esc·뒤로로 닫아 달라고 할 때. */
   FSimpleDelegate OnDismiss;
-  /** 드롭다운이 팝업으로 띄운 목록(그러면 열려 있는 동안 단축키의 맨 위 층). 화면 안에 견본으로 둔 목록은 거짓. */
-  bool bAsPopup = false;
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<USizeBox> Frame;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Surface;
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UVerticalBox> List;
   virtual TSharedRef<SWidget> RebuildWidget() override;
   virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
-  virtual void NativeConstruct() override;
-  virtual void NativeDestruct() override;
 private:
   void EnsureTree();
   void Fill();
@@ -177,6 +173,7 @@ protected:
   virtual void NativeOnInitialized() override;
   virtual void NativeOnClicked() override;
   virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
+  virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
 private:
   void BindAnchor();
   UFUNCTION() UUserWidget* HandleGetMenu();

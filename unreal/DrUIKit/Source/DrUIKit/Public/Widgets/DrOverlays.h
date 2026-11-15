@@ -87,6 +87,8 @@ protected:
   virtual FReply NativeOnMouseMove(const FGeometry& Geometry, const FPointerEvent& Event) override;
   virtual FReply NativeOnMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& Event) override;
   virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
+  /** 열려 있는 동안 방향 이동이 판 밖(아래 화면)으로 나가지 않게. */
+  virtual FNavigationReply NativeOnNavigation(const FGeometry& Geometry, const FNavigationEvent& Event, const FNavigationReply& DefaultReply) override { return bOpen ? FNavigationReply::Stop() : DefaultReply; }
 private:
   void ApplyPresence();
   UPROPERTY(Transient) TObjectPtr<UWidget> PendingBody;
@@ -161,14 +163,11 @@ public:
   UDrPopoverPanel(const FObjectInitializer& Initializer);
   void SetBody(UWidget* Content);
   FSimpleDelegate OnDismiss;
-  /** 팝오버가 팝업으로 띄운 판(열려 있는 동안 단축키의 맨 위 층). */
-  bool bAsPopup = false;
 protected:
   UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "DrUI") TObjectPtr<UDrSurface> Surface;
   virtual TSharedRef<SWidget> RebuildWidget() override;
   virtual FReply NativeOnKeyDown(const FGeometry& Geometry, const FKeyEvent& Event) override;
   virtual void NativeConstruct() override;
-  virtual void NativeDestruct() override;
 private:
   UPROPERTY(Transient) TObjectPtr<UWidget> PendingBody;
 };

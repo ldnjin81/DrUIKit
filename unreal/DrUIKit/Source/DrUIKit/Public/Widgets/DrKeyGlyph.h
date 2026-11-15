@@ -45,14 +45,14 @@ class DRUIKIT_API UDrKeyGlyph : public UWidget {
 public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") FKey Key = EKeys::Gamepad_FaceButton_Bottom;
   /** 자동이면 설정·지금 쓰는 패드 종류. */
-  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrGamepadGlyphs Glyphs = EDrGamepadGlyphs::Auto;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") EDrUIGamepadGlyphs Glyphs = EDrUIGamepadGlyphs::Auto;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") float Height = 24.f;
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DrUI") bool bBrandColors = false;
 
   UFUNCTION(BlueprintCallable, Category = "DrUI") void SetKey(FKey InKey);
-  UFUNCTION(BlueprintCallable, Category = "DrUI") void SetGlyphs(EDrGamepadGlyphs InGlyphs);
+  UFUNCTION(BlueprintCallable, Category = "DrUI") void SetGlyphs(EDrUIGamepadGlyphs InGlyphs);
   /** 지금 그리는 표기(자동을 풀어서). */
-  EDrGamepadGlyphs GetResolvedGlyphs() const;
+  EDrUIGamepadGlyphs GetResolvedGlyphs() const;
   void ApplyTheme();
 protected:
   virtual void SynchronizeProperties() override;

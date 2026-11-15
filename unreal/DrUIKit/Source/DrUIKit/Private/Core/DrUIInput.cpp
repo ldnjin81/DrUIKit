@@ -13,7 +13,11 @@
 #include "Theme/DrUIKitSettings.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Types/ISlateMetaData.h"
+#include "Core/DrUIFeedback.h"
 #include "Widgets/DrButtonBase.h"
+#include "Widgets/DrActionBar.h"
+#include "Widgets/DrOptionRow.h"
+#include "Widgets/DrPressAnyKey.h"
 #include "Widgets/DrTabList.h"
 #include "Widgets/Layout/SScrollBox.h"
 
@@ -49,22 +53,22 @@ bool DrUIInput::IsUsingGamepad(const UWidget* Context) {
   return Input && Input->GetCurrentInputType() == ECommonInputType::Gamepad;
 }
 
-EDrGamepadGlyphs DrUIInput::GlyphsForGamepadName(FName GamepadName) {
+EDrUIGamepadGlyphs DrUIInput::GlyphsForGamepadName(FName GamepadName) {
   const FString Name = GamepadName.ToString();
-  if (Name.Contains(TEXT("PS")) || Name.Contains(TEXT("DualSense")) || Name.Contains(TEXT("DualShock")) || Name.Contains(TEXT("PlayStation"))) return EDrGamepadGlyphs::PlayStation;
-  if (Name.Contains(TEXT("Switch")) || Name.Contains(TEXT("Joy")) || Name.Contains(TEXT("Nintendo"))) return EDrGamepadGlyphs::Nintendo;
-  return EDrGamepadGlyphs::Xbox;
+  if (Name.Contains(TEXT("PS")) || Name.Contains(TEXT("DualSense")) || Name.Contains(TEXT("DualShock")) || Name.Contains(TEXT("PlayStation"))) return EDrUIGamepadGlyphs::PlayStation;
+  if (Name.Contains(TEXT("Switch")) || Name.Contains(TEXT("Joy")) || Name.Contains(TEXT("Nintendo"))) return EDrUIGamepadGlyphs::Nintendo;
+  return EDrUIGamepadGlyphs::Xbox;
 }
 
-EDrGamepadGlyphs DrUIInput::ResolveGlyphs(const UWidget* Context) {
+EDrUIGamepadGlyphs DrUIInput::ResolveGlyphs(const UWidget* Context) {
   const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
-  const EDrGamepadGlyphs Setting = Subsystem ? Subsystem->GetGamepadGlyphs() : GetDefault<UDrUIKitSettings>()->GamepadGlyphs;
-  if (Setting != EDrGamepadGlyphs::Auto) return Setting;
+  const EDrUIGamepadGlyphs Setting = Subsystem ? Subsystem->GetGamepadGlyphs() : GetDefault<UDrUIKitSettings>()->GamepadGlyphs;
+  if (Setting != EDrUIGamepadGlyphs::Auto) return Setting;
   const UCommonInputSubsystem* Input = InputFor(Context);
-  return Input ? GlyphsForGamepadName(Input->GetCurrentGamepadName()) : EDrGamepadGlyphs::Xbox;
+  return Input ? GlyphsForGamepadName(Input->GetCurrentGamepadName()) : EDrUIGamepadGlyphs::Xbox;
 }
 
-FText DrUIInput::GlyphName(const FKey& Key, EDrGamepadGlyphs Glyphs) {
+FText DrUIInput::GlyphName(const FKey& Key, EDrUIGamepadGlyphs Glyphs) {
   // 얼굴 버튼은 자리(아래·오른쪽·왼쪽·위)로 이름이 정해진다. 닌텐도는 아래가 B, 오른쪽이 A.
   struct FNames { const TCHAR* Xbox; const TCHAR* PlayStation; const TCHAR* Nintendo; };
   static const TMap<FKey, FNames> Pad = {
@@ -79,7 +83,7 @@ FText DrUIInput::GlyphName(const FKey& Key, EDrGamepadGlyphs Glyphs) {
     {EKeys::Gamepad_LeftX, {TEXT("L←→"), TEXT("L←→"), TEXT("L←→")}}, {EKeys::Gamepad_LeftY, {TEXT("L↑↓"), TEXT("L↑↓"), TEXT("L↑↓")}},
     {EKeys::Gamepad_RightX, {TEXT("R←→"), TEXT("R←→"), TEXT("R←→")}}, {EKeys::Gamepad_RightY, {TEXT("R↑↓"), TEXT("R↑↓"), TEXT("R↑↓")}}};
   if (const FNames* Found = Pad.Find(Key)) {
-    const TCHAR* Name = Glyphs == EDrGamepadGlyphs::PlayStation ? Found->PlayStation : Glyphs == EDrGamepadGlyphs::Nintendo ? Found->Nintendo : Found->Xbox;
+    const TCHAR* Name = Glyphs == EDrUIGamepadGlyphs::PlayStation ? Found->PlayStation : Glyphs == EDrUIGamepadGlyphs::Nintendo ? Found->Nintendo : Found->Xbox;
     return FText::FromString(Name);
   }
   static const TMap<FKey, const TCHAR*> Keyboard = {
@@ -92,6 +96,7 @@ FText DrUIInput::GlyphName(const FKey& Key, EDrGamepadGlyphs Glyphs) {
 }
 
 namespace {
+EDrUIInputKind GLastInputKind = EDrUIInputKind::Pointer;
 TArray<TWeakObjectPtr<UWidget>> GModals;
 TArray<TWeakObjectPtr<UDrButtonBase>> GShortcutButtons;
 TArray<TWeakObjectPtr<UDrTabList>> GTabLists;
@@ -109,6 +114,8 @@ bool IsInside(const UWidget* Widget, const UWidget* Container) {
 }
 }
 
+EDrUIInputKind DrUIInput::GetLastInputKind() { return GLastInputKind; }
+
 void DrUIInput::PushModal(UWidget* Modal) {
   if (!Modal) return;
   GModals.Remove(Modal);
@@ -119,9 +126,8 @@ void DrUIInput::PopModal(UWidget* Modal) { GModals.Remove(Modal); }
 
 UWidget* DrUIInput::GetTopModal() {
   GModals.RemoveAll([](const TWeakObjectPtr<UWidget>& W) { return !W.IsValid(); });
-  // 화면에 보이지 않는 덮개(닫히며 빠지지 못한 것 등)는 건너뛴다.
-  for (int32 I = GModals.Num() - 1; I >= 0; --I) if (IsShown(GModals[I].Get())) return GModals[I].Get();
-  return nullptr;
+  // 팝업(드롭다운 목록·팝오버)은 별도 창이라 '보이는 경로' 검사로는 잡히지 않는다. 덮개는 닫을 때 반드시 빼므로 등록 순서만 본다.
+  return GModals.IsEmpty() ? nullptr : GModals.Last().Get();
 }
 
 bool DrUIInput::IsInActiveLayer(const UWidget* Widget) {
@@ -157,9 +163,44 @@ UWidget* DrUIInput::FindFirstFocusable(UWidget* Root) {
     for (int32 I = 0; I < Panel->GetChildrenCount(); ++I) if (UWidget* Found = FindFirstFocusable(Panel->GetChildAt(I))) return Found;
     return nullptr;
   }
-  // 슬라이더·입력 칸 등 UMG 기본 위젯은 Slate가 포커스를 받는지로 판단한다.
+  // 슬라이더·입력 칸 등 UMG 기본 위젯은 Slate가 포커스를 받는지로 판단한다(겉을 감싼 위젯이면 그 안까지).
   const TSharedPtr<SWidget> Slate = Root->GetCachedWidget();
-  return Slate && Slate->SupportsKeyboardFocus() ? Root : nullptr;
+  return Slate && FirstFocusable(Slate.ToSharedRef()) ? Root : nullptr;
+}
+
+bool DrUIInput::FocusWidget(UWidget* Widget, bool bByPointer) {
+  // UMG 위젯을 찾은 뒤 그 안에서 실제로 포커스를 받는 Slate 위젯에 준다(CommonUI 버튼은 안쪽 버튼, DrUIKit 슬라이더는 감싼 오버레이 안 SSlider).
+  UWidget* Target = FindFirstFocusable(Widget);
+  const TSharedPtr<SWidget> Slate = Target ? Target->GetCachedWidget() : nullptr;
+  const TSharedPtr<SWidget> Focusable = Slate ? FirstFocusable(Slate.ToSharedRef()) : nullptr;
+  // 마우스로 옮긴 포커스면 원인을 Mouse로(포커스 링을 숨긴다).
+  return Focusable && FSlateApplication::Get().SetUserFocus(0, Focusable, bByPointer ? EFocusCause::Mouse : EFocusCause::Navigation);
+}
+
+bool FDrUINavTargets::Handle(UWidget* Self, EUINavigation Direction, FNavigationReply& OutReply) const {
+  const TFunction<UWidget*()>* Target = Targets.Find(Direction);
+  if (!Target || !*Target) return false;
+  // 위에 덮개(같은 창에 그려진 드롭다운 목록 등)가 떠 있으면 그 안의 이동이 여기까지 올라온다. 아래 층은 손대지 않는다.
+  if (!DrUIInput::IsInActiveLayer(Self)) return false;
+  UWidget* To = (*Target)();
+  if (!To) return false;  // 엔진 기본 이동
+  if (To != Self && DrUIInput::FocusWidget(To)) DrUIFeedback::Play(Self, EDrUIFeedback::Focus);
+  OutReply = FNavigationReply::Stop();
+  return true;
+}
+
+void DrUIInput::ChainVertical(const TArray<UWidget*>& Items, bool bWrap) {
+  for (int32 I = 0; I < Items.Num(); ++I) {
+    FDrUINavTargets* Targets = nullptr;
+    if (UDrButtonBase* Button = Cast<UDrButtonBase>(Items[I])) Targets = &Button->NavTargets;
+    else if (UDrOptionRow* Row = Cast<UDrOptionRow>(Items[I])) Targets = &Row->NavTargets;
+    if (!Targets) continue;
+    const int32 Up = I > 0 ? I - 1 : bWrap ? Items.Num() - 1 : I;
+    const int32 Down = I + 1 < Items.Num() ? I + 1 : bWrap ? 0 : I;
+    TWeakObjectPtr<UWidget> UpWidget = Items[Up], DownWidget = Items[Down];
+    Targets->Set(EUINavigation::Up, [UpWidget] { return UpWidget.Get(); });
+    Targets->Set(EUINavigation::Down, [DownWidget] { return DownWidget.Get(); });
+  }
 }
 
 bool DrUIInput::FocusFirstIn(UWidget* Container, int32 UserIndex) {
@@ -217,11 +258,18 @@ public:
 
   virtual bool HandleAnalogInputEvent(FSlateApplication& SlateApp, const FAnalogInputEvent& Event) override {
     if (Event.GetKey() == EKeys::Gamepad_RightY) RightStickY = Event.GetAnalogValue();
+    if (Event.GetKey().IsGamepadKey() && FMath::Abs(Event.GetAnalogValue()) > .3f) GLastInputKind = EDrUIInputKind::Gamepad;
+    return false;
+  }
+
+  virtual bool HandleMouseMoveEvent(FSlateApplication& SlateApp, const FPointerEvent& Event) override {
+    if (Event.GetCursorDelta().SizeSquared() > 4.f) GLastInputKind = EDrUIInputKind::Pointer;
     return false;
   }
 
   virtual bool HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& Event) override {
     const FKey Key = Event.GetKey();
+    if (!Key.IsAnalog()) GLastInputKind = Key.IsGamepadKey() ? EDrUIInputKind::Gamepad : EDrUIInputKind::Keyboard;
     if (Event.IsRepeat()) return false;
     if (!GAnyKeyListeners.IsEmpty() && !Key.IsAnalog()) {
       bool bConsumed = false;
@@ -238,12 +286,6 @@ public:
       Button->TriggerShortcut();
       return true;
     }
-    // 탭 버튼에서 아래: 연결된 내용의 첫 조작 부품으로(Slate 방향 이동은 바로 아래 띠에 부품이 없으면 멈춘다).
-    if (Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Down) {
-      UDrButtonBase* Focused = UDrButtonBase::GetHintFocus();
-      for (const TWeakObjectPtr<UDrTabList>& Weak : GTabLists)
-        if (UDrTabList* Tabs = Weak.Get(); Tabs && Tabs->bDownEntersContent && Tabs->OwnsTabButton(Focused) && Tabs->FocusContent()) return true;
-    }
     const EDrUIInputAction Action = DrUIInput::GetActionForKey(Key);
     UE_LOG(LogDrUIKit, Verbose, TEXT("DrUIInput: %s 동작 %d, 탭 목록 %d개"), *Key.ToString(), int32(Action), GTabLists.Num());
     const bool bSub = Action == EDrUIInputAction::PrevSubTab || Action == EDrUIInputAction::NextSubTab;
@@ -251,7 +293,7 @@ public:
       // 같은 종류(위 탭·하위 탭)를 받는 보이는 탭 목록 중 가장 나중에 만든 것(안쪽).
       for (int32 I = GTabLists.Num() - 1; I >= 0; --I) {
         UDrTabList* Tabs = GTabLists[I].Get();
-        if (!Tabs || (bSub ? !Tabs->bSubTabNavigation : !Tabs->bShoulderNavigation)) continue;
+        if (!Tabs || Tabs->Paging != (bSub ? EDrTabPaging::Triggers : EDrTabPaging::Bumpers)) continue;
         UE_LOG(LogDrUIKit, Verbose, TEXT("DrUIInput: 탭 목록 %s 층 %d 보임 %d"), *Tabs->GetName(), DrUIInput::IsInActiveLayer(Tabs), DrUIInput::IsShown(Tabs));
         if (!DrUIInput::IsInActiveLayer(Tabs) || !DrUIInput::IsShown(Tabs)) continue;
         const bool bNext = Action == EDrUIInputAction::NextTab || Action == EDrUIInputAction::NextSubTab;
@@ -263,6 +305,7 @@ public:
   }
 
   virtual bool HandleMouseButtonDownEvent(FSlateApplication& SlateApp, const FPointerEvent& Event) override {
+    GLastInputKind = EDrUIInputKind::Pointer;
     bool bConsumed = false;
     if (!GAnyKeyListeners.IsEmpty()) {
       TArray<TFunction<bool(const FKey&, bool)>> Listeners;

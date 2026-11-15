@@ -10,7 +10,7 @@
 #include "Widgets/DrStatus.h"
 #include "Widgets/DrText.h"
 
-FText UDrButtonPrompt::ShortKeyName(const FKey& Key) { return DrUIInput::GlyphName(Key, EDrGamepadGlyphs::Xbox); }
+FText UDrButtonPrompt::ShortKeyName(const FKey& Key) { return DrUIInput::GlyphName(Key, EDrUIGamepadGlyphs::Xbox); }
 
 bool UDrButtonPrompt::IsRoundKey(const FKey& Key) {
   const EDrKeyShape Shape = DrKeyGlyph::ShapeFor(Key);
@@ -45,7 +45,7 @@ void UDrButtonPrompt::SetKeys(FKey InKeyboardKey, FKey InGamepadKey, const FText
 }
 
 void UDrButtonPrompt::SetDevice(EDrPromptDevice InDevice) { Device = InDevice; ApplyTheme(); }
-void UDrButtonPrompt::SetGlyphs(EDrGamepadGlyphs InGlyphs) { Glyphs = InGlyphs; ApplyTheme(); }
+void UDrButtonPrompt::SetGlyphs(EDrUIGamepadGlyphs InGlyphs) { Glyphs = InGlyphs; ApplyTheme(); }
 
 void UDrButtonPrompt::SetHoldProgress(float Progress) {
   HoldProgress = FMath::Clamp(Progress, 0.f, 1.f);

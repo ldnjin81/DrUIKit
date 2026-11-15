@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "Input/NavigationReply.h"
 #include "InputCoreTypes.h"
 #include "DrUIInput.generated.h"
 
@@ -25,9 +26,13 @@ enum class EDrUIInputAction : uint8 {
   NextSubTab
 };
 
+/** 마지막으로 쓴 입력(마우스는 뎁스 없이 바로 누르고, 키보드·패드는 포커스를 따라 차례로 간다 — 화면이 둘을 다르게 다룰 때). */
+UENUM(BlueprintType)
+enum class EDrUIInputKind : uint8 { Pointer, Keyboard, Gamepad };
+
 /** 패드 버튼을 어느 표기로 보일지. 자동이면 CommonInput의 현재 패드 이름을 따른다(모르면 Xbox). */
 UENUM(BlueprintType)
-enum class EDrGamepadGlyphs : uint8 { Auto, Xbox, PlayStation, Nintendo };
+enum class EDrUIGamepadGlyphs : uint8 { Auto, Xbox, PlayStation, Nintendo };
 
 /**
  * 게임패드 UX 공통 도구.
@@ -42,13 +47,19 @@ DRUIKIT_API EDrUIInputAction GetAction(const FKeyEvent& Event);
 /** 키만으로 판정(Accept·Back은 엔진 기본 배치 기준). */
 DRUIKIT_API EDrUIInputAction GetActionForKey(const FKey& Key);
 /** 지금 보일 패드 표기(설정 → 자동이면 CommonInput 패드 이름). Context는 로컬 플레이어를 찾는 데 쓴다. */
-DRUIKIT_API EDrGamepadGlyphs ResolveGlyphs(const UWidget* Context);
+DRUIKIT_API EDrUIGamepadGlyphs ResolveGlyphs(const UWidget* Context);
 /** 패드 이름(CommonInput)으로 표기 고르기: PS·DualSense → PlayStation, Switch·Joy → Nintendo, 그 밖 Xbox. */
-DRUIKIT_API EDrGamepadGlyphs GlyphsForGamepadName(FName GamepadName);
+DRUIKIT_API EDrUIGamepadGlyphs GlyphsForGamepadName(FName GamepadName);
 /** 키캡 글자. 패드 키는 표기별, 키보드는 짧은 이름(Esc·Enter …), 모르면 엔진 표시 이름. */
-DRUIKIT_API FText GlyphName(const FKey& Key, EDrGamepadGlyphs Glyphs);
+DRUIKIT_API FText GlyphName(const FKey& Key, EDrUIGamepadGlyphs Glyphs);
 /** 지금 패드로 조작 중인지(CommonInput 마지막 입력). */
 DRUIKIT_API bool IsUsingGamepad(const UWidget* Context);
+/** 마지막 입력 종류(전역 입력 처리기가 기록: 마우스 누름·움직임 → Pointer, 키 → Keyboard, 패드 버튼·스틱 → Gamepad). */
+DRUIKIT_API EDrUIInputKind GetLastInputKind();
+/** 목록을 위아래로 잇는다(UDrButtonBase·UDrOptionRow의 방향 이동 대상). bWrap이면 끝에서 처음으로. */
+DRUIKIT_API void ChainVertical(const TArray<UWidget*>& Items, bool bWrap);
+/** Widget(또는 그 안 첫 조작 부품)에 포커스. bByPointer면 마우스로 옮긴 것으로(포커스 링 숨김). 했으면 true. */
+DRUIKIT_API bool FocusWidget(UWidget* Widget, bool bByPointer = false);
 
 /** 덮개(모달)를 연다/닫는다. 열린 덮개가 있으면 단축키는 맨 위 덮개 안의 버튼만 받는다. */
 DRUIKIT_API void PushModal(UWidget* Modal);
@@ -75,6 +86,20 @@ DRUIKIT_API void RemoveAnyKeyListener(int32 Id);
 /** 오른쪽 스틱 세로 값으로 스크롤할 속도(px/초, 기울기 1일 때). */
 inline constexpr float StickScrollSpeed = 1400.f;
 }
+
+/**
+ * 방향 이동 대상(부품이 정함). Slate 방향 이동은 위젯 바로 옆 띠만 찾고, CommonUI 버튼은 겉 위젯이 포커스를 받지 않아
+ * 엔진 탐색 규칙(Explicit·Custom)으로는 옮겨지지 않는다. 그래서 부품의 NativeOnNavigation에서 직접 포커스를 옮긴다(D패드·스틱·방향키 모두).
+ * 대상 함수가 nullptr이면 엔진 기본 이동, 자기 자신이면 제자리(멈춤), 그 밖은 그 위젯(안 첫 조작 부품)으로.
+ */
+struct DRUIKIT_API FDrUINavTargets {
+  void Set(EUINavigation Direction, TFunction<UWidget*()> Target) { Targets.Add(Direction, MoveTemp(Target)); }
+  void Clear(EUINavigation Direction) { Targets.Remove(Direction); }
+  /** 정해 둔 방향이면 처리하고 OutReply를 채운다. */
+  bool Handle(UWidget* Self, EUINavigation Direction, FNavigationReply& OutReply) const;
+private:
+  TMap<EUINavigation, TFunction<UWidget*()>> Targets;
+};
 
 /** 덮개가 열릴 때 포커스를 기억했다가 닫을 때 되돌린다. 기억한 위젯이 사라졌으면 아무것도 하지 않는다. */
 struct DRUIKIT_API FDrUIFocusMemory {

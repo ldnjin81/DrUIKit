@@ -195,6 +195,9 @@ TSharedPtr<const FCompositeFont> MakeFamilyFont(const FString& CacheKey, const T
     AppendTypefaces(Sub.Typeface, *Hangul, PluginDir, OutMissing);
     if (Sub.Typeface.Fonts.IsEmpty()) Font->SubTypefaces.Pop();
   }
+  // 그 밖에 글꼴에 없는 글자(일본어·중국어 등 다른 언어)는 엔진의 다국어 대체 글꼴로(빈 네모가 나오지 않게).
+  const FString Fallback = FPaths::EngineContentDir() / TEXT("Slate/Fonts/DroidSansFallback.ttf");
+  if (FPaths::FileExists(Fallback)) Font->FallbackTypeface.Typeface.AppendFont(TEXT("Regular"), Fallback, EFontHinting::Default, EFontLoadingPolicy::LazyLoad);
   Cache.Add(CacheKey, Font);
   return Font;
 }

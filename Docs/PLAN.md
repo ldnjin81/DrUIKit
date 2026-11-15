@@ -54,7 +54,13 @@
 - 부품: `UDrKeyGlyph`(Xbox·PlayStation·Nintendo 버튼 모양, 키캡·마우스), `UDrButtonPrompt` Both 모드, `UDrActionBar`, `UDrPressAnyKey`, `UDrItemSlot`·`UDrItemGrid`, `UDrStatCompare`. 탭 목록 LB/RB·LT/RT 넘김과 양 끝 키 모양, 탭에서 아래로 내용 들어가기(Slate 방향 이동은 바로 아래 띠만 찾음).
 - 설정: 패드 표기(자동·Xbox·PlayStation·Nintendo), 글자 크기 배율, UI 소리(포커스·확인·뒤로·오류·한 칸)·진동 켜기와 세기.
 - 샘플: 갤러리 '게임패드' 페이지와 콘솔 게임 메뉴(`UDrGlassConsoleMenu`: 메인 탭 / 서브 탭 / 1뎁스 · 2뎁스 · 정보 / 상태 표시줄). `-DrUIGamepadTour`로 합성 패드 입력 둘러보기 캡처.
-- 남은 것: 스틱으로 탭에서 내려가기(D패드·방향키만), 패드 포커스 시 툴팁, 키 다시 지정 행, 패드 연결 끊김 안내.
+- 2026-11-16 보완(사용자 테스트 의견: '뎁스를 벗어나 포커스를 잃음', '2뎁스의 좌우 컨트롤을 쓸 수 없음', '마우스는 뎁스 상관없이 바로', '전환이 자연스러운지 검증'):
+  - 방향 이동 대상 `FDrUINavTargets`(버튼·옵션 줄): Slate 방향 이동은 바로 옆 띠만 찾고 CommonUI 버튼은 엔진 탐색 규칙으로 옮겨지지 않아, 부품이 NativeOnNavigation에서 직접 포커스를 옮긴다(D패드·스틱 공통). 덮개가 떠 있으면 아래 층은 처리하지 않는다(같은 창 드롭다운 목록의 이동이 올라오는 문제).
+  - `UDrOptionRow`(설정 한 줄), 입력 종류 `EDrUIInputKind`(마우스·키보드·패드), 다국어 대체 글꼴(엔진 DroidSansFallback: 일본어·중국어 빈 네모 해결), 확인 대화상자·메뉴 화면이 CommonUI 입력 데이터 없이도 B·Esc로 닫힘·포커스 복원, 드롭다운·팝오버는 열린 동안 덮개 층.
+  - 콘솔 게임 메뉴: 목록 순환·메뉴 밖으로 안 나감·뎁스별 마지막 줄 기억, '설정' 2뎁스에 조작 부품 11종, 마우스는 뎁스 없이 바로·올리면 미리 보기·오른쪽 클릭 닫기, 패드로 바꾸면 마우스로 보던 줄에서 이어 감.
+  - 이름 정리: 기반 타입은 `EDrUIInputKind`·`EDrUIGamepadGlyphs`·`FDrUINavTargets`, 탭 넘기기는 `EDrTabPaging Paging`(`SetPaging`, `bShowPagingKeys`·`bWrapPaging`·`bFocusTabOnPaging`), 파일은 클래스별(`DrActionBar`·`DrOptionRow`·`DrPressAnyKey`·`DrItemSlot`·`DrItemGrid`·`DrStatCompare`).
+  - 검증: `-DrUIGamepadTour`에 합성 마우스(이동·클릭·오른쪽 클릭)와 키보드를 섞은 39단계.
+- 남은 것: 패드 포커스 시 툴팁, 키 다시 지정 행, 패드 연결 끊김 안내, 플랫폼 공식 버튼 이미지를 꽂는 자리(인증용).
 
 **스타일 여러 개(2026-11-16, 결정: 네 가지 모두, 토큰 로더를 코어로)**: 글래스 외에 플랫·머티리얼(`UISample/Flat`), 네오 브루탈리즘(`Brutal`), 뉴모피즘(`Neu`), 레트로 터미널(`Retro`)을 더했다. 각각 코드 없는 플러그인(`DrUI<스타일>`)에 `Tokens/tokens.json`(Glass와 같은 토큰 이름, 값만 다름)과 `Tokens/style.json`(id·이름·순서·글꼴·반투명 토큰·기본 테두리 두께)만 둔다.
 - 코어 `DrUIStyle`: 켜진 플러그인 중 `Tokens/style.json`이 있는 것을 찾아 엔진이 뜬 뒤 모두 읽는다(설정 `bLoadStylePlugins`). 테마 id는 `<스타일>-light|dark`. Glass도 같은 방식이며 `DrGlassTheme`은 없앴다.
