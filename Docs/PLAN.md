@@ -10,7 +10,7 @@
 
 | 영역 | 클래스 |
 |---|---|
-| 기반 | `UDrUITheme`, `UDrUIThemeSubsystem`(테마·표면 품질·표면 투명도·움직임 줄이기), `UDrUIKitSettings`, `EDrUIState`·`DrUIState::Resolve`, `DrUIMotion`(곡선·순차 등장 `PlayStagger`), `FDrUISpring` |
+| 기반 | `UDrUITheme`, `UDrUIThemeSubsystem`(테마·표면 품질·표면 투명도·움직임 줄이기), `DrUIStyle`(스타일 로더), `UDrUIKitSettings`, `EDrUIState`·`DrUIState::Resolve`, `DrUIMotion`(곡선·순차 등장 `PlayStagger`), `FDrUISpring` |
 | 기초 | `UDrText`, `UDrIcon`, `UDrGlyph`(선으로 그리는 표시), `UDrSurface`(흐림·채움·테두리 + 그림자·윗면 반사광) |
 | 누르는 부품 | `UDrButtonBase`(공통 상태 틀), `UDrButton`(9상태·변형 4종), `UDrHoldButton` |
 | 선택 | `UDrToggleBase`, `UDrCheckBox`, `UDrRadio`, `UDrSwitch`, `UDrTabList`·`UDrTabButton`, `UDrSegmentedControl`, `UDrSlider`(눈금·값 말풍선) |
@@ -23,7 +23,7 @@
 **기획과 달라진 점**
 
 - 이름: 부품은 `UDr<부품>`, 기반 시스템만 `UDrUI`(위 '이름과 구성' 표). Select → `UDrDropdown`, Stepper → `UDrHorizontalSelector`, ChoiceBase → `UDrToggleBase`, Segmented → `UDrSegmentedControl`.
-- 테마: 에디터 모듈·토큰 가져오기 커맨드릿 대신 Glass 샘플이 실행 중에 `tokens.json`(색·글자·간격·모서리·흐림·그림자)과 Pretendard TTF(코드로 복합 글꼴)를 읽는다.
+- 테마: 에디터 모듈·토큰 가져오기 커맨드릿 대신 코어 스타일 로더(`DrUIStyle`)가 실행 중에 스타일 플러그인의 `tokens.json`(색·글자·간격·모서리·흐림·그림자)과 TTF(코드로 복합 글꼴)를 읽는다(처음에는 Glass 샘플 안에 있었고 2026-11-16 코어로 옮김).
 - 표면 스타일 클래스(`UDrGlassSurfaceStyle`)는 만들지 않았다. `UDrSurface`가 토큰(채움·테두리·흐림·그림자·반사광)으로 다섯 층을 직접 칠한다.
 - 목록: 엔진이 에디터에서 C++ 목록 항목 클래스를 거부하므로(`UListViewBase::RebuildWidget`) 전용 목록 위젯은 두지 않고, `UDrListRow`를 위젯 블루프린트의 부모로 쓰도록 했다. 짧은 목록은 버튼 묶음으로.
 - 버튼 프롬프트: 아이콘 에셋 없이 키캡 글자로 그린다(아이콘이 필요하면 엔진 `UCommonActionWidget`).
@@ -48,6 +48,14 @@
 - 글자 등장의 '블러 인'은 Slate에 글자 흐림이 없어 올라오며 밝아짐으로 대신했다.
 
 **UI 흐름(2026-11-13)**: `UDrUIFlowSubsystem`·`UDrUIRootLayout`(게임·메뉴·모달·알림)·`UDrUIMenuWidget`·`UDrUIHUDWidget`·`UDrConfirmDialog`를 DrUIKit에 만들었다. 흐름은 게임이 `EnterTitle`·`EnterGame`을 부른 뒤에만 입력 모드를 바꾼다. DrFramework 쪽 UI 제거(0.3.0)는 0.2.0 위 브랜치로 준비하며, 두 플러그인을 함께 쓰는 DrSample은 0.3.0이 병합될 때까지 DrUIKit을 넣지 않는다(`UDrUIRootLayout` 이름 겹침). 2차 22개는 아래 표의 우선순위대로.
+
+**스타일 여러 개(2026-11-16, 결정: 네 가지 모두, 토큰 로더를 코어로)**: 글래스 외에 플랫·머티리얼(`UISample/Flat`), 네오 브루탈리즘(`Brutal`), 뉴모피즘(`Neu`), 레트로 터미널(`Retro`)을 더했다. 각각 코드 없는 플러그인(`DrUI<스타일>`)에 `Tokens/tokens.json`(Glass와 같은 토큰 이름, 값만 다름)과 `Tokens/style.json`(id·이름·순서·글꼴·반투명 토큰·기본 테두리 두께)만 둔다.
+- 코어 `DrUIStyle`: 켜진 플러그인 중 `Tokens/style.json`이 있는 것을 찾아 엔진이 뜬 뒤 모두 읽는다(설정 `bLoadStylePlugins`). 테마 id는 `<스타일>-light|dark`. Glass도 같은 방식이며 `DrGlassTheme`은 없앴다.
+- 코어에 더한 것: 그림자 토큰의 여러 겹(`ShadowLayers`, 뉴모피즘의 밝은·어두운 겹), 흐림 없는 그림자는 옮긴 둥근 상자로(브루탈리즘), 테마 기본 테두리 두께(`StrokeWidth`, 부품의 강조 두께는 그 위에 더함), 글자 스타일의 글꼴 갈래(`Family`: sans·mono)와 갈래별 글꼴, 라틴 글꼴에 없는 한국어 글자(한글·₩·CJK 기호)만 다른 서체로 그리는 대체 서체.
+- 글꼴: 플랫은 엔진 Roboto + Pretendard(한글), 브루탈리즘·뉴모피즘은 Pretendard(Glass 플러그인 것을 빌려 씀), 레트로는 엔진 DroidSansMono + DroidSansFallback(한글). 새로 받은 글꼴은 없다.
+- 갤러리: 탭 줄 오른쪽 스타일 전환. 캡처는 스타일 × 밝게·어둡게 × 페이지(`-DrUIGalleryStyles=`로 줄임). Glass 전용 바탕 색 덩어리는 다른 스타일에서 투명 토큰으로 사라진다.
+- 테스트: `DrUIKit.Style.ParseCss`, `DrUIKit.Style.LoadedStylesComplete`(모든 스타일·테마가 첫 스타일의 토큰을 모두 가짐, 본문 글꼴), `DrUIKit.Core.Surface.ThemeStrokeWidth`.
+- 남은 것: 패키지에 넣을 때 토큰 전용 스타일 플러그인은 `RuntimeDependencies`를 둘 모듈이 없어 게임 쪽에서 함께 넣어야 한다. 뉴모피즘의 눌린(안쪽 그림자) 모양, 픽셀 글꼴(다운로드 승인 필요)은 아직 없다.
 
 ## 개요
 
@@ -81,7 +89,7 @@ DrUIKit은 언리얼 엔진 5.8 UMG 위에 만드는 **스타일 중립 UI 부�
 |---|---|
 | 저장소 | `DrUIKit`(새 프로젝트). 코어 플러그인 `unreal/DrUIKit`, 스타일 샘플 `UISample/<스타일>`, 단독 검증 호스트 `Host/DrUIKitHost.uproject` |
 | 코어 모듈 | `DrUIKit`(런타임). 에디터 모듈은 아직 없음(토큰은 샘플이 실행 중에 `tokens.json`을 읽는다 — 아래 '구현 현황') |
-| 스타일 샘플 | `UISample/Glass`: 플러그인 `DrUIGlass`(모듈 하나). 디자인 시스템 `tokens.json`, 테마 에셋 2개, 유리 표면 스타일, 머티리얼, 갤러리 화면. 나중에 다른 스타일도 같은 자리에 추가 |
+| 스타일 샘플 | `UISample/Glass`: 플러그인 `DrUIGlass`(모듈 하나). 디자인 시스템 `tokens.json`, 테마 에셋 2개, 유리 표면 스타일, 머티리얼, 갤러리 화면. 나중에 다른 스타일도 같은 자리에 추가(2026-11-16: Flat·Brutal·Neu·Retro 추가, 위 '구현 현황') |
 | 클래스 이름 | 부품(위젯)은 `UDr<부품>`(`UDrButton`, `UDrSurface`, `UDrTabList`, 열거형·Slate도 `EDr…`·`SDr…`), 부품이 아닌 기반 시스템은 `UDrUI<…>`(`UDrUITheme`, `UDrUIThemeSubsystem`, `FDrUISpring`, `EDrUIState`). 파일 이름 = 클래스에서 접두사 뺀 것. Glass 샘플 `UDrGlass…` |
 | 설정 | `UDrUIKitSettings`(프로젝트 설정 "DrUIKit": 쓸 테마 목록, 시작 테마, 표면 품질, 움직임 줄이기) |
 | 테스트 이름 | `DrUIKit.<영역>.<항목>`, 샘플은 `DrUIGlass.<영역>.<항목>` |

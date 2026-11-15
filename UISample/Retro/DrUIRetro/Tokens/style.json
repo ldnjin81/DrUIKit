@@ -1,0 +1,25 @@
+{
+  "id": "retro",
+  "name": "레트로",
+  "order": 50,
+  "translucent": [],
+  "strokeWidth": 1.5,
+  "fonts": {
+    "sans": {
+      "typefaces": {
+        "Regular": "{engine}/Slate/Fonts/DroidSansMono.ttf"
+      },
+      "hangul": {
+        "Regular": "{engine}/Slate/Fonts/DroidSansFallback.ttf"
+      }
+    },
+    "mono": {
+      "typefaces": {
+        "Regular": "{engine}/Slate/Fonts/DroidSansMono.ttf"
+      },
+      "hangul": {
+        "Regular": "{engine}/Slate/Fonts/DroidSansFallback.ttf"
+      }
+    }
+  }
+}

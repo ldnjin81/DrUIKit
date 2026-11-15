@@ -6,4 +6,5 @@
 - 모든 부품은 상태(기본·호버·눌림·포커스·비활성·로딩·성공·오류·선택됨 중 해당하는 것)를 다 가진다. 상태 판정은 `DrUIState::Resolve`.
 - **스타일 샘플(`UISample/<스타일>`)의 테스트 레벨(갤러리)은 모든 UI를 담는다. 새 UI를 추가하는 작업은 같은 작업에서 갤러리에 그 UI(모든 상태)를 추가한다. 빠뜨리면 갤러리 테스트가 실패한다.** 갤러리는 탭·페이지로 나눠 넘기며 직접 조작해 볼 수 있어야 한다.
 - 구조가 바뀌면 같은 작업에서 README와 `Docs/PLAN.md`(구현 현황 절 포함)를 고친다. 기획·결정의 원본은 `Docs/PLAN.md`(git)다. 디자인 언어(토큰·이름 사전)의 원본은 저장소 밖에서 관리하고, `UISample/Glass/DrUIGlass/Tokens/tokens.json`은 그 복사본이다(바뀌면 같이 복사).
+- 스타일은 `UISample/<스타일>/DrUI<스타일>` 플러그인에 `Tokens/tokens.json`(첫 스타일 Glass와 같은 토큰 이름을 모두)과 `Tokens/style.json`을 둔다. 코어 `DrUIStyle`이 자동으로 찾고, `DrUIKit.Style.LoadedStylesComplete`가 빠진 토큰을 잡는다. 호스트 `.uproject`에도 켠다.
 - 검증: `Tools/verify.ps1`(호스트 빌드 + `DrUIKit.*` 테스트). 빌드·테스트는 Windows(UE 5.8).

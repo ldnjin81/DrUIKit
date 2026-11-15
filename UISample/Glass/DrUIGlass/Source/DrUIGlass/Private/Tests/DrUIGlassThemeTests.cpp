@@ -1,19 +1,19 @@
-// Glass 테마가 디자인 시스템 tokens.json 값을 그대로 담는지 검증한다.
+// Glass 테마(코어 스타일 로더가 읽은 Tokens/tokens.json·style.json)가 디자인 시스템 값을 그대로 담는지 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
-#include "DrGlassTheme.h"
 #include "Misc/AutomationTest.h"
+#include "Theme/DrUIStyle.h"
 #include "Theme/DrUITheme.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGlassThemeLoadTest, "DrUIGlass.Theme.LoadsTokens", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FDrGlassThemeLoadTest::RunTest(const FString&) {
-  FLinearColor C;
-  TestTrue(TEXT("#2563eb"), DrGlassTheme::ParseCssColor(TEXT("#2563eb"), C) && C.ToFColor(true) == FColor(0x25, 0x63, 0xeb));
-  TestTrue(TEXT("rgba 알파"), DrGlassTheme::ParseCssColor(TEXT("rgba(255,255,255,0.58)"), C) && FMath::IsNearlyEqual(C.A, .58f));
   FString Error;
-  const TArray<UDrUITheme*> Themes = DrGlassTheme::LoadThemes(nullptr, Error);
+  FDrUIStyleInfo Info;
+  const TArray<UDrUITheme*> Themes = DrUIStyle::LoadPluginStyle(TEXT("DrUIGlass"), nullptr, Error, &Info);
   TestEqual(TEXT("오류 없음"), Error, FString());
   if (!TestEqual(TEXT("테마 2개"), Themes.Num(), 2)) return false;
+  TestEqual(TEXT("스타일 id"), Info.Id, FName(TEXT("glass")));
   TestEqual(TEXT("첫 테마는 밝은 유리"), Themes[0]->ThemeId, FName(TEXT("glass-light")));
+  TestTrue(TEXT("유리 채움만 투명도를 따름"), Themes[0]->TranslucentTokens.Num() == 2 && Themes[0]->TranslucentTokens.Contains(TEXT("glass")));
   TestEqual(TEXT("색 23개"), Themes[0]->Colors.Num(), 23);
   TestEqual(TEXT("밝은 accent"), Themes[0]->GetColor(TEXT("accent")).ToFColor(true), FColor(0x25, 0x63, 0xeb));
   TestEqual(TEXT("어두운 accent"), Themes[1]->GetColor(TEXT("accent")).ToFColor(true), FColor(0x6e, 0xa0, 0xff));
@@ -21,9 +21,7 @@ bool FDrGlassThemeLoadTest::RunTest(const FString&) {
   TestEqual(TEXT("body 14px → 10.5"), Themes[0]->GetTextStyle(TEXT("body")).Size, 10.5f);
   TestEqual(TEXT("radius-xl"), Themes[0]->GetRadius(TEXT("radius-xl")), 28.f);
   TestTrue(TEXT("흐림 토큰"), Themes[0]->GetBackdrop(TEXT("backdrop-glass")) > 0.f);
-  FDrUIShadow Shadow;
-  TestTrue(TEXT("box-shadow: inset 겹은 건너뛰고 바깥 겹"), DrGlassTheme::ParseCssShadow(TEXT("inset 0 1px 0 rgba(255,255,255,0.95), 0 16px 48px -16px rgba(24,32,56,0.28)"), Shadow)
-    && Shadow.Offset == FVector2D(0, 16) && Shadow.Blur == 48.f && Shadow.Spread == -16.f && FMath::IsNearlyEqual(Shadow.Color.A, .28f));
+  TestEqual(TEXT("shadow-glass는 inset을 뺀 한 겹"), Themes[0]->GetShadowLayers(TEXT("shadow-glass")).Num(), 1);
   TestTrue(TEXT("그림자 토큰 3개"), Themes[0]->Shadows.Num() == 3 && Themes[1]->GetShadow(TEXT("shadow-float")).Color.A > .5f);
   if (TestTrue(TEXT("Pretendard 글꼴"), Themes[0]->RuntimeFont.IsValid())) {
     TestEqual(TEXT("서체 5개"), Themes[0]->RuntimeFont->DefaultTypeface.Fonts.Num(), 5);
@@ -42,7 +40,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrGlassThemeSwitchTextTest, "DrUIGlass.Theme.T
 bool FDrGlassThemeSwitchTextTest::RunTest(const FString&) {
   UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
   FString Error;
-  const TArray<UDrUITheme*> Themes = DrGlassTheme::LoadThemes(GetTransientPackage(), Error);
+  const TArray<UDrUITheme*> Themes = DrUIStyle::LoadPluginStyle(TEXT("DrUIGlass"), GetTransientPackage(), Error);
   if (!TestNotNull(TEXT("서브시스템"), Subsystem) || !TestEqual(TEXT("테마 2개"), Themes.Num(), 2)) return false;
   TestEqual(TEXT("어두운 on-accent 값"), Themes[1]->GetColor(TEXT("on-accent")).ToFColor(true), FColor(0x0b, 0x14, 0x30));
   UDrText* Text = NewObject<UDrText>();

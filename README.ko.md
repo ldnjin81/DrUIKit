@@ -2,7 +2,7 @@
 
 [English](README.md) | **한국어**
 
-언리얼 엔진 5.8용 **스타일 중립 UI 부품** 플러그인이다. 엔진·CommonUI 위젯을 상속해 확장하고, 상속으로 안 되는 것은 UserWidget 안에서 조합한다. 모양은 테마 토큰으로만 칠하고, 실제 디자인은 스타일 샘플(`UISample/<스타일>`)이 입힌다.
+언리얼 엔진 5.8용 **스타일 중립 UI 부품** 플러그인이다. 엔진·CommonUI 위젯을 상속해 확장하고, 상속으로 안 되는 것은 UserWidget 안에서 조합한다. 모양은 테마 토큰으로만 칠하고, 실제 디자인은 스타일(`UISample/<스타일>`)이 입힌다. 스타일은 `tokens.json`을 가진 플러그인이고 코어가 시작할 때 읽는다. 샘플 스타일은 글래스·플랫·네오 브루탈리즘·뉴모피즘·레트로 터미널 다섯 가지다.
 
 > 상태: 0.1.0(1차·2차 부품, UI 흐름·화면 층). 기획·구현 현황: `Docs/PLAN.md`.
 
@@ -12,7 +12,8 @@
 | --- | --- |
 | `unreal/DrUIKit` | 코어 플러그인(모듈 `DrUIKit`, 의존: UMG·CommonUI) |
 | `Host/DrUIKitHost.uproject` | 단독 빌드·테스트 호스트(코드 모듈 없음) |
-| `UISample/Glass` | 리퀴드 글래스 스타일 샘플(플러그인 `DrUIGlass`: tokens.json 테마, Pretendard 글꼴, 바탕, 갤러리 테스트 레벨 `L_DrUIGallery`) |
+| `UISample/Glass` | 리퀴드 글래스 스타일(플러그인 `DrUIGlass`: 토큰, Pretendard 글꼴, 바탕, 갤러리 테스트 레벨 `L_DrUIGallery`) |
+| `UISample/Flat`·`Brutal`·`Neu`·`Retro` | 플랫·머티리얼, 네오 브루탈리즘, 뉴모피즘, 레트로 터미널 스타일(플러그인 `DrUIFlat`·`DrUIBrutal`·`DrUINeu`·`DrUIRetro`: 코드 없이 토큰만) |
 | `Tools/verify.ps1` | 호스트 빌드 + `Automation RunTests DrUIKit+DrUIGlass` |
 
 ## 지금 있는 것
@@ -21,9 +22,9 @@
 
 | 영역 | 클래스 |
 | --- | --- |
-| 테마 | `UDrUITheme`(토큰 묶음 데이터 에셋, 회색조 기본 테마), `UDrUIThemeSubsystem`(현재 테마·전환·표면 품질·표면 투명도·움직임 줄이기), `UDrUIKitSettings` |
+| 테마 | `UDrUITheme`(토큰 묶음 데이터 에셋, 회색조 기본 테마), `UDrUIThemeSubsystem`(현재 테마·전환·표면 품질·표면 투명도·움직임 줄이기), `DrUIStyle`(스타일 로더: 스타일 플러그인을 찾아 `tokens.json`·`style.json`을 읽음), `UDrUIKitSettings` |
 | 상태·움직임 | `EDrUIState`·`DrUIState::Resolve`(9상태 우선순위), `DrUIMotion`(이즈 인·아웃 cubic-bezier, 순차 등장 `PlayStagger`), `FDrUISpring` |
-| 기초 부품 | `UDrText`(UCommonTextBlock), `UDrIcon`(UImage), `UDrGlyph`(선으로 그리는 표시: 체크·점·더하기·닫기·화살표·느낌표), `UDrSurface`(UBorder + 뒤 흐림, 채움 토큰이 비면 투명, 그림자·윗면 반사광은 토큰을 정한 표면만 `SetElevation`) |
+| 기초 부품 | `UDrText`(UCommonTextBlock), `UDrIcon`(UImage), `UDrGlyph`(선으로 그리는 표시: 체크·점·더하기·닫기·화살표·느낌표), `UDrSurface`(UBorder + 뒤 흐림, 채움 토큰이 비면 투명, 그림자(여러 겹·흐림 없는 어긋난 그림자)·윗면 반사광은 토큰을 정한 표면만 `SetElevation`, 테두리 두께는 테마를 따름) |
 | 누르는 부품 | `UDrButtonBase`(공통 상태 판정 틀, 추상), `UDrButton`(9상태·변형 4종) |
 | 선택 부품 | `UDrToggleBase`(켜고 끄는 부품 공통 틀, 추상), `UDrCheckBox`(체크 그리기), `UDrRadio`(+ `UCommonButtonGroupBase`로 하나만 선택), `UDrSwitch`(스프링 손잡이), `UDrTabList`·`UDrTabButton`(UCommonTabListWidgetBase, 알약·밑줄 인디케이터가 미끄러짐), `UDrSegmentedControl`(값 하나 고르기), `UDrSlider`(USlider + 채움 트랙·눈금 점·값 말풍선) |
 | 상태 표시 | `UDrBadge`(숫자·99+·점, 색 6종), `UDrProgressBar`(UProgressBar, 둥근 트랙·채움 움직임·끝없는 진행), `UDrProgressRing`(원형 진행률, 스프링·끝없는 회전), `UDrSkeleton`(불러오는 중 자리 표시), `UDrSpinner`(UCircularThrobber, 토큰 색) |
@@ -36,6 +37,16 @@
 | 2차·표현 | `UDrStepIndicator`(단계 표시), `UDrCompletion`(체크 그리기 완료 표시), `UDrEmptyState`(빈 화면: 이유 + 다음 행동), `UDrTextReveal`(글자 등장: 타이핑·스크램블·올라오기), `UDrSparkline`·`UDrDonut`·`UDrStatCard`(데이터 표시) |
 | 탐색·표시 | `UDrTooltip`(엔진 툴팁 창에 넣는 유리 말풍선, 제목+설명, 나타날 때 내려오며 밝아짐, `Attach`), `UDrListRow`(목록 행: 호버 렌즈·선택·포커스. 짧은 목록은 버튼 묶음, 긴 목록은 UCommonListView 항목 — 에디터에서는 이 클래스를 부모로 한 위젯 블루프린트가 필요), `UDrListItem`(항목 데이터), `UDrPageIndicator`(페이지 점, 지금 점이 알약으로 늘어나 미끄러짐), `UDrButtonPrompt`(키캡 칩 + 행동 이름, 키보드↔패드 자동 전환, 길게 누르기 진행) |
 
+## 스타일
+
+스타일은 `Tokens/tokens.json`(디자인 토큰, 밝게·어둡게)과 `Tokens/style.json`(id·이름·글꼴·투명도 설정을 따를 채움 토큰·기본 테두리 두께)을 가진 켜진 플러그인이다. 코어가 시작할 때 모두 읽고, 테마 id는 `<스타일>-light`·`<스타일>-dark`다. 글꼴은 TTF 경로(`{plugin}`, `{plugin:이름}`, `{engine}`)로 지정하고, 한글이 없는 글꼴은 `hangul` 서체로 한국어 글자만 대신 그린다. 패키지에 넣으려면 `DrUIGlass`처럼 `Tokens/`(와 글꼴)를 `RuntimeDependencies`로 함께 넣는다.
+
+| 플랫(밝게) | 네오 브루탈리즘(밝게) |
+| --- | --- |
+| ![플랫](Docs/images/style-flat-light.jpg) | ![네오 브루탈리즘](Docs/images/style-brutal-light.jpg) |
+| 뉴모피즘(밝게) | 레트로 터미널(어둡게) |
+| ![뉴모피즘](Docs/images/style-neu-light.jpg) | ![레트로 터미널](Docs/images/style-retro-dark.jpg) |
+
 ## 갤러리
 
 | 버튼(밝게) | 선택 부품(어둡게) |
@@ -46,7 +57,7 @@
 | 확인 대화상자(모달 층) | 표현(빈 화면·글자 등장·데이터) |
 | ![확인 대화상자](Docs/images/dialog-light.jpg) | ![표현](Docs/images/expression-dark.jpg) |
 
-`UISample/Glass`의 `L_DrUIGallery`(호스트 기본 맵)를 열면 모든 부품이 탭별 페이지에 놓여 있다. 새 부품은 같은 작업에서 갤러리 페이지와 `UDrGlassGallery::CoveredClasses()`에 넣는다(빠뜨리면 `DrUIGlass.Gallery.CoversAllKitWidgets` 실패). `-game -DrUIGalleryCapture -RenderOffscreen`으로 실행하면 테마 × 페이지마다 `Saved/Screenshots`에 찍고 끝난다.
+`UISample/Glass`의 `L_DrUIGallery`(호스트 기본 맵)를 열면 모든 부품이 탭별 페이지에 놓여 있고, 탭 줄 오른쪽에서 스타일을 바꾼다. 새 부품은 같은 작업에서 갤러리 페이지와 `UDrGlassGallery::CoveredClasses()`에 넣는다(빠뜨리면 `DrUIGlass.Gallery.CoversAllKitWidgets` 실패). `-game -DrUIGalleryCapture -RenderOffscreen`으로 실행하면 스타일 × 밝게·어둡게 × 페이지마다 `Saved/Screenshots`에 찍고 끝난다(`-DrUIGalleryStyles=glass,flat`으로 스타일을 줄일 수 있다).
 
 ## 검증
 

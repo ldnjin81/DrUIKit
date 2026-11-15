@@ -42,6 +42,13 @@ FDrUIShadow UDrUITheme::GetShadow(FName Token) const {
   return FDrUIShadow();
 }
 
+TArray<FDrUIShadow> UDrUITheme::GetShadowLayers(FName Token) const {
+  if (const FDrUIShadowLayers* Found = ShadowLayers.Find(Token)) return Found->Layers;
+  if (const FDrUIShadow* Found = Shadows.Find(Token)) return {*Found};
+  WarnMissing(TEXT("그림자"), Token);
+  return {};
+}
+
 float UDrUITheme::GetBackdrop(FName Token) const {
   if (const float* Found = Backdrops.Find(Token)) return *Found;
   WarnMissing(TEXT("흐림"), Token);
@@ -71,8 +78,10 @@ FSlateFontInfo UDrUITheme::MakeFont(FName TextToken) const {
   if (const UFont* Custom = Cast<UFont>(Style.Font.LoadSynchronous())) {
     Font.FontObject = Custom;
     Font.TypefaceFontName = PickTypeface(*Custom->GetCompositeFont(), Style.Weight);
-  } else if (RuntimeFont && Style.bUseThemeFont) {
-    Font = FSlateFontInfo(RuntimeFont, FMath::RoundToInt(Style.Size), PickTypeface(*RuntimeFont, Style.Weight));
+  } else if (Style.bUseThemeFont) {
+    const TSharedPtr<const FCompositeFont>* Found = RuntimeFonts.Find(Style.Family);
+    const TSharedPtr<const FCompositeFont> ThemeFont = Found ? *Found : Style.Family == TEXT("sans") ? RuntimeFont : nullptr;
+    if (ThemeFont) Font = FSlateFontInfo(ThemeFont, FMath::RoundToInt(Style.Size), PickTypeface(*ThemeFont, Style.Weight));
   }
   Font.LetterSpacing = FMath::RoundToInt(Style.LetterSpacing * 1000.f);
   return Font;

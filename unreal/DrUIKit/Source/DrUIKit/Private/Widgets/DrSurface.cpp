@@ -12,56 +12,82 @@
 #include "Widgets/SLeafWidget.h"
 #include "Widgets/SOverlay.h"
 
-/** 표면 뒤 그림자(표면 바깥 고리 겹). 눌림 판정 없음. */
+/**
+ * 표면 뒤 그림자. 토큰의 바깥 겹마다 그린다(뉴모피즘은 밝은 겹 + 어두운 겹). 눌림 판정 없음.
+ * 흐린 겹은 표면 바깥에만 고리 겹으로(반투명 유리 안쪽이 탁해지지 않게), 흐림 없는 겹(브루탈리즘의 어긋난 그림자)은 옮긴 둥근 사각형 하나로.
+ */
 class SDrSurfaceDecor : public SLeafWidget {
 public:
   SLATE_BEGIN_ARGS(SDrSurfaceDecor) {}
   SLATE_END_ARGS()
   void Construct(const FArguments&) { SetVisibility(EVisibility::HitTestInvisible); }
-  FDrUIShadow Shadow;
   float Radius = 0.f;
   bool bPill = false;
 
+  void SetLayers(const TArray<FDrUIShadow>& InLayers) {
+    Layers = InLayers;
+    // 흐림 없는 겹은 둥근 상자 브러시로 그린다. 그리는 동안 살아 있어야 하므로 여기 둔다.
+    HardBrushes.Reset();
+    for (const FDrUIShadow& Layer : Layers) {
+      FSlateRoundedBoxBrush Brush(FLinearColor::White, Radius + FMath::Max(Layer.Spread, 0.f));
+      if (bPill) Brush.OutlineSettings.RoundingType = ESlateBrushRoundingType::HalfHeightRadius;
+      HardBrushes.Add(Brush);
+    }
+    Invalidate(EInvalidateWidgetReason::Paint);
+  }
+
   virtual FVector2D ComputeDesiredSize(float) const override { return FVector2D::ZeroVector; }
   virtual int32 OnPaint(const FPaintArgs&, const FGeometry& Geometry, const FSlateRect&, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style, bool) const override {
+    const FLinearColor Tint = Style.GetColorAndOpacityTint();
+    for (int32 I = 0; I < Layers.Num(); ++I) {
+      const FDrUIShadow& Shadow = Layers[I];
+      if (Shadow.Color.A <= 0.f) continue;
+      if (Shadow.Blur <= 1.f) {
+        const FVector2f Size = Geometry.GetLocalSize() + FVector2f(2.f * Shadow.Spread);
+        const FGeometry Moved = Geometry.MakeChild(FVector2D(Size), FSlateLayoutTransform(FVector2f(Shadow.Offset) - FVector2f(Shadow.Spread)));
+        FSlateDrawElement::MakeBox(Out, LayerId, Moved.ToPaintGeometry(), &HardBrushes[I], ESlateDrawEffect::None, Shadow.Color * Tint);
+      } else PaintSoft(Shadow, Geometry, Out, LayerId, Tint);
+    }
+    return LayerId;
+  }
+private:
+  TArray<FDrUIShadow> Layers;
+  TArray<FSlateRoundedBoxBrush> HardBrushes;
+
+  void PaintSoft(const FDrUIShadow& Shadow, const FGeometry& Geometry, FSlateWindowElementList& Out, int32 LayerId, const FLinearColor& Tint) const {
     const FVector2f Size = Geometry.GetLocalSize();
     const float R = bPill ? Size.Y * .5f : FMath::Min(Radius, FMath::Min(Size.X, Size.Y) * .5f);
-    const FLinearColor Tint = Style.GetColorAndOpacityTint();
-    {
-      if (Shadow.Color.A <= 0.f) return LayerId;
-      // CSS 그림자 근사: 그림자 사각형 = 표면을 Offset만큼 옮기고 Spread만큼 넓힌 것, 가장자리는 표준편차 Blur/2로 흐림.
-      // 표면 바깥 거리 D의 진하기 = A·Φ(-(D - Spread)/σ) (정규 분포 누적, 로지스틱 근사).
-      // 표면 둘레에서 바깥까지 등고선 Rings+1개를 만들고 그 사이를 정점 색이 이어지는 삼각형 띠로 채운다(줄무늬·겹침 없음, 안쪽은 비움).
-      const FVector2f Offset(Shadow.Offset);
-      const float Sigma = FMath::Max(Shadow.Blur * .5f, 1.f);
-      const float Extent = FMath::Max(2.f, Shadow.Spread + 2.f * Sigma + Offset.Size() * .5f);
-      constexpr int32 Rings = 10;
-      const FSlateRenderTransform& Transform = Geometry.GetAccumulatedRenderTransform();
-      TArray<FSlateVertex> Verts;
-      TArray<SlateIndex> Indices;
-      int32 PerLoop = 0;
-      for (int32 J = 0; J <= Rings; ++J) {
-        const float D = Extent * J / Rings;
-        // 오프셋 방향으로 밀되 등고선이 표면 안으로 들어가지 않을 만큼만.
-        const FVector2f Move = Offset.IsNearlyZero() ? FVector2f::ZeroVector : Offset.GetSafeNormal() * FMath::Min(Offset.Size(), D);
-        const float Alpha = Shadow.Color.A / (1.f + FMath::Exp(1.702f * (D - Shadow.Spread) / Sigma));
-        const FColor Color = (Shadow.Color.CopyWithNewOpacity(Alpha) * Tint).ToFColor(true);
-        TArray<FVector2f> Loop = DrUIDraw::RoundedRectPath(Move - FVector2f(D), Size + FVector2f(2.f * D), R + D);
-        Loop.Pop();  // 닫는 점(첫 점 반복)은 띠에서 쓰지 않는다
-        PerLoop = Loop.Num();
-        for (const FVector2f& P : Loop) Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(Transform, P, FVector2f(.5f), Color));
-      }
-      for (int32 J = 0; J < Rings; ++J)
-        for (int32 I = 0; I < PerLoop; ++I) {
-          const SlateIndex A0 = J * PerLoop + I, A1 = J * PerLoop + (I + 1) % PerLoop;
-          const SlateIndex B0 = A0 + PerLoop, B1 = A1 + PerLoop;
-          Indices.Append({A0, A1, B1, A0, B1, B0});
-        }
-      static const FSlateBrush* White = FCoreStyle::Get().GetBrush("GenericWhiteBox");
-      const FSlateResourceHandle Handle = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*White);
-      FSlateDrawElement::MakeCustomVerts(Out, LayerId, Handle, Verts, Indices, nullptr, 0, 0);
-      return LayerId;
+    // CSS 그림자 근사: 그림자 사각형 = 표면을 Offset만큼 옮기고 Spread만큼 넓힌 것, 가장자리는 표준편차 Blur/2로 흐림.
+    // 표면 바깥 거리 D의 진하기 = A·Φ(-(D - Spread)/σ) (정규 분포 누적, 로지스틱 근사).
+    // 표면 둘레에서 바깥까지 등고선 Rings+1개를 만들고 그 사이를 정점 색이 이어지는 삼각형 띠로 채운다(줄무늬·겹침 없음, 안쪽은 비움).
+    const FVector2f Offset(Shadow.Offset);
+    const float Sigma = FMath::Max(Shadow.Blur * .5f, 1.f);
+    const float Extent = FMath::Max(2.f, Shadow.Spread + 2.f * Sigma + Offset.Size() * .5f);
+    constexpr int32 Rings = 10;
+    const FSlateRenderTransform& Transform = Geometry.GetAccumulatedRenderTransform();
+    TArray<FSlateVertex> Verts;
+    TArray<SlateIndex> Indices;
+    int32 PerLoop = 0;
+    for (int32 J = 0; J <= Rings; ++J) {
+      const float D = Extent * J / Rings;
+      // 오프셋 방향으로 밀되 등고선이 표면 안으로 들어가지 않을 만큼만.
+      const FVector2f Move = Offset.IsNearlyZero() ? FVector2f::ZeroVector : Offset.GetSafeNormal() * FMath::Min(Offset.Size(), D);
+      const float Alpha = Shadow.Color.A / (1.f + FMath::Exp(1.702f * (D - Shadow.Spread) / Sigma));
+      const FColor Color = (Shadow.Color.CopyWithNewOpacity(Alpha) * Tint).ToFColor(true);
+      TArray<FVector2f> Loop = DrUIDraw::RoundedRectPath(Move - FVector2f(D), Size + FVector2f(2.f * D), R + D);
+      Loop.Pop();  // 닫는 점(첫 점 반복)은 띠에서 쓰지 않는다
+      PerLoop = Loop.Num();
+      for (const FVector2f& P : Loop) Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(Transform, P, FVector2f(.5f), Color));
     }
+    for (int32 J = 0; J < Rings; ++J)
+      for (int32 I = 0; I < PerLoop; ++I) {
+        const SlateIndex A0 = J * PerLoop + I, A1 = J * PerLoop + (I + 1) % PerLoop;
+        const SlateIndex B0 = A0 + PerLoop, B1 = A1 + PerLoop;
+        Indices.Append({A0, A1, B1, A0, B1, B0});
+      }
+    static const FSlateBrush* White = FCoreStyle::Get().GetBrush("GenericWhiteBox");
+    const FSlateResourceHandle Handle = FSlateApplication::Get().GetRenderer()->GetResourceHandle(*White);
+    FSlateDrawElement::MakeCustomVerts(Out, LayerId, Handle, Verts, Indices, nullptr, 0, 0);
   }
 };
 
@@ -118,21 +144,27 @@ float UDrSurface::ResolveBlur() const {
   return Quality == EDrUISurfaceQuality::Medium ? Strength * .5f : Strength;
 }
 
+float UDrSurface::ResolveStrokeWidth() const {
+  if (StrokeToken.IsNone()) return 0.f;
+  // 테마가 기본 테두리 두께를 정하면(브루탈리즘) 1px 대신 그 두께, 부품이 더한 강조(포커스 2px 등)는 그 위에 얹는다.
+  const float ThemeWidth = UDrUIThemeSubsystem::Current().StrokeWidth;
+  return ThemeWidth > 0.f ? ThemeWidth + FMath::Max(StrokeWidth - 1.f, 0.f) : StrokeWidth;
+}
+
 void UDrSurface::ApplyTheme() {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   const float Radius = RadiusToken.IsNone() ? 0.f : Theme.GetRadius(RadiusToken);
   const FLinearColor Stroke = StrokeToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(StrokeToken);
-  FSlateRoundedBoxBrush Brush(ResolveFill(), Radius, Stroke, StrokeToken.IsNone() ? 0.f : StrokeWidth);
+  FSlateRoundedBoxBrush Brush(ResolveFill(), Radius, Stroke, ResolveStrokeWidth());
   // 알약(radius-pill = 999)은 반경을 그대로 쓰면 마름모처럼 그려진다. 높이의 절반으로 둥글린다.
   const bool bPill = Radius >= 500.f;
   if (bPill) Brush.OutlineSettings.RoundingType = ESlateBrushRoundingType::HalfHeightRadius;
   SetBrush(Brush);
   if (!PaddingToken.IsNone()) SetPadding(FMargin(Theme.GetSpacing(PaddingToken)));
   if (Shadow) {
-    Shadow->Shadow = ShadowToken.IsNone() ? FDrUIShadow() : Theme.GetShadow(ShadowToken);
     Shadow->Radius = Radius;
     Shadow->bPill = bPill;
-    Shadow->Invalidate(EInvalidateWidgetReason::Paint);
+    Shadow->SetLayers(ShadowToken.IsNone() ? TArray<FDrUIShadow>() : Theme.GetShadowLayers(ShadowToken));
   }
   if (SurfaceBorder) {
     SurfaceBorder->HighlightColor = HighlightToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(HighlightToken);

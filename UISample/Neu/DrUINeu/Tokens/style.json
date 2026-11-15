@@ -1,0 +1,17 @@
+{
+  "id": "neu",
+  "name": "뉴모피즘",
+  "order": 40,
+  "translucent": [],
+  "fonts": {
+    "sans": {
+      "typefaces": {
+        "Light": "{plugin:DrUIGlass}/Fonts/Pretendard-Light.ttf",
+        "Regular": "{plugin:DrUIGlass}/Fonts/Pretendard-Regular.ttf",
+        "Medium": "{plugin:DrUIGlass}/Fonts/Pretendard-Medium.ttf",
+        "SemiBold": "{plugin:DrUIGlass}/Fonts/Pretendard-SemiBold.ttf",
+        "Bold": "{plugin:DrUIGlass}/Fonts/Pretendard-Bold.ttf"
+      }
+    }
+  }
+}

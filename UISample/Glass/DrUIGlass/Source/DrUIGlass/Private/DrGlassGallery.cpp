@@ -27,6 +27,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
+#include "Theme/DrUIStyle.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "TimerManager.h"
 #include "UnrealClient.h"
@@ -1177,8 +1178,26 @@ void UDrGlassGallery::HandleTransparency(float Value) {
 }
 
 void UDrGlassGallery::HandleThemeChoice(int32 Index) {
-  static const FName Ids[] = {TEXT("glass-light"), TEXT("glass-dark")};
-  if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get(); S && Index >= 0 && Index < UE_ARRAY_COUNT(Ids)) S->SetTheme(Ids[Index]);
+  ModeIndex = Index;
+  ApplyGalleryTheme();
+}
+
+void UDrGlassGallery::HandleStyleChoice(int32 Index) {
+  StyleIndex = Index;
+  ApplyGalleryTheme();
+}
+
+void UDrGlassGallery::ApplyGalleryTheme() {
+  const FName Style = StyleIds.IsValidIndex(StyleIndex) ? StyleIds[StyleIndex] : FName(TEXT("glass"));
+  if (UDrUIThemeSubsystem* S = UDrUIThemeSubsystem::Get()) S->SetTheme(*FString::Printf(TEXT("%s-%s"), *Style.ToString(), ModeIndex == 1 ? TEXT("dark") : TEXT("light")));
+}
+
+void UDrGlassGallery::SelectTheme(int32 InStyleIndex, int32 InModeIndex) {
+  StyleIndex = InStyleIndex;
+  ModeIndex = InModeIndex;
+  if (StyleChoice) StyleChoice->SetSelectedIndex(StyleIndex);
+  if (ThemeChoice) ThemeChoice->SetSelectedIndex(ModeIndex);
+  ApplyGalleryTheme();
 }
 
 void UDrGlassGallery::HandleQualityChoice(int32 Index) {
@@ -1240,9 +1259,20 @@ void UDrGlassGallery::Build() {
   BarAdd(MotionSwitch);
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Bar)) S->SetPadding(FMargin(0, 0, 0, 16));
 
-  // 탭(알약형 UDrTabList) + 페이지(UCommonAnimatedSwitcher).
+  // 탭(알약형 UDrTabList) + 페이지(UCommonAnimatedSwitcher). 탭 줄 오른쪽에 스타일 전환(불러온 스타일 플러그인들).
+  UHorizontalBox* TabRow = WidgetTree->ConstructWidget<UHorizontalBox>();
+  if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(TabRow)) S->SetPadding(FMargin(0, 0, 0, 16));
   PageTabs = WidgetTree->ConstructWidget<UDrTabList>();
-  if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(PageTabs)) { S->SetHorizontalAlignment(HAlign_Left); S->SetPadding(FMargin(0, 0, 0, 16)); }
+  if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(PageTabs)) S->SetVerticalAlignment(VAlign_Center);
+  if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(WidgetTree->ConstructWidget<USpacer>())) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+  TArray<FText> StyleNames;
+  for (const FDrUIStyleInfo& Info : DrUIStyle::GetLoadedStyles()) { StyleIds.Add(Info.Id); StyleNames.Add(Info.Name); }
+  if (StyleIds.Num() > 1) {
+    StyleChoice = WidgetTree->ConstructWidget<UDrSegmentedControl>();
+    StyleChoice->SetOptions(StyleNames);
+    StyleChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleStyleChoice);
+    if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(StyleChoice)) S->SetVerticalAlignment(VAlign_Center);
+  }
   Pages = WidgetTree->ConstructWidget<UDrAnimatedSwitcher>();  // 페이지 넘김도 DrUIKit 전환기(움직임 줄이기면 바로)
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
   PageTabs->SetLinkedSwitcher(Pages);
@@ -1290,6 +1320,7 @@ TSharedRef<SWidget> UDrGlassGallery::RebuildWidget() {
   if (WidgetTree && !WidgetTree->RootWidget) {
     Build();
     ShowPage(0);
+    if (StyleChoice) StyleChoice->SetSelectedIndex(0);
     if (ThemeChoice) ThemeChoice->SetSelectedIndex(0);
     if (QualityChoice) QualityChoice->SetSelectedIndex(0);
     if (FParse::Param(FCommandLine::Get(), TEXT("DrUIGalleryCapture")) && !CaptureTicker.IsValid()) {
@@ -1309,11 +1340,18 @@ void UDrGlassGallery::NativeDestruct() {
 }
 
 bool UDrGlassGallery::CaptureStep(float DeltaTime) {
-  // 테마(밝게·어둡게) × 페이지마다: 적용 → 30프레임 기다림(레이아웃·글꼴 안정) → 찍기.
+  // 스타일 × 밝게·어둡게 × 페이지마다: 적용 → 30프레임 기다림(레이아웃·글꼴 안정) → 찍기.
   // 페이지가 화면보다 길면 끝까지 내린 화면을 한 장 더(_<페이지>b).
   // 이어서 밝은 테마 첫 페이지를 투명도 0·1로 한 장씩(투명도 조절 확인). 다 찍으면 종료.
   // 시간이 아니라 프레임으로 센다: 화면 없이 렌더링(-RenderOffscreen)하면 틱 시간이 실제와 맞지 않았다.
-  static const FName ThemeIds[] = {TEXT("glass-light"), TEXT("glass-dark")};
+  if (CaptureThemes.IsEmpty()) {
+    FString Only;
+    FParse::Value(FCommandLine::Get(), TEXT("DrUIGalleryStyles="), Only);
+    TArray<FString> OnlyIds;
+    Only.ParseIntoArray(OnlyIds, TEXT(","));
+    for (int32 Style = 0; Style < FMath::Max(StyleIds.Num(), 1); ++Style)
+      if (OnlyIds.IsEmpty() || !StyleIds.IsValidIndex(Style) || OnlyIds.Contains(StyleIds[Style].ToString())) CaptureThemes.Append({{Style, 0}, {Style, 1}});
+  }
   static const float Transparencies[] = {0.f, 1.f};
   // 마지막으로 열어야 보이는 층(바텀시트·코치마크·팝오버)을 밝은 테마 마지막 페이지에서 한 장씩.
   struct FOverlayShot { const TCHAR* Name; TFunction<void(bool)> Toggle; };
@@ -1329,7 +1367,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
        }
        else if (CaptureDialog) { CaptureDialog->Resolve(false); CaptureDialog = nullptr; }
      }}};
-  const int32 ThemeShots = UE_ARRAY_COUNT(ThemeIds) * GetPageCount();
+  const int32 ThemeShots = CaptureThemes.Num() * GetPageCount();
   const int32 Total = ThemeShots + UE_ARRAY_COUNT(Transparencies);
   CaptureWait -= 1.f;
   if (CaptureWait > 0.f) return true;
@@ -1338,7 +1376,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
     if (Extra >= UE_ARRAY_COUNT(Overlays)) { FPlatformMisc::RequestExit(false, TEXT("DrUIGalleryCapture")); return false; }
     const int32 OverlayPage = 9;  // 2차·탐색(바텀시트·코치마크·팝오버가 있는 페이지)
     if (!bCaptureShotPending) {
-      if (ThemeChoice) ThemeChoice->SetSelectedIndex(0);
+      SelectTheme(0, 0);
       HandleTransparency(.5f);
       if (TransparencySlider) TransparencySlider->SetValue(.5f);
       ShowPage(OverlayPage);
@@ -1360,11 +1398,12 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   }
   const bool bTransparencyShot = CaptureIndex >= ThemeShots;
   const int32 ThemeIndex = bTransparencyShot ? 0 : CaptureIndex / GetPageCount();
-  const FName Theme = ThemeIds[ThemeIndex];
+  const TPair<int32, int32> CaptureTheme = bTransparencyShot ? TPair<int32, int32>(0, 0) : CaptureThemes[ThemeIndex];
+  const FString Theme = FString::Printf(TEXT("%s-%s"), StyleIds.IsValidIndex(CaptureTheme.Key) ? *StyleIds[CaptureTheme.Key].ToString() : TEXT("glass"), CaptureTheme.Value ? TEXT("dark") : TEXT("light"));
   const int32 Page = bTransparencyShot ? 0 : CaptureIndex % GetPageCount();
   UScrollBox* PageScroll = Pages ? Cast<UScrollBox>(Pages->GetWidgetAtIndex(Page)) : nullptr;
   if (!bCaptureShotPending) {
-    if (ThemeChoice) ThemeChoice->SetSelectedIndex(ThemeIndex);  // HandleThemeChoice가 테마를 바꾼다
+    SelectTheme(CaptureTheme.Key, CaptureTheme.Value);
     if (bTransparencyShot) {
       const float Value = Transparencies[CaptureIndex - ThemeShots];
       if (TransparencySlider) TransparencySlider->SetValue(Value);
@@ -1378,7 +1417,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
     return true;
   }
   const FString ShotName = bTransparencyShot ? FString::Printf(TEXT("DrUIGallery_transparency_%.0f"), Transparencies[CaptureIndex - ThemeShots])
-                                             : FString::Printf(TEXT("DrUIGallery_%s_%d%s"), *Theme.ToString(), Page, bCaptureScrolled ? TEXT("b") : TEXT(""));
+                                             : FString::Printf(TEXT("DrUIGallery_%s_%d%s"), *Theme, Page, bCaptureScrolled ? TEXT("b") : TEXT(""));
   FScreenshotRequest::RequestScreenshot(FPaths::ScreenShotDir() / (ShotName + TEXT(".png")), true, false);
   CaptureWait = 10.f;
   if (!bTransparencyShot && !bCaptureScrolled && PageScroll && PageScroll->GetScrollOffsetOfEnd() > 40.f) {

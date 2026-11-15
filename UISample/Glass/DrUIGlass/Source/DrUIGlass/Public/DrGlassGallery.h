@@ -51,6 +51,11 @@ private:
   UFUNCTION() void HandleSliderDemo(float Value);
   UFUNCTION() void HandleTransparency(float Value);
   UFUNCTION() void HandleThemeChoice(int32 Index);
+  UFUNCTION() void HandleStyleChoice(int32 Index);
+  /** 고른 스타일 + 밝게·어둡게로 테마를 바꾼다(테마 id = "<스타일>-light|dark"). */
+  void ApplyGalleryTheme();
+  /** 스타일·밝기를 고르고 위 조작 바 표시도 맞춘다(캡처용). */
+  void SelectTheme(int32 InStyleIndex, int32 InModeIndex);
   UFUNCTION() void HandleQualityChoice(int32 Index);
   UFUNCTION() void HandleUndo(int32 RequestId);
   UFUNCTION() void HandleNicknameCommitted(const FText& Text);
@@ -72,6 +77,15 @@ private:
   UPROPERTY(Transient) TArray<TObjectPtr<class UPanelWidget>> PageBodies;
   UPROPERTY(Transient) TObjectPtr<UDrTabList> PageTabs;
   UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> ThemeChoice;
+  /** 스타일 전환(불러온 스타일이 둘 이상일 때만 보임). */
+  UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> StyleChoice;
+  /** 스타일 순서(DrUIStyle::GetLoadedStyles, order 순). */
+  TArray<FName> StyleIds;
+  int32 StyleIndex = 0;
+  /** 0 밝게, 1 어둡게. */
+  int32 ModeIndex = 0;
+  /** 캡처할 (스타일, 밝기) 목록. -DrUIGalleryStyles=glass,flat로 줄일 수 있다(기본 전부). */
+  TArray<TPair<int32, int32>> CaptureThemes;
   UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> QualityChoice;
   UPROPERTY(Transient) TObjectPtr<UDrSwitch> MotionSwitch;
   UPROPERTY(Transient) TObjectPtr<UDrSlider> TransparencySlider;

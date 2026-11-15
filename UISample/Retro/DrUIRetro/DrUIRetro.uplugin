@@ -1,0 +1,16 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIRetro",
+  "Description": "DrUIKit 스타일 샘플 — 레트로 터미널: 고정폭 글꼴, 직각, 종이(밝게)·녹색 형광(어둡게). 코드 없이 Tokens/tokens.json·style.json만 둔다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    }
+  ]
+}

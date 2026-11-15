@@ -39,6 +39,8 @@ public:
   /** 지금 칠할 채움색(품질 단계 반영). 테스트용으로 공개. */
   FLinearColor ResolveFill() const;
   float ResolveBlur() const;
+  /** 지금 칠할 테두리 두께(테마 기본 두께 반영). 테스트용으로 공개. */
+  float ResolveStrokeWidth() const;
   void ApplyTheme();
 protected:
   virtual void SynchronizeProperties() override;

@@ -22,6 +22,8 @@ public:
   UPROPERTY(Config, EditAnywhere, Category = "테마") TArray<TSoftObjectPtr<UDrUITheme>> Themes;
   /** 시작 테마의 ThemeId. 비우면 Themes의 첫 번째. */
   UPROPERTY(Config, EditAnywhere, Category = "테마") FName StartTheme;
+  /** 켜진 스타일 플러그인(Tokens/style.json이 있는 플러그인)의 테마를 시작할 때 모두 넣는다(DrUIStyle). */
+  UPROPERTY(Config, EditAnywhere, Category = "테마") bool bLoadStylePlugins = true;
   UPROPERTY(Config, EditAnywhere, Category = "표면") EDrUISurfaceQuality SurfaceQuality = EDrUISurfaceQuality::High;
   /** 표면 투명도: 0 불투명, .5 테마 그대로, 1 가장 투명. 테마의 TranslucentTokens(유리 채움)만 따른다. */
   UPROPERTY(Config, EditAnywhere, Category = "표면", meta = (ClampMin = 0, ClampMax = 1)) float SurfaceTransparency = .5f;

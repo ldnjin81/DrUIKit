@@ -19,5 +19,7 @@ public class DrUIKit : ModuleRules
 			"EnhancedInput",
 			"DeveloperSettings"
 		});
+		// 스타일 로더(DrUIStyle): tokens.json·style.json 읽기, 플러그인 폴더 찾기.
+		PrivateDependencyModuleNames.AddRange(new string[] { "Json", "Projects" });
 	}
 }

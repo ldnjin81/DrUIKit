@@ -15,8 +15,10 @@ struct DRUIKIT_API FDrUITextStyle {
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") float LetterSpacing = 0.f;
   /** 글꼴 에셋(UFont). 비우면 테마의 RuntimeFont, 그것도 없으면 엔진 기본 글꼴. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TSoftObjectPtr<const UObject> Font;
-  /** 거짓이면 테마의 RuntimeFont를 쓰지 않는다(코드 글꼴처럼 엔진 기본을 쓸 스타일). */
+  /** 거짓이면 테마의 RuntimeFonts를 쓰지 않는다(엔진 기본을 쓸 스타일). */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") bool bUseThemeFont = true;
+  /** 글꼴 갈래(tokens.json type.groups의 family: sans, mono). 테마에 그 갈래 글꼴이 없으면 sans는 RuntimeFont, 그 밖은 엔진 기본. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FName Family = TEXT("sans");
 };
 
 /** 그림자 토큰(CSS box-shadow 한 겹). 그리는 방법은 표면 스타일이 정한다. */
@@ -29,9 +31,16 @@ struct DRUIKIT_API FDrUIShadow {
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FLinearColor Color = FLinearColor::Transparent;
 };
 
+/** 그림자 토큰 하나의 모든 겹(CSS box-shadow의 쉼표로 나뉜 바깥 겹들. 뉴모피즘의 밝은 겹 + 어두운 겹 등). */
+USTRUCT(BlueprintType)
+struct DRUIKIT_API FDrUIShadowLayers {
+  GENERATED_BODY()
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TArray<FDrUIShadow> Layers;
+};
+
 /**
  * 테마 하나 = 토큰 묶음. 이름은 디자인 시스템 토큰 이름 그대로(ground, glass, ink, accent, body, radius-lg …).
- * 코어에는 값이 없다: 회색조 기본 테마(MakeDefault)만 코드로 만들고, 실제 테마는 샘플이 tokens.json에서 가져온다.
+ * 코어에는 값이 없다: 회색조 기본 테마(MakeDefault)만 코드로 만들고, 실제 테마는 스타일 플러그인의 tokens.json에서 가져온다(DrUIStyle).
  */
 UCLASS(BlueprintType)
 class DRUIKIT_API UDrUITheme : public UPrimaryDataAsset {
@@ -42,14 +51,23 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, FDrUITextStyle> TextStyles;
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, float> Spacing;
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, float> Radius;
+  /** 그림자 토큰의 첫 바깥 겹. 모든 겹은 ShadowLayers. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, FDrUIShadow> Shadows;
+  /** 그림자 토큰의 모든 바깥 겹. 없는 토큰은 Shadows의 한 겹을 쓴다. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, FDrUIShadowLayers> ShadowLayers;
   /** 뒤 흐림 강도(UBackgroundBlur BlurStrength). */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, float> Backdrops;
   /** 표면 투명도 설정을 따르는 색 토큰(유리 채움처럼 반투명이 뜻인 것). 글자·강조색은 넣지 않는다. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TSet<FName> TranslucentTokens;
+  /** 표면 테두리의 기본 두께(브루탈리즘처럼 굵은 테두리). 부품의 1px 대신 이 값, 강조 두께(2px 등)는 그 차이만큼 더한다. 0이면 부품 값 그대로. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") float StrokeWidth = 0.f;
+  /** 이 테마를 만든 스타일(glass, flat …). 코어 기본 테마는 None. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FName StyleId;
 
-  /** 코드로 만든 복합 글꼴(TTF 파일 경로 기반, 에셋 없음). 샘플이 넣는다. */
+  /** 본문(sans) 복합 글꼴(TTF 파일 경로 기반, 에셋 없음). 스타일 로더가 넣는다. */
   TSharedPtr<const FCompositeFont> RuntimeFont;
+  /** 글꼴 갈래별 복합 글꼴(sans, mono …). sans는 RuntimeFont와 같다. */
+  TMap<FName, TSharedPtr<const FCompositeFont>> RuntimeFonts;
 
   /** 없는 토큰은 눈에 띄는 자홍색 + 경고 한 번. */
   FLinearColor GetColor(FName Token) const;
@@ -57,6 +75,8 @@ public:
   float GetSpacing(FName Token) const;
   float GetRadius(FName Token) const;
   FDrUIShadow GetShadow(FName Token) const;
+  /** 그림자 토큰의 모든 바깥 겹(없는 토큰이면 빈 배열 + 경고). */
+  TArray<FDrUIShadow> GetShadowLayers(FName Token) const;
   float GetBackdrop(FName Token) const;
   FSlateFontInfo MakeFont(FName TextToken) const;
   /** 투명도 설정을 반영한 알파. 0 → 1(불투명), .5 → Alpha 그대로, 1 → Alpha의 1/4. */

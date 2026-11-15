@@ -55,6 +55,8 @@ void UDrGlassBackdrop::ApplyTheme() {
   for (int32 I = 0; I < Blobs.Num(); ++I) {
     const FBlob& Blob = BlobLayout[I / Rings];
     const float Size = Blob.Size * (1.f - float(I % Rings) / Rings);
-    if (Blobs[I]) Blobs[I]->SetBrush(FSlateRoundedBoxBrush(Theme.GetColor(Blob.Token).CopyWithNewOpacity(RingOpacity), Size * .5f));
+    // 토큰 알파도 곱한다(바탕 색 덩어리가 없는 스타일은 backdrop-a/b/c를 투명으로 둔다).
+    const FLinearColor Color = Theme.GetColor(Blob.Token);
+    if (Blobs[I]) Blobs[I]->SetBrush(FSlateRoundedBoxBrush(Color.CopyWithNewOpacity(Color.A * RingOpacity), Size * .5f));
   }
 }

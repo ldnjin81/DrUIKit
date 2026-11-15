@@ -1,0 +1,20 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIFlat",
+  "Description": "DrUIKit 스타일 샘플 — 플랫·머티리얼: 불투명 표면, 흐림 없음, 부드러운 두 겹 그림자, Roboto + Pretendard(한글). 코드 없이 Tokens/tokens.json·style.json만 둔다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUIGlass",
+      "Enabled": true
+    }
+  ]
+}

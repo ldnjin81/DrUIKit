@@ -1,0 +1,17 @@
+{
+  "id": "glass",
+  "name": "글래스",
+  "order": 10,
+  "translucent": ["glass", "glass-strong"],
+  "fonts": {
+    "sans": {
+      "typefaces": {
+        "Light": "{plugin}/Fonts/Pretendard-Light.ttf",
+        "Regular": "{plugin}/Fonts/Pretendard-Regular.ttf",
+        "Medium": "{plugin}/Fonts/Pretendard-Medium.ttf",
+        "SemiBold": "{plugin}/Fonts/Pretendard-SemiBold.ttf",
+        "Bold": "{plugin}/Fonts/Pretendard-Bold.ttf"
+      }
+    }
+  }
+}

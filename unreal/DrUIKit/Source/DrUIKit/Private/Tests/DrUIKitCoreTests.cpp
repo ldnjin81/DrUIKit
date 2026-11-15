@@ -1,9 +1,10 @@
-// 상태 판정, C++ 버튼이 CommonUI 내부 버튼으로 감싸지는지(마우스 누름), 움직임 계산, 테마 토큰, 표면 품질 단계·투명도, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
+// 상태 판정, C++ 버튼이 CommonUI 내부 버튼으로 감싸지는지(마우스 누름), 움직임 계산, 테마 토큰, 스타일 로더(CSS 값 읽기·불러온 스타일이 모든 토큰을 가짐), 표면 품질 단계·투명도·테두리 두께, 표시 그리기·스위치 손잡이·슬라이더 채움, 배지 숫자·진행 링 원호·스켈레톤 깜빡임 계산, 스낵바 차례, 입력 글자 수 제한·수평 선택기 이동, 파이 메뉴 방향, 페이지 점 배치, 버튼 프롬프트 키 이름, 순차 등장 진행, 쿨다운 표시, 글자 등장·데이터 표시 계산을 검증한다.
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Core/DrUIMotion.h"
 #include "Core/DrUIStagger.h"
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
+#include "Theme/DrUIStyle.h"
 #include "Theme/DrUIThemeSubsystem.h"
 #include "Widgets/DrToggle.h"
 #include "Widgets/DrButtonPrompt.h"
@@ -377,6 +378,77 @@ bool FDrButtonWrappedTest::RunTest(const FString&) {
     ++Checked;
   }
   TestTrue(TEXT("검사한 버튼 클래스가 있다"), Checked > 5);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIStyleCssTest, "DrUIKit.Style.ParseCss", DrUIKitTestFlags)
+bool FDrUIStyleCssTest::RunTest(const FString&) {
+  FLinearColor C;
+  TestTrue(TEXT("#2563eb"), DrUIStyle::ParseCssColor(TEXT("#2563eb"), C) && C.ToFColor(true) == FColor(0x25, 0x63, 0xeb));
+  TestTrue(TEXT("rgba 알파"), DrUIStyle::ParseCssColor(TEXT("rgba(255,255,255,0.58)"), C) && FMath::IsNearlyEqual(C.A, .58f));
+  TestTrue(TEXT("#00000000은 투명"), DrUIStyle::ParseCssColor(TEXT("#00000000"), C) && C.A == 0.f);
+  FDrUIShadow Shadow;
+  TestTrue(TEXT("inset 겹은 건너뛰고 바깥 겹"), DrUIStyle::ParseCssShadow(TEXT("inset 0 1px 0 rgba(255,255,255,0.95), 0 16px 48px -16px rgba(24,32,56,0.28)"), Shadow)
+    && Shadow.Offset == FVector2D(0, 16) && Shadow.Blur == 48.f && Shadow.Spread == -16.f && FMath::IsNearlyEqual(Shadow.Color.A, .28f));
+  const TArray<FDrUIShadow> Two = DrUIStyle::ParseCssShadows(TEXT("-6px -6px 14px rgba(255,255,255,0.9), 6px 6px 16px rgba(150,163,184,0.6)"));
+  TestTrue(TEXT("두 겹(뉴모피즘): 밝은 겹은 왼쪽 위"), Two.Num() == 2 && Two[0].Offset == FVector2D(-6, -6) && Two[1].Offset == FVector2D(6, 6));
+  TestTrue(TEXT("흐림 없는 겹(브루탈리즘)"), DrUIStyle::ParseCssShadow(TEXT("4px 4px 0 #111111"), Shadow) && Shadow.Blur == 0.f && Shadow.Color.A == 1.f);
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUIStylesCompleteTest, "DrUIKit.Style.LoadedStylesComplete", DrUIKitTestFlags)
+bool FDrUIStylesCompleteTest::RunTest(const FString&) {
+  // 켜진 스타일 플러그인을 모두 다시 읽어, 첫 스타일(order가 가장 작은 것)의 첫 테마가 가진 토큰을 모든 테마가 다 갖는지 본다.
+  const TArray<FString> Plugins = DrUIStyle::FindStylePlugins();
+  AddInfo(FString::Printf(TEXT("스타일 플러그인 %d개: %s"), Plugins.Num(), *FString::Join(Plugins, TEXT(", "))));
+  TestEqual(TEXT("시작할 때 불러온 스타일 수"), DrUIStyle::GetLoadedStyles().Num(), Plugins.Num());
+  const UDrUITheme* Reference = nullptr;
+  TSet<FName> StyleIds;
+  for (const FString& Plugin : Plugins) {
+    FString Error;
+    FDrUIStyleInfo Info;
+    const TArray<UDrUITheme*> Themes = DrUIStyle::LoadPluginStyle(Plugin, GetTransientPackage(), Error, &Info);
+    TestEqual(Plugin + TEXT(" 오류 없음"), Error, FString());
+    TestFalse(Plugin + TEXT(" 스타일 id가 겹치지 않음"), StyleIds.Contains(Info.Id));
+    StyleIds.Add(Info.Id);
+    if (!TestEqual(Plugin + TEXT(" 밝게·어둡게 두 테마"), Themes.Num(), 2)) continue;
+    if (!Reference) Reference = Themes[0];
+    for (const UDrUITheme* Theme : Themes) {
+      const FString Id = Theme->ThemeId.ToString();
+      TestTrue(Id + TEXT(" 테마 id는 스타일 id로 시작"), Id.StartsWith(Info.Id.ToString() + TEXT("-")));
+      auto Keys = [this, &Id](const TCHAR* Kind, const auto& Want, const auto& Have) {
+        for (const auto& Pair : Want) TestTrue(FString::Printf(TEXT("%s %s 토큰 %s"), *Id, Kind, *Pair.Key.ToString()), Have.Contains(Pair.Key));
+      };
+      Keys(TEXT("색"), Reference->Colors, Theme->Colors);
+      Keys(TEXT("글자"), Reference->TextStyles, Theme->TextStyles);
+      Keys(TEXT("간격"), Reference->Spacing, Theme->Spacing);
+      Keys(TEXT("모서리"), Reference->Radius, Theme->Radius);
+      Keys(TEXT("그림자"), Reference->Shadows, Theme->Shadows);
+      Keys(TEXT("흐림"), Reference->Backdrops, Theme->Backdrops);
+      if (TestTrue(Id + TEXT(" 본문 글꼴"), Theme->RuntimeFont.IsValid()))
+        TestEqual(Id + TEXT(" body는 스타일 글꼴"), Theme->MakeFont(DrUITokens::Body).CompositeFont, Theme->RuntimeFont);
+    }
+    if (Info.Id == TEXT("neu")) TestEqual(TEXT("뉴모피즘 shadow-glass는 두 겹"), Themes[0]->GetShadowLayers(DrUITokens::ShadowGlass).Num(), 2);
+  }
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrUISurfaceStrokeTest, "DrUIKit.Core.Surface.ThemeStrokeWidth", DrUIKitTestFlags)
+bool FDrUISurfaceStrokeTest::RunTest(const FString&) {
+  UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
+  if (!TestNotNull(TEXT("테마 서브시스템"), Subsystem)) return false;
+  UDrUITheme* Theme = UDrUITheme::MakeDefault(GetTransientPackage());
+  Theme->ThemeId = TEXT("test-stroke");
+  Subsystem->SetThemeObject(Theme);
+  UDrSurface* Surface = NewObject<UDrSurface>();
+  TestEqual(TEXT("테마 두께 0이면 부품 값(1px)"), Surface->ResolveStrokeWidth(), 1.f);
+  Theme->StrokeWidth = 2.5f;
+  TestEqual(TEXT("테마 기본 두께"), Surface->ResolveStrokeWidth(), 2.5f);
+  Surface->StrokeWidth = 2.f;
+  TestEqual(TEXT("강조(2px)는 1px 더"), Surface->ResolveStrokeWidth(), 3.5f);
+  Surface->StrokeToken = NAME_None;
+  TestEqual(TEXT("테두리 토큰이 없으면 0"), Surface->ResolveStrokeWidth(), 0.f);
+  Subsystem->SetTheme(TEXT("default"));
   return true;
 }
 
