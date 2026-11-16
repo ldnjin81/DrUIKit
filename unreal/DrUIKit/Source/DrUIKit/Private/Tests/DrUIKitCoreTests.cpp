@@ -559,17 +559,17 @@ bool FDrGlyphImagesTest::RunTest(const FString&) {
   TArray64<uint8> Png;
   FImageUtils::PNGCompressImageArray(8, 6, Pixels, Png);
   TestTrue(TEXT("PNG 저장"), FFileHelper::SaveArrayToFile(Png, *(Dir / TEXT("a.png"))));
-  // order를 크게: 실제 세트(Kenney 등)가 같은 키를 가지면 그쪽이 이긴다. Scroll Lock은 실제 세트에 거의 없는 키.
-  const FString Json = TEXT(R"({"id":"test","name":"test","order":999,"license":"CC0","sets":{"keyboard":{"ScrollLock":"a.png","NotAKey":"a.png","Pause":"missing.png"}}})");
+  // order를 크게: 실제 세트(Kenney 등)가 같은 키를 가지면 그쪽이 이긴다. 숫자패드 키는 Kenney 샘플 세트에 없는 키.
+  const FString Json = TEXT(R"({"id":"test","name":"test","order":999,"license":"CC0","sets":{"keyboard":{"NumPadZero":"a.png","NotAKey":"a.png","NumPadOne":"missing.png"}}})");
   FDrUIGlyphImageSetInfo Info;
   FString Error;
   TestTrue(TEXT("등록"), DrUIGlyphImages::Register(Json, Dir, TEXT("Test"), Info, Error));
   TestEqual(TEXT("이미지 1개(모르는 키·없는 파일은 뺌)"), Info.ImageCount, 1);
   TestTrue(TEXT("빠진 것을 알림"), Error.Contains(TEXT("2")));
-  TestEqual(TEXT("경로"), DrUIGlyphImages::FindPath(TEXT("keyboard"), EKeys::ScrollLock), Dir / TEXT("a.png"));
-  if (UTexture2D* Texture = DrUIGlyphImages::Find(EDrUIGamepadGlyphs::PlayStation, EKeys::ScrollLock); TestNotNull(TEXT("키보드 키는 패드 표기와 무관하게 keyboard 세트"), Texture))
+  TestEqual(TEXT("경로"), DrUIGlyphImages::FindPath(TEXT("keyboard"), EKeys::NumPadZero), Dir / TEXT("a.png"));
+  if (UTexture2D* Texture = DrUIGlyphImages::Find(EDrUIGamepadGlyphs::PlayStation, EKeys::NumPadZero); TestNotNull(TEXT("키보드 키는 패드 표기와 무관하게 keyboard 세트"), Texture))
     TestEqual(TEXT("실행 중 텍스처 크기"), FIntPoint(Texture->GetSizeX(), Texture->GetSizeY()), FIntPoint(8, 6));
-  TestNull(TEXT("없는 키는 벡터로(nullptr)"), DrUIGlyphImages::Find(EDrUIGamepadGlyphs::Xbox, EKeys::Pause));
+  TestNull(TEXT("없는 키는 벡터로(nullptr)"), DrUIGlyphImages::Find(EDrUIGamepadGlyphs::Xbox, EKeys::NumPadOne));
   return true;
 }
 

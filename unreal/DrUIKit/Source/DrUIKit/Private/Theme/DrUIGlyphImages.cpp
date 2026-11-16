@@ -15,6 +15,7 @@ namespace {
 struct FEntry {
   FString Path;
   int32 Order = 100;
+  bool bTint = true;
   TStrongObjectPtr<UTexture2D> Texture;
   bool bTried = false;
 };
@@ -43,13 +44,17 @@ bool DrUIGlyphImages::Register(const FString& Json, const FString& BaseDir, cons
   Info.Plugin = PluginName;
   Root->TryGetNumberField(TEXT("order"), Info.Order);
   Root->TryGetStringField(TEXT("license"), Info.License);
+  Root->TryGetBoolField(TEXT("tint"), Info.bTint);
   const TSharedPtr<FJsonObject>* Sets;
   if (Info.Id.IsNone() || !Root->TryGetObjectField(TEXT("sets"), Sets)) { OutError = TEXT("glyphs.json에 id 또는 sets 없음"); return false; }
   TArray<FString> Missing;
   for (const auto& [SetName, SetValue] : (*Sets)->Values) {
     const TSharedPtr<FJsonObject>* Keys;
     if (!SetValue->TryGetObject(Keys)) continue;
+    bool bSetTint = Info.bTint;
+    (*Keys)->TryGetBoolField(TEXT("$tint"), bSetTint);
     for (const auto& [KeyName, PathValue] : (*Keys)->Values) {
+      if (FString(KeyName).StartsWith(TEXT("$"))) continue;
       const FKey Key(*KeyName);
       const FString Path = BaseDir / PathValue->AsString();
       if (!Key.IsValid() || !FPaths::FileExists(Path)) { Missing.Add(FString(KeyName)); continue; }
@@ -59,6 +64,7 @@ bool DrUIGlyphImages::Register(const FString& Json, const FString& BaseDir, cons
       FEntry Entry;
       Entry.Path = Path;
       Entry.Order = Info.Order;
+      Entry.bTint = bSetTint;
       GEntries.Add(Id, MoveTemp(Entry));
       ++Info.ImageCount;
     }
@@ -92,10 +98,13 @@ FString DrUIGlyphImages::FindPath(FName SetName, const FKey& Key) {
   return Entry ? Entry->Path : FString();
 }
 
-UTexture2D* DrUIGlyphImages::Find(EDrUIGamepadGlyphs Glyphs, const FKey& Key) {
+UTexture2D* DrUIGlyphImages::Find(EDrUIGamepadGlyphs Glyphs, const FKey& Key, bool* bOutTint, bool bBrand) {
   if (const UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get(); Subsystem && !Subsystem->IsUseGlyphImages()) return nullptr;
-  FEntry* Entry = GEntries.Find(EntryKey(SetNameFor(Glyphs, Key), Key));
+  const FName SetName = SetNameFor(Glyphs, Key);
+  FEntry* Entry = bBrand ? GEntries.Find(EntryKey(*(SetName.ToString() + TEXT("_brand")), Key)) : nullptr;
+  if (!Entry) Entry = GEntries.Find(EntryKey(SetName, Key));
   if (!Entry) return nullptr;
+  if (bOutTint) *bOutTint = Entry->bTint;
   if (!Entry->bTried) {
     // 처음 쓸 때 PNG를 텍스처로(에셋 없이). 실패하면 다시 시도하지 않고 벡터로.
     Entry->bTried = true;

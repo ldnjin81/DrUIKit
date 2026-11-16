@@ -68,7 +68,8 @@
 - 글꼴: 플랫은 엔진 Roboto + Pretendard(한글), 브루탈리즘·뉴모피즘은 Pretendard(Glass 플러그인 것을 빌려 씀), 레트로는 엔진 DroidSansMono + DroidSansFallback(한글). 새로 받은 글꼴은 없다.
 - 갤러리: 탭 줄 오른쪽 스타일 전환. 캡처는 스타일 × 밝게·어둡게 × 페이지(`-DrUIGalleryStyles=`로 줄임). Glass 전용 바탕 색 덩어리는 다른 스타일에서 투명 토큰으로 사라진다.
 - 테스트: `DrUIKit.Style.ParseCss`, `DrUIKit.Style.LoadedStylesComplete`(모든 스타일·테마가 첫 스타일의 토큰을 모두 가짐, 본문 글꼴), `DrUIKit.Core.Surface.ThemeStrokeWidth`.
-- 남은 것: 패키지에 넣을 때 토큰 전용 스타일 플러그인은 `RuntimeDependencies`를 둘 모듈이 없어 게임 쪽에서 함께 넣어야 한다. 뉴모피즘의 눌린(안쪽 그림자) 모양, 픽셀 글꼴(다운로드 승인 필요)은 아직 없다.
+- 버튼 이미지 세트(`DrUIGlyphImages`, 플러그인 `Glyphs/glyphs.json`): 실행 중 PNG → 텍스처, order 우선순위, 세트별 색 입히기·고유색(`_brand`) 세트, 없는 키는 벡터. 샘플 `UISample/Prompts/DrUIPromptsKenney`(Kenney CC0, 157개). 출시 게임은 플랫폼 공식 이미지로 비공개 세트.
+- 남은 것: 패키지에 넣을 때 토큰 전용 스타일 플러그인(과 이미지 세트 플러그인)은 `RuntimeDependencies`를 둘 모듈이 없어 게임 쪽에서 함께 넣어야 한다. 뉴모피즘의 눌린(안쪽 그림자) 모양, 픽셀 글꼴(다운로드 승인 필요)은 아직 없다.
 
 ## 개요
 

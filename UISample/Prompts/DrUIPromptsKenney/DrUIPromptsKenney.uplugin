@@ -1,0 +1,16 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIPromptsKenney",
+  "Description": "DrUIKit 버튼 이미지 세트 샘플 — Kenney Input Prompts 1.5(CC0)의 Xbox Series·PlayStation 5·Nintendo Switch·키보드·마우스 이미지. 코드 없이 Glyphs/glyphs.json과 PNG만 둔다. 상표는 각 소유자의 것이며 이 이미지는 공식 이미지가 아니다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    }
+  ]
+}

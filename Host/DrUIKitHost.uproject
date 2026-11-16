@@ -31,6 +31,10 @@
     {
       "Name": "DrUIRetro",
       "Enabled": true
+    },
+    {
+      "Name": "DrUIPromptsKenney",
+      "Enabled": true
     }
   ]
 }

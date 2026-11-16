@@ -41,6 +41,7 @@ public:
   FSlateFontInfo Font;
   /** 이미지 세트의 그림(있으면 벡터 대신 그대로 그린다, 색은 바꾸지 않음). */
   TStrongObjectPtr<UTexture2D> Image;
+  bool bTintImage = true;
   FSlateBrush ImageBrush;
 
   void Refresh() {
@@ -97,7 +98,9 @@ public:
       return P;
     };
     if (Image) {
-      FSlateDrawElement::MakeBox(Out, Layer, G.ToPaintGeometry(), &ImageBrush, ESlateDrawEffect::None, Tint);
+      const bool bCap = Shape == EDrKeyShape::Keyboard || Shape == EDrKeyShape::Mouse;
+      const FLinearColor Color = bTintImage ? (bCap ? CapInk : Body) : FLinearColor::White;
+      FSlateDrawElement::MakeBox(Out, Layer, G.ToPaintGeometry(), &ImageBrush, ESlateDrawEffect::None, Color * Tint);
       return Layer;
     }
     const FVector2f C = S * .5f;
@@ -249,7 +252,7 @@ void UDrKeyGlyph::ApplyTheme() {
   Slate->CapInk = Theme.GetColor(DrUITokens::Ink);
   Slate->Font = Theme.MakeFont(DrUITokens::Label);
   // 이미지 세트에 이 키가 있으면 이미지로(표기·키보드에 맞는 세트). 없으면 벡터.
-  UTexture2D* Texture = DrUIGlyphImages::Find(Slate->Glyphs, Key);
+  UTexture2D* Texture = DrUIGlyphImages::Find(Slate->Glyphs, Key, &Slate->bTintImage, bBrandColors);
   Slate->Image.Reset(Texture);
   if (Texture) {
     Slate->ImageBrush = FSlateBrush();
