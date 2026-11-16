@@ -8,6 +8,7 @@
 class UCommonAnimatedSwitcher;
 class UCommonButtonGroupBase;
 class UDrSegmentedControl;
+class UDrDropdown;
 class UDrSlider;
 class UDrSnackbar;
 class UDrTextField;
@@ -86,7 +87,7 @@ private:
   UPROPERTY(Transient) TObjectPtr<UDrTabList> PageTabs;
   UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> ThemeChoice;
   /** 스타일 전환(불러온 스타일이 둘 이상일 때만 보임). */
-  UPROPERTY(Transient) TObjectPtr<UDrSegmentedControl> StyleChoice;
+  UPROPERTY(Transient) TObjectPtr<UDrDropdown> StyleChoice;
   /** 스타일 순서(DrUIStyle::GetLoadedStyles, order 순). */
   TArray<FName> StyleIds;
   int32 StyleIndex = 0;

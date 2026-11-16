@@ -2,7 +2,7 @@
 
 [English](README.md) | **한국어**
 
-언리얼 엔진 5.8용 **스타일 중립 UI 부품** 플러그인이다. 엔진·CommonUI 위젯을 상속해 확장하고, 상속으로 안 되는 것은 UserWidget 안에서 조합한다. 모양은 테마 토큰으로만 칠하고, 실제 디자인은 스타일(`UISample/<스타일>`)이 입힌다. 스타일은 `tokens.json`을 가진 플러그인이고 코어가 시작할 때 읽는다. 샘플 스타일은 글래스·플랫·네오 브루탈리즘·뉴모피즘·레트로 터미널 다섯 가지다.
+언리얼 엔진 5.8용 **스타일 중립 UI 부품** 플러그인이다. 엔진·CommonUI 위젯을 상속해 확장하고, 상속으로 안 되는 것은 UserWidget 안에서 조합한다. 모양은 테마 토큰으로만 칠하고, 실제 디자인은 스타일(`UISample/<스타일>`)이 입힌다. 스타일은 `tokens.json`을 가진 플러그인이고 코어가 시작할 때 읽는다. 샘플 스타일은 글래스·플랫·네오 브루탈리즘·뉴모피즘·레트로 터미널에, 게임에서 흔한 판타지 RPG·SF 홀로그램·사이버펑크 네온·캐주얼 모바일·다크 판타지를 더한 열 가지다.
 
 > 상태: 0.1.0(1차·2차 부품, UI 흐름·화면 층). 기획·구현 현황: `Docs/PLAN.md`.
 
@@ -14,6 +14,7 @@
 | `Host/DrUIKitHost.uproject` | 단독 빌드·테스트 호스트(코드 모듈 없음) |
 | `UISample/Glass` | 리퀴드 글래스 스타일(플러그인 `DrUIGlass`: 토큰, Pretendard 글꼴, 바탕, 갤러리 테스트 레벨 `L_DrUIGallery`) |
 | `UISample/Flat`·`Brutal`·`Neu`·`Retro` | 플랫·머티리얼, 네오 브루탈리즘, 뉴모피즘, 레트로 터미널 스타일(플러그인 `DrUIFlat`·`DrUIBrutal`·`DrUINeu`·`DrUIRetro`: 코드 없이 토큰만) |
+| `UISample/Fantasy`·`SciFi`·`Cyber`·`Casual`·`DarkFantasy` | 게임 UI 스타일: 판타지 RPG(양피지·청동·금), SF 홀로그램(반투명·청록 발광·각진 모서리), 사이버펑크 네온, 캐주얼 모바일(두꺼운 외곽선·둥근 모서리·단단한 아래 그림자), 다크 판타지(거의 검은 바탕·옅은 금빛 가는 선·넓은 글자 간격). 토큰만 |
 | `Tools/verify.ps1` | 호스트 빌드 + `Automation RunTests DrUIKit+DrUIGlass` |
 
 ## 지금 있는 것
@@ -71,6 +72,12 @@
 | ![플랫](Docs/images/style-flat-light.jpg) | ![네오 브루탈리즘](Docs/images/style-brutal-light.jpg) |
 | 뉴모피즘(밝게) | 레트로 터미널(어둡게) |
 | ![뉴모피즘](Docs/images/style-neu-light.jpg) | ![레트로 터미널](Docs/images/style-retro-dark.jpg) |
+| 판타지 RPG(어둡게) | SF 홀로그램(어둡게) |
+| ![판타지 RPG](Docs/images/style-fantasy-dark.jpg) | ![SF 홀로그램](Docs/images/style-scifi-dark.jpg) |
+| 사이버펑크 네온(어둡게) | 캐주얼 모바일(밝게) |
+| ![사이버펑크 네온](Docs/images/style-cyber-dark.jpg) | ![캐주얼 모바일](Docs/images/style-casual-light.jpg) |
+| 다크 판타지(어둡게) | |
+| ![다크 판타지](Docs/images/style-darkfantasy-dark.jpg) | |
 
 ## 갤러리
 

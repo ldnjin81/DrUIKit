@@ -1,0 +1,20 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIDarkFantasy",
+  "Description": "DrUIKit 스타일 샘플 — 다크 판타지 액션 RPG: 거의 검은 표면, 옅은 금빛 가는 선, 각진 모서리, 넓은 글자 간격의 절제된 메뉴. 코드 없이 Tokens/tokens.json·style.json만 둔다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUIGlass",
+      "Enabled": true
+    }
+  ]
+}

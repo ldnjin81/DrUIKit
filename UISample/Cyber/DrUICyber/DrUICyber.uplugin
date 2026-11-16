@@ -1,0 +1,20 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUICyber",
+  "Description": "DrUIKit 스타일 샘플 — 사이버펑크 네온: 검보라 바탕, 노랑 강조·자홍·청록 네온 발광, 모서리 없음. 코드 없이 Tokens/tokens.json·style.json만 둔다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUIGlass",
+      "Enabled": true
+    }
+  ]
+}

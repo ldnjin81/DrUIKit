@@ -1503,10 +1503,14 @@ void UDrGlassGallery::Build() {
   TArray<FText> StyleNames;
   for (const FDrUIStyleInfo& Info : DrUIStyle::GetLoadedStyles()) { StyleIds.Add(Info.Id); StyleNames.Add(Info.Name); }
   if (StyleIds.Num() > 1) {
-    StyleChoice = WidgetTree->ConstructWidget<UDrSegmentedControl>();
+    // 스타일이 많아 알약 줄 대신 드롭다운.
+    StyleChoice = WidgetTree->ConstructWidget<UDrDropdown>();
     StyleChoice->SetOptions(StyleNames);
     StyleChoice->OnSelectionChanged.AddUniqueDynamic(this, &ThisClass::HandleStyleChoice);
-    if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(StyleChoice)) S->SetVerticalAlignment(VAlign_Center);
+    USizeBox* StyleBox = WidgetTree->ConstructWidget<USizeBox>();
+    StyleBox->SetWidthOverride(168.f);
+    StyleBox->AddChild(StyleChoice);
+    if (UHorizontalBoxSlot* S = TabRow->AddChildToHorizontalBox(StyleBox)) S->SetVerticalAlignment(VAlign_Center);
   }
   Pages = WidgetTree->ConstructWidget<UDrAnimatedSwitcher>();  // 페이지 넘김도 DrUIKit 전환기(움직임 줄이기면 바로)
   if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Pages)) S->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
@@ -1598,7 +1602,7 @@ bool UDrGlassGallery::CaptureStep(float DeltaTime) {
   // 시간이 아니라 프레임으로 센다: 화면 없이 렌더링(-RenderOffscreen)하면 틱 시간이 실제와 맞지 않았다.
   if (CaptureThemes.IsEmpty()) {
     FString Only;
-    FParse::Value(FCommandLine::Get(), TEXT("DrUIGalleryStyles="), Only);
+    FParse::Value(FCommandLine::Get(), TEXT("DrUIGalleryStyles="), Only, false);  // 쉼표에서 멈추지 않게
     TArray<FString> OnlyIds;
     Only.ParseIntoArray(OnlyIds, TEXT(","));
     for (int32 Style = 0; Style < FMath::Max(StyleIds.Num(), 1); ++Style)

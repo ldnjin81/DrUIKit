@@ -35,6 +35,26 @@
     {
       "Name": "DrUIPromptsKenney",
       "Enabled": true
+    },
+    {
+      "Name": "DrUIFantasy",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUISciFi",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUICyber",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUICasual",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUIDarkFantasy",
+      "Enabled": true
     }
   ]
 }

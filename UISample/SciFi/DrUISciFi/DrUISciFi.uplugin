@@ -1,0 +1,20 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUISciFi",
+  "Description": "DrUIKit 스타일 샘플 — SF 홀로그램 HUD: 반투명 남색 표면과 흐림, 청록 빛 테두리·발광, 각진 모서리, 넓은 글자 간격. 코드 없이 Tokens/tokens.json·style.json만 둔다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUIGlass",
+      "Enabled": true
+    }
+  ]
+}

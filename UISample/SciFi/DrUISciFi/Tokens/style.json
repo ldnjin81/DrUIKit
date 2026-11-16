@@ -1,0 +1,35 @@
+{
+  "id": "scifi",
+  "name": "SF 홀로그램",
+  "order": 70,
+  "translucent": [
+    "glass",
+    "glass-strong"
+  ],
+  "strokeWidth": 1.0,
+  "fonts": {
+    "sans": {
+      "typefaces": {
+        "Light": "{engine}/Slate/Fonts/Roboto-Light.ttf",
+        "Regular": "{engine}/Slate/Fonts/Roboto-Regular.ttf",
+        "Medium": "{engine}/Slate/Fonts/Roboto-Medium.ttf",
+        "Bold": "{engine}/Slate/Fonts/Roboto-Bold.ttf"
+      },
+      "hangul": {
+        "Light": "{plugin:DrUIGlass}/Fonts/Pretendard-Light.ttf",
+        "Regular": "{plugin:DrUIGlass}/Fonts/Pretendard-Regular.ttf",
+        "Medium": "{plugin:DrUIGlass}/Fonts/Pretendard-Medium.ttf",
+        "SemiBold": "{plugin:DrUIGlass}/Fonts/Pretendard-SemiBold.ttf",
+        "Bold": "{plugin:DrUIGlass}/Fonts/Pretendard-Bold.ttf"
+      }
+    },
+    "mono": {
+      "typefaces": {
+        "Regular": "{engine}/Slate/Fonts/DroidSansMono.ttf"
+      },
+      "hangul": {
+        "Regular": "{engine}/Slate/Fonts/DroidSansFallback.ttf"
+      }
+    }
+  }
+}

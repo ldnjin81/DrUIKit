@@ -65,6 +65,7 @@
 **스타일 여러 개(2026-11-16, 결정: 네 가지 모두, 토큰 로더를 코어로)**: 글래스 외에 플랫·머티리얼(`UISample/Flat`), 네오 브루탈리즘(`Brutal`), 뉴모피즘(`Neu`), 레트로 터미널(`Retro`)을 더했다. 각각 코드 없는 플러그인(`DrUI<스타일>`)에 `Tokens/tokens.json`(Glass와 같은 토큰 이름, 값만 다름)과 `Tokens/style.json`(id·이름·순서·글꼴·반투명 토큰·기본 테두리 두께)만 둔다.
 - 코어 `DrUIStyle`: 켜진 플러그인 중 `Tokens/style.json`이 있는 것을 찾아 엔진이 뜬 뒤 모두 읽는다(설정 `bLoadStylePlugins`). 테마 id는 `<스타일>-light|dark`. Glass도 같은 방식이며 `DrGlassTheme`은 없앴다.
 - 코어에 더한 것: 그림자 토큰의 여러 겹(`ShadowLayers`, 뉴모피즘의 밝은·어두운 겹), 흐림 없는 그림자는 옮긴 둥근 상자로(브루탈리즘), 테마 기본 테두리 두께(`StrokeWidth`, 부품의 강조 두께는 그 위에 더함), 글자 스타일의 글꼴 갈래(`Family`: sans·mono)와 갈래별 글꼴, 라틴 글꼴에 없는 한국어 글자(한글·₩·CJK 기호)만 다른 서체로 그리는 대체 서체.
+- 게임 UI 스타일(2026-11-16): 판타지 RPG(`UISample/Fantasy`), SF 홀로그램(`SciFi`, 반투명·흐림), 사이버펑크 네온(`Cyber`), 캐주얼 모바일(`Casual`), 다크 판타지(`DarkFantasy`). 역시 토큰만(색·모서리·그림자·흐림·글자 간격·굵기), 글꼴은 Pretendard·Roboto·DroidSansMono를 빌려 쓴다. 스타일이 열 개라 갤러리 스타일 선택을 드롭다운으로 바꿨다. 판타지용 세리프·SF용 각진 글꼴은 새 글꼴(승인 필요)이 있어야 한다.
 - 글꼴: 플랫은 엔진 Roboto + Pretendard(한글), 브루탈리즘·뉴모피즘은 Pretendard(Glass 플러그인 것을 빌려 씀), 레트로는 엔진 DroidSansMono + DroidSansFallback(한글). 새로 받은 글꼴은 없다.
 - 갤러리: 탭 줄 오른쪽 스타일 전환. 캡처는 스타일 × 밝게·어둡게 × 페이지(`-DrUIGalleryStyles=`로 줄임). Glass 전용 바탕 색 덩어리는 다른 스타일에서 투명 토큰으로 사라진다.
 - 테스트: `DrUIKit.Style.ParseCss`, `DrUIKit.Style.LoadedStylesComplete`(모든 스타일·테마가 첫 스타일의 토큰을 모두 가짐, 본문 글꼴), `DrUIKit.Core.Surface.ThemeStrokeWidth`.

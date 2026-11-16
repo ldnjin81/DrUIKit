@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.ko.md)
 
-A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend engine and CommonUI widgets by inheritance, and anything inheritance can't cover is composed inside a UserWidget. Components paint only through theme tokens; the actual look comes from a style (`UISample/<Style>`): a plugin holding a `tokens.json` that the core loads at startup. Five styles ship as samples: glass, flat, neo-brutalism, neumorphism and retro terminal.
+A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend engine and CommonUI widgets by inheritance, and anything inheritance can't cover is composed inside a UserWidget. Components paint only through theme tokens; the actual look comes from a style (`UISample/<Style>`): a plugin holding a `tokens.json` that the core loads at startup. Ten styles ship as samples: glass, flat, neo-brutalism, neumorphism and retro terminal, plus five common game UI looks: fantasy RPG, sci-fi hologram, cyberpunk neon, casual mobile and dark fantasy.
 
 > Status: 0.1.0 (first- and second-wave components, UI flow and screen layers). Plan and progress: `Docs/PLAN.md` (Korean).
 
@@ -16,6 +16,7 @@ A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend
 | `Host/DrUIKitHost.uproject` | Standalone build and test host (no code module) |
 | `UISample/Glass` | Liquid-glass style (plugin `DrUIGlass`: tokens, Pretendard font, backdrop, gallery level `L_DrUIGallery`) |
 | `UISample/Flat`, `Brutal`, `Neu`, `Retro` | Flat/material, neo-brutalism, neumorphism and retro terminal styles (plugins `DrUIFlat`, `DrUIBrutal`, `DrUINeu`, `DrUIRetro`: tokens only, no code) |
+| `UISample/Fantasy`, `SciFi`, `Cyber`, `Casual`, `DarkFantasy` | Game UI styles: fantasy RPG (parchment, bronze and gold), sci-fi hologram (translucent, cyan glow, angular), cyberpunk neon, casual mobile (thick outlines, round, solid drop shadows) and dark fantasy (near-black, thin pale-gold lines, wide tracking). Tokens only |
 | `Tools/verify.ps1` | Builds the host and runs `Automation RunTests DrUIKit+DrUIGlass` |
 
 ## What's included
@@ -73,10 +74,16 @@ A style is any enabled plugin with `Tokens/tokens.json` (design tokens, light an
 | ![Flat](Docs/images/style-flat-light.jpg) | ![Neo-brutalism](Docs/images/style-brutal-light.jpg) |
 | Neumorphism (light) | Retro terminal (dark) |
 | ![Neumorphism](Docs/images/style-neu-light.jpg) | ![Retro terminal](Docs/images/style-retro-dark.jpg) |
+| Fantasy RPG (dark) | Sci-fi hologram (dark) |
+| ![Fantasy RPG](Docs/images/style-fantasy-dark.jpg) | ![Sci-fi hologram](Docs/images/style-scifi-dark.jpg) |
+| Cyberpunk neon (dark) | Casual mobile (light) |
+| ![Cyberpunk neon](Docs/images/style-cyber-dark.jpg) | ![Casual mobile](Docs/images/style-casual-light.jpg) |
+| Dark fantasy (dark) | |
+| ![Dark fantasy](Docs/images/style-darkfantasy-dark.jpg) | |
 
 ## Gallery
 
-Open `L_DrUIGallery` from `UISample/Glass` (the host's default map) to see every component on tabbed pages; the switch next to the tabs changes the style. When you add a component, add it to a gallery page and to `UDrGlassGallery::CoveredClasses()` in the same change; otherwise `DrUIGlass.Gallery.CoversAllKitWidgets` fails. Running with `-game -DrUIGalleryCapture -RenderOffscreen` captures every style × light/dark × page into `Saved/Screenshots` and exits (`-DrUIGalleryStyles=glass,flat` limits the styles). `-DrUIGamepadTour` instead feeds synthetic gamepad input through the Gamepad page and the console game menu and captures each step (`DrUITour_*.png`).
+Open `L_DrUIGallery` from `UISample/Glass` (the host's default map) to see every component on tabbed pages; the dropdown next to the tabs changes the style. When you add a component, add it to a gallery page and to `UDrGlassGallery::CoveredClasses()` in the same change; otherwise `DrUIGlass.Gallery.CoversAllKitWidgets` fails. Running with `-game -DrUIGalleryCapture -RenderOffscreen` captures every style × light/dark × page into `Saved/Screenshots` and exits (`-DrUIGalleryStyles=glass,flat` limits the styles). `-DrUIGamepadTour` instead feeds synthetic gamepad input through the Gamepad page and the console game menu and captures each step (`DrUITour_*.png`).
 
 | Selection (dark) | Game (pie menu, cooldown, feed) |
 | --- | --- |
