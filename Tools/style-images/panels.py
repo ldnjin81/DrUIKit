@@ -44,7 +44,7 @@ def to_image(rgb, alpha):
     return Image.fromarray(arr, "RGBA")
 
 
-def paper(light, dark, seed, burn=60.0, torn=True):
+def paper(light, dark, seed, burn=60.0, torn=True, jag_amp=22.0, jag_freq=16):
     """얼룩·결·가장자리 그을림이 있는 종이. torn이면 가장자리를 찢긴 모양으로 투명하게."""
     n = fbm(S, 7, 4, seed)
     fiber = fbm(S, 3, 64, seed + 1)
@@ -52,7 +52,7 @@ def paper(light, dark, seed, burn=60.0, torn=True):
     # 9분할 가운데는 늘어나므로 큰 얼룩은 옅게(늘어난 줄무늬가 덜 보이게).
     t = np.clip((n - 0.3) * 1.2, 0, 1) * 0.4 + fiber * 0.12 + stains * 0.18
     d = edge_distance(S)
-    jag = (fbm(S, 5, 16, seed + 3) - 0.5) * 22
+    jag = (fbm(S, 5, jag_freq, seed + 3) - 0.5) * jag_amp
     burn_t = np.clip(1 - (d + jag) / burn, 0, 1) ** 1.6
     rgb = lerp(light, dark, np.clip(t + burn_t * 0.9, 0, 1))
     if torn:
@@ -130,7 +130,6 @@ def shadow_inside(img, strength=90, width=40):
 
 
 def main(out):
-    global S
     os.makedirs(out, exist_ok=True)
 
     # 판타지 밝게: 양피지 + 청동 테두리
@@ -167,24 +166,29 @@ def main(out):
     rgb, alpha = paper((198, 168, 120), (70, 44, 22), 51, burn=90)
     to_image(rgb, alpha).save(f"{out}/parchment-panel-dark.png")
 
-    # 카드(안쪽 작은 표면, glass-strong): 128px, 여백 16px, 배율 .5. 장식 없이 얇은 선만(작은 칸에서도 깨지지 않게).
-
-    S = 128
-    def card(rgb, alpha, line, name, inset=5, width=2):
-        img = to_image(rgb, alpha)
-        ImageDraw.Draw(img).rectangle((inset, inset, S - 1 - inset, S - 1 - inset), outline=line, width=width)
-        img.save(f"{out}/{name}.png")
-    full = np.full((S, S), 255, np.float32)
-    rgb, alpha = paper((246, 234, 204), (186, 146, 96), 71, burn=14, torn=False)
-    card(rgb, alpha, (138, 98, 46, 255), "fantasy-card-light")
-    card(leather((70, 44, 30), 72), full, (196, 154, 74, 255), "fantasy-card-dark")
+    # 카드(glass-strong): 패널과 같은 질감·같은 선(같은 화면에서 따로 떠 보이지 않게), 덩굴 장식만 뺀다(작은 칸에도 쓰인다).
+    # 패널과 같은 512px, 여백 96px, 배율 .5. 선은 패널보다 안쪽 여유를 줄여 작은 칸에서도 내용 자리를 남긴다.
+    rgb, alpha = paper((236, 219, 178), (150, 104, 58), 11, burn=50, torn=False)
+    img = shadow_inside(to_image(rgb, alpha), 70)
+    frame(img, 5, 2, (122, 84, 38, 255), (214, 170, 96, 255), ornament=False, inset_outer=10, inset_inner=20)
+    img.save(f"{out}/fantasy-card-light.png")
+    rgb = leather((92, 56, 36), 21)
+    img = shadow_inside(to_image(rgb, np.full((S, S), 255, np.float32)), 60)
+    frame(img, 5, 2, (196, 154, 74, 255), (250, 224, 150, 255), ornament=False, inset_outer=10, inset_inner=20)
+    img.save(f"{out}/fantasy-card-dark.png")
     y = np.linspace(0, 1, S, dtype=np.float32)[:, None].repeat(S, 1)
-    card(lerp((26, 24, 21), (14, 13, 12), y), np.full((S, S), 236, np.float32), (150, 128, 88, 200), "darkfantasy-card-dark", 3, 1)
-    card(lerp((234, 231, 225), (214, 210, 202), y), np.full((S, S), 240, np.float32), (80, 74, 68, 200), "darkfantasy-card-light", 3, 1)
-    rgb, alpha = paper((248, 238, 212), (196, 160, 110), 61, burn=12, torn=False)
-    card(rgb, alpha, (92, 58, 30, 255), "parchment-card-light")
-    rgb, alpha = paper((214, 186, 140), (132, 94, 56), 62, burn=12, torn=False)
-    card(rgb, alpha, (60, 36, 18, 255), "parchment-card-dark")
+    n = fbm(S, 5, 6, 31)
+    img = to_image(lerp((20, 18, 16), (8, 7, 7), y * 0.7 + n * 0.3), np.full((S, S), 232, np.float32))
+    bracket_corners(img, (176, 150, 100, 255), arm=44, dot=False)
+    img.save(f"{out}/darkfantasy-card-dark.png")
+    img = to_image(lerp((222, 219, 212), (196, 192, 184), y * 0.6 + n * 0.4), np.full((S, S), 236, np.float32))
+    bracket_corners(img, (62, 58, 54, 255), arm=44, dot=False)
+    img.save(f"{out}/darkfantasy-card-light.png")
+    # 양피지 카드: 패널과 같은 종이, 선 없이(찢긴 가장자리는 얕게).
+    rgb, alpha = paper((241, 226, 190), (128, 84, 44), 41, burn=55, torn=True, jag_amp=14)
+    to_image(rgb, alpha).save(f"{out}/parchment-card-light.png")
+    rgb, alpha = paper((198, 168, 120), (70, 44, 22), 51, burn=70, torn=True, jag_amp=14)
+    to_image(rgb, alpha).save(f"{out}/parchment-card-dark.png")
 
 if __name__ == "__main__":
     main(sys.argv[1])

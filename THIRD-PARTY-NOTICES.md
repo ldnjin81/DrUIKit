@@ -3,9 +3,10 @@
 | 구성 요소 | 위치 | 라이선스 | 출처 |
 | --- | --- | --- | --- |
 | Pretendard 1.3.9 (Light·Regular·Medium·SemiBold·Bold TTF, 수정 없음, 코드에서 파일 경로로 사용) | `UISample/Glass/DrUIGlass/Fonts/` | SIL Open Font License 1.1 (`Pretendard-LICENSE.txt`) | https://github.com/orioncactus/pretendard |
+| 나눔명조 NanumMyeongjo(Regular·Bold·ExtraBold TTF, 수정 없음, Google Fonts 배포본) | `UISample/Glass/DrUIGlass/Fonts/` | SIL Open Font License 1.1 (`NanumMyeongjo-OFL.txt`) | https://github.com/google/fonts/tree/main/ofl/nanummyeongjo |
 | Kenney Input Prompts 1.5 (Xbox Series·PlayStation Series·Nintendo Switch·Keyboard & Mouse의 Double 128px PNG 157개, 수정 없음) | `UISample/Prompts/DrUIPromptsKenney/Glyphs/` | CC0 1.0 (`Kenney-License.txt`) | https://kenney.nl/assets/input-prompts |
 
-Pretendard는 Glass 샘플에만, Kenney 이미지는 Prompts 샘플에만 들어 있다. 코어(`unreal/DrUIKit`)는 글꼴·이미지를 갖지 않는다.
+Pretendard·나눔명조는 Glass 샘플에만(판타지 RPG·양피지·다크 판타지가 나눔명조를 빌려 쓴다), Kenney 이미지는 Prompts 샘플에만 들어 있다. 코어(`unreal/DrUIKit`)는 글꼴·이미지를 갖지 않는다.
 
 판타지 RPG·양피지·다크 판타지 샘플의 `Images/`는 제3자 그림이 아니다. 패널은 `Tools/style-images/panels.py`로 절차적으로 그렸고, 바탕은 FLUX.1 [schnell](Apache 2.0)로 만들었다(프롬프트는 `Tools/style-images/README.md`).
 

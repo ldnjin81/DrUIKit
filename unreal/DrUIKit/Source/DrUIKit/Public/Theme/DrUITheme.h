@@ -58,6 +58,8 @@ struct DRUIKIT_API FDrUIImage {
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") EDrUIImageFit Fit = EDrUIImageFit::Box;
   /** 9분할 여백(이미지 픽셀). */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FMargin Margin;
+  /** 내용 안전 여백(이미지 픽셀). 이 그림으로 칠하는 표면은 내용을 적어도 이만큼(× Scale) 안쪽에 둔다(글자가 테두리·장식과 겹치지 않게). */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FMargin Padding;
   /** 화면에 그릴 배율(2배 해상도로 그린 이미지는 .5). */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") float Scale = 1.f;
   /** 곱할 색(바탕을 어둡게 누르는 등). */

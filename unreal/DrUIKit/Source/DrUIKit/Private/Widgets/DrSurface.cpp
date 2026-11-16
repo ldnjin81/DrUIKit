@@ -104,18 +104,24 @@ public:
   bool bPill = false;
   /** 테마 이미지로 칠할 때의 9분할 브러시(그때 SBorder 자체 브러시는 비운다). */
   TOptional<FSlateBrush> ImageBrush;
+  /** 내용 안전 여백(그림 테두리·장식을 피할 만큼). 내용 여백(Padding)이 이보다 작은 변만 그 차이를 더 띄운다. */
+  FMargin SafeInset;
+
+  virtual FVector2D ComputeDesiredSize(float LayoutScale) const override {
+    const FMargin Extra = ExtraInset();
+    return SBorder::ComputeDesiredSize(LayoutScale) + FVector2D(Extra.Left + Extra.Right, Extra.Top + Extra.Bottom);
+  }
+  virtual void OnArrangeChildren(const FGeometry& Geometry, FArrangedChildren& Arranged) const override {
+    const FMargin Extra = ExtraInset();
+    if (Extra == FMargin(0.f)) { SBorder::OnArrangeChildren(Geometry, Arranged); return; }
+    const FVector2f Size = Geometry.GetLocalSize();
+    const FVector2f Inner(FMath::Max(0.f, Size.X - Extra.Left - Extra.Right), FMath::Max(0.f, Size.Y - Extra.Top - Extra.Bottom));
+    SBorder::OnArrangeChildren(Geometry.MakeChild(Inner, FSlateLayoutTransform(FVector2f(Extra.Left, Extra.Top))), Arranged);
+  }
 
   virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Culling, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style, bool bParentEnabled) const override {
     const FVector2f Size = Geometry.GetLocalSize();
-    if (ImageBrush) {
-      // 9분할 여백이 표면보다 크면(얇은 머리줄·작은 칩) 모서리가 겹쳐 찌그러진다. 여백이 들어갈 만큼 그림 전체를 줄여 그린다.
-      PaintBrush = *ImageBrush;
-      const FVector2f Image(PaintBrush.ImageSize);
-      const float MarginX = Image.X * (PaintBrush.Margin.Left + PaintBrush.Margin.Right), MarginY = Image.Y * (PaintBrush.Margin.Top + PaintBrush.Margin.Bottom);
-      const float Fit = FMath::Min3(1.f, MarginX > 0.f ? Size.X / MarginX : 1.f, MarginY > 0.f ? Size.Y / MarginY : 1.f);
-      PaintBrush.ImageSize = FVector2D(Image * Fit);
-      FSlateDrawElement::MakeBox(Out, LayerId, Geometry.ToPaintGeometry(), &PaintBrush, ESlateDrawEffect::None, PaintBrush.GetTint(Style) * Style.GetColorAndOpacityTint());
-    }
+    if (ImageBrush) PaintNineSlice(Geometry, Out, LayerId, Style);
     const int32 MaxLayer = SBorder::OnPaint(Args, Geometry, Culling, Out, LayerId, Style, bParentEnabled);
     const float R = bPill ? Size.Y * .5f : FMath::Min(Radius, FMath::Min(Size.X, Size.Y) * .5f);
     if (HighlightColor.A <= 0.f || Size.X <= 2.f * R) return MaxLayer;
@@ -126,8 +132,40 @@ public:
     return MaxLayer;
   }
 private:
-  /** 그리는 동안 살아 있어야 하는 줄인 브러시. */
-  mutable FSlateBrush PaintBrush;
+  /**
+   * 9분할을 정점으로 직접 그린다. 슬레이트 Box 그리기는 여백을 텍스처 원래 픽셀로 잡아 브러시 크기(배율)를 따르지 않는다.
+   * 모서리 크기 = 이미지 여백 × 배율. 여백이 표면보다 크면(얇은 머리줄·작은 칩) 겹쳐 찌그러지지 않게 그림 전체를 줄인다.
+   */
+  void PaintNineSlice(const FGeometry& Geometry, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style) const {
+    const FSlateBrush& Brush = *ImageBrush;
+    const FVector2f Size = Geometry.GetLocalSize();
+    const FVector2f Image(Brush.ImageSize);
+    const FMargin& M = Brush.Margin;  // 이미지 크기에 대한 비율
+    const float MarginX = Image.X * (M.Left + M.Right), MarginY = Image.Y * (M.Top + M.Bottom);
+    const float Fit = FMath::Min3(1.f, MarginX > 0.f ? Size.X / MarginX : 1.f, MarginY > 0.f ? Size.Y / MarginY : 1.f);
+    const float Xs[4] = {0.f, Image.X * M.Left * Fit, Size.X - Image.X * M.Right * Fit, Size.X};
+    const float Ys[4] = {0.f, Image.Y * M.Top * Fit, Size.Y - Image.Y * M.Bottom * Fit, Size.Y};
+    const float Us[4] = {0.f, M.Left, 1.f - M.Right, 1.f};
+    const float Vs[4] = {0.f, M.Top, 1.f - M.Bottom, 1.f};
+    const FColor Color = (Brush.GetTint(Style) * Style.GetColorAndOpacityTint()).ToFColor(true);
+    const FSlateRenderTransform& Transform = Geometry.GetAccumulatedRenderTransform();
+    TArray<FSlateVertex> Verts;
+    TArray<SlateIndex> Indices;
+    for (int32 Y = 0; Y < 4; ++Y)
+      for (int32 X = 0; X < 4; ++X) Verts.Add(FSlateVertex::Make<ESlateVertexRounding::Disabled>(Transform, FVector2f(Xs[X], Ys[Y]), FVector2f(Us[X], Vs[Y]), Color));
+    for (int32 Y = 0; Y < 3; ++Y)
+      for (int32 X = 0; X < 3; ++X) {
+        const SlateIndex A = Y * 4 + X, B = A + 1, C = A + 4, D = A + 5;
+        Indices.Append({A, B, D, A, D, C});
+      }
+    const FSlateResourceHandle Handle = FSlateApplication::Get().GetRenderer()->GetResourceHandle(Brush);
+    FSlateDrawElement::MakeCustomVerts(Out, LayerId, Handle, Verts, Indices, nullptr, 0, 0);
+  }
+
+  FMargin ExtraInset() const {
+    const FMargin Own = ChildSlot.GetPadding();
+    return FMargin(FMath::Max(0.f, SafeInset.Left - Own.Left), FMath::Max(0.f, SafeInset.Top - Own.Top), FMath::Max(0.f, SafeInset.Right - Own.Right), FMath::Max(0.f, SafeInset.Bottom - Own.Bottom));
+  }
 };
 
 UDrSurface::UDrSurface() { SetHorizontalAlignment(HAlign_Fill); SetVerticalAlignment(VAlign_Fill); }
@@ -196,6 +234,9 @@ void UDrSurface::ApplyTheme() {
   }
   if (SurfaceBorder) {
     SurfaceBorder->ImageBrush = bImage ? TOptional<FSlateBrush>(ImageBrush) : TOptional<FSlateBrush>();
+    const FDrUIImage* Image = bImage ? Theme.Images.Find(ResolveFillToken()) : nullptr;
+    SurfaceBorder->SafeInset = Image ? Image->Padding * Image->Scale : FMargin(0.f);
+    SurfaceBorder->Invalidate(EInvalidateWidgetReason::Layout);
     SurfaceBorder->HighlightColor = HighlightToken.IsNone() || bImage ? FLinearColor::Transparent : Theme.GetColor(HighlightToken);
     SurfaceBorder->Radius = Radius;
     SurfaceBorder->bPill = bPill;

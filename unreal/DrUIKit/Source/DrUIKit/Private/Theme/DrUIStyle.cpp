@@ -204,14 +204,14 @@ TSharedPtr<const FCompositeFont> MakeFamilyFont(const FString& CacheKey, const T
 
 TArray<FDrUIStyleInfo> GLoadedStyles;
 
-/** margin: 숫자 하나(네 변 같음) 또는 [왼, 위, 오른, 아래]. */
-FMargin ReadMargin(const TSharedPtr<FJsonObject>& Spec) {
+/** margin·padding: 숫자 하나(네 변 같음) 또는 [왼, 위, 오른, 아래]. 없으면 Default. */
+FMargin ReadMargin(const TSharedPtr<FJsonObject>& Spec, const TCHAR* Field, const FMargin& Default = FMargin(0.f)) {
   double All = 0.;
-  if (Spec->TryGetNumberField(TEXT("margin"), All)) return FMargin(float(All));
+  if (Spec->TryGetNumberField(Field, All)) return FMargin(float(All));
   const TArray<TSharedPtr<FJsonValue>>* Sides;
-  if (Spec->TryGetArrayField(TEXT("margin"), Sides) && Sides->Num() == 4)
+  if (Spec->TryGetArrayField(Field, Sides) && Sides->Num() == 4)
     return FMargin(float((*Sides)[0]->AsNumber()), float((*Sides)[1]->AsNumber()), float((*Sides)[2]->AsNumber()), float((*Sides)[3]->AsNumber()));
-  return FMargin(0.f);
+  return Default;
 }
 }
 
@@ -234,7 +234,9 @@ void DrUIStyle::ApplyImages(const TSharedPtr<FJsonObject>& Style, const FString&
       if (!FPaths::FileExists(Image.Path)) { Missing.AddUnique(Image.Path); continue; }
       FString Fit;
       if (Spec->TryGetStringField(TEXT("fit"), Fit) && Fit == TEXT("cover")) Image.Fit = EDrUIImageFit::Cover;
-      Image.Margin = ReadMargin(Spec);
+      Image.Margin = ReadMargin(Spec, TEXT("margin"));
+      // 안전 여백을 따로 주지 않으면 9분할 여백 전체(테두리 그림이 차지할 수 있는 곳)를 피한다.
+      Image.Padding = ReadMargin(Spec, TEXT("padding"), Image.Margin);
       double Scale = 1.;
       if (Spec->TryGetNumberField(TEXT("scale"), Scale) && Scale > 0.) Image.Scale = float(Scale);
       FString Tint;

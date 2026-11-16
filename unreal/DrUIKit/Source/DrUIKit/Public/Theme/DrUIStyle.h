@@ -27,8 +27,9 @@ struct DRUIKIT_API FDrUIStyleInfo {
  *                          "hangul": { "Regular": "{plugin:DrUIGlass}/Fonts/Pretendard-Regular.ttf", … } } } }
  * 이미지(선택): 색 토큰 대신 그림으로 칠할 토큰. {mode}는 tokens.json 테마 id(light·dark). 경로는 플러그인 기준(글꼴처럼 {plugin:이름}·{engine}도 된다).
  *   "images": { "ground": { "file": "Images/ground-{mode}.jpg", "fit": "cover", "tint": "#ffffffd0" },
- *               "glass": { "file": "Images/panel-{mode}.png", "margin": 96, "scale": 0.5 } }
+ *               "glass": { "file": "Images/panel-{mode}.png", "margin": 96, "padding": 40, "scale": 0.5 } }
  *   ground는 화면 바탕(갤러리 바탕 등), 그 밖의 토큰은 그 토큰으로 채우는 표면(UDrSurface)을 9분할로 칠한다(margin은 이미지 픽셀, 숫자 또는 [왼,위,오른,아래]).
+ *   padding은 내용 안전 여백(이미지 픽셀, 없으면 margin). 표면은 내용을 적어도 padding × scale만큼 안쪽에 둔다(부품 자체 여백이 더 크면 그대로).
  *   이미지로 칠하는 표면은 뒤 흐림·반사광을 그리지 않는다(그림의 가장자리가 사각형이 아닐 수 있다).
  * 글꼴 경로: {plugin}은 이 스타일 플러그인, {plugin:이름}은 다른 플러그인, {engine}은 엔진 Content 폴더.
  * hangul은 한국어 글자(한글, ₩, CJK 기호·전각 문자)만 대신 그리는 서체(라틴 글꼴에 한글이 없을 때). 서체 이름은 굵기 이름(Light·Regular·Medium·SemiBold·Bold).

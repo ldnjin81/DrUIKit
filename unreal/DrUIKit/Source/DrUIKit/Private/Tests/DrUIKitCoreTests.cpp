@@ -43,6 +43,7 @@
 #include "Widgets/DrTextReveal.h"
 #include "Widgets/DrSurface.h"
 #include "Blueprint/WidgetTree.h"
+#include "Components/Spacer.h"
 #include "UObject/UObjectIterator.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
@@ -608,15 +609,58 @@ bool FDrStyleImagesTest::RunTest(const FString&) {
     TestTrue(TEXT("색 곱하기"), FMath::IsNearlyEqual(Brush.TintColor.GetSpecifiedColor().A, 128.f / 255.f, .01f));
   }
   TestFalse(TEXT("이미지 없는 토큰"), Light->MakeImageBrush(TEXT("glass-strong"), Brush));
+  if (const FDrUIImage* Image = Light->Images.Find(TEXT("glass")))
+    TestTrue(TEXT("padding이 없으면 안전 여백 = 9분할 여백"), Image->Padding == FMargin(8.f, 4.f, 8.f, 4.f));
 
   UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
   if (!TestNotNull(TEXT("서브시스템"), Subsystem)) return false;
   const FName Before = UDrUIThemeSubsystem::Current().ThemeId;
   Subsystem->AddTheme(Light);
   Subsystem->SetTheme(Light->ThemeId);
+  // 이미지 없는 테마에서 먼저 만든 표면도 테마가 바뀌면 안전 여백을 따른다.
+  Subsystem->SetTheme(Before);
+  UDrSurface* Early = NewObject<UDrSurface>();
+  Early->PaddingToken = NAME_None;
+  Early->SetPadding(FMargin(0.f));
+  USpacer* EarlyContent = NewObject<USpacer>(Early);
+  EarlyContent->SetSize(FVector2D(10, 10));
+  Early->SetContent(EarlyContent);
+  TSharedRef<SWidget> EarlySlate = Early->TakeWidget();
+  EarlySlate->SlatePrepass(1.f);
+  Subsystem->SetTheme(Light->ThemeId);
+  EarlySlate->SlatePrepass(1.f);
+  AddInfo(FString::Printf(TEXT("early desired %s"), *EarlySlate->GetDesiredSize().ToString()));
+  TestTrue(TEXT("테마가 바뀐 뒤 안전 여백"), EarlySlate->GetDesiredSize().Equals(FVector2D(18, 14), .01));
+  {
+    const FGeometry Root = FGeometry::MakeRoot(FVector2D(18, 14), FSlateLayoutTransform());
+    const TSharedRef<SWidget> Target = EarlyContent->TakeWidget();
+    FGeometry Child;
+    TFunction<bool(const TSharedRef<SWidget>&, const FGeometry&)> Find = [&](const TSharedRef<SWidget>& Widget, const FGeometry& Geometry) {
+      FArrangedChildren Arranged(EVisibility::All);
+      Widget->ArrangeChildren(Geometry, Arranged);
+      for (int32 I = 0; I < Arranged.Num(); ++I) {
+        if (Arranged[I].Widget == Target) { Child = Arranged[I].Geometry; return true; }
+        if (Find(Arranged[I].Widget, Arranged[I].Geometry)) return true;
+      }
+      return false;
+    };
+    Find(EarlySlate, Root);
+    AddInfo(FString::Printf(TEXT("content at %s size %s"), *FVector2D(Child.GetAbsolutePosition()).ToString(), *FVector2D(Child.GetLocalSize()).ToString()));
+    TestTrue(TEXT("내용이 안전 여백 안쪽에"), FVector2D(Child.GetAbsolutePosition()).Equals(FVector2D(4, 2), .01));
+  }
   UDrSurface* Surface = NewObject<UDrSurface>();
   TestTrue(TEXT("표면이 이미지로"), Surface->HasFillImage());
   TestEqual(TEXT("이미지 표면은 흐림 없음"), Surface->ResolveBlur(), 0.f);
+  // 안전 여백(padding 기본 = margin [8,4,8,4] × scale .5 = [4,2,4,2]): 내용 여백 0이면 그만큼 커진다.
+  Surface->PaddingToken = NAME_None;
+  Surface->SetPadding(FMargin(0.f));
+  USpacer* Content = NewObject<USpacer>(Surface);
+  Content->SetSize(FVector2D(10, 10));
+  Surface->SetContent(Content);
+  TSharedRef<SWidget> Slate = Surface->TakeWidget();
+  Slate->SlatePrepass(1.f);
+  AddInfo(FString::Printf(TEXT("desired %s"), *Slate->GetDesiredSize().ToString()));
+  TestTrue(TEXT("안전 여백만큼 커짐"), Slate->GetDesiredSize().Equals(FVector2D(18, 14), .01));
   Subsystem->SetTheme(Before);
   return true;
 }

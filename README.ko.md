@@ -14,7 +14,7 @@
 | `Host/DrUIKitHost.uproject` | 단독 빌드·테스트 호스트(코드 모듈 없음) |
 | `UISample/Glass` | 리퀴드 글래스 스타일(플러그인 `DrUIGlass`: 토큰, Pretendard 글꼴, 바탕, 갤러리 테스트 레벨 `L_DrUIGallery`) |
 | `UISample/Flat`·`Brutal`·`Neu`·`Retro` | 플랫·머티리얼, 네오 브루탈리즘, 뉴모피즘, 레트로 터미널 스타일(플러그인 `DrUIFlat`·`DrUIBrutal`·`DrUINeu`·`DrUIRetro`: 코드 없이 토큰만) |
-| `UISample/Fantasy`·`Parchment`·`SciFi`·`Cyber`·`Casual`·`DarkFantasy` | 게임 UI 스타일: 판타지 RPG(풍경·선술집 바탕 그림, 양피지·가죽 패널에 청동·금 장식 테두리), 양피지(서재 책상 바탕, 찢긴 가장자리 종이 패널, 세피아 잉크·봉랍), SF 홀로그램(반투명·청록 발광·각진 모서리), 사이버펑크 네온, 캐주얼 모바일(두꺼운 외곽선·둥근 모서리·단단한 아래 그림자), 다크 판타지(성당·황야 바탕 그림, 거의 검은 패널에 옅은 금빛 꺾쇠). 판타지·양피지·다크 판타지는 토큰 + `Images/`, 나머지는 토큰만 |
+| `UISample/Fantasy`·`Parchment`·`SciFi`·`Cyber`·`Casual`·`DarkFantasy` | 게임 UI 스타일: 판타지 RPG(풍경·선술집 바탕 그림, 양피지·가죽 패널에 청동·금 장식 테두리, 명조), 양피지(서재 책상 바탕, 찢긴 가장자리 종이 패널과 선 없는 종이 상자, 명조 세피아 잉크·봉랍), SF 홀로그램(반투명·청록 발광·각진 모서리), 사이버펑크 네온, 캐주얼 모바일(두꺼운 외곽선·둥근 모서리·단단한 아래 그림자), 다크 판타지(성당·황야 바탕 그림, 거의 검은 패널에 옅은 금빛 꺾쇠). 판타지·양피지·다크 판타지는 토큰 + `Images/`, 나머지는 토큰만 |
 | `Tools/verify.ps1` | 호스트 빌드 + `Automation RunTests DrUIKit+DrUIGlass` |
 
 ## 지금 있는 것
@@ -65,7 +65,7 @@
 
 ## 스타일
 
-스타일은 `Tokens/tokens.json`(디자인 토큰, 밝게·어둡게)과 `Tokens/style.json`(id·이름·글꼴·투명도 설정을 따를 채움 토큰·기본 테두리 두께)을 가진 켜진 플러그인이다. 코어가 시작할 때 모두 읽고, 테마 id는 `<스타일>-light`·`<스타일>-dark`다. 글꼴은 TTF 경로(`{plugin}`, `{plugin:이름}`, `{engine}`)로 지정하고, 한글이 없는 글꼴은 `hangul` 서체로 한국어 글자만 대신 그린다. `style.json`의 `images`로 색 토큰 대신 그림을 쓸 수 있다: `ground`는 화면 바탕(`fit: cover`, 비율 유지·가득 채움), 그 밖의 토큰은 그 토큰으로 채우는 표면을 9분할(`margin`은 이미지 픽셀, `scale`은 화면 배율)로 칠한다. 경로의 `{mode}`는 `light`·`dark`로 바뀌고, PNG·JPG를 처음 쓸 때 텍스처로 만든다(에셋 없음). 그림으로 칠하는 표면은 뒤 흐림·반사광을 그리지 않는다. 패키지에 넣으려면 `DrUIGlass`처럼 `Tokens/`(와 글꼴·`Images/`)를 `RuntimeDependencies`로 함께 넣는다.
+스타일은 `Tokens/tokens.json`(디자인 토큰, 밝게·어둡게)과 `Tokens/style.json`(id·이름·글꼴·투명도 설정을 따를 채움 토큰·기본 테두리 두께)을 가진 켜진 플러그인이다. 코어가 시작할 때 모두 읽고, 테마 id는 `<스타일>-light`·`<스타일>-dark`다. 글꼴은 TTF 경로(`{plugin}`, `{plugin:이름}`, `{engine}`)로 지정하고, 한글이 없는 글꼴은 `hangul` 서체로 한국어 글자만 대신 그린다. `style.json`의 `images`로 색 토큰 대신 그림을 쓸 수 있다: `ground`는 화면 바탕(`fit: cover`, 비율 유지·가득 채움), 그 밖의 토큰은 그 토큰으로 채우는 표면을 9분할(`margin`은 이미지 픽셀, `scale`은 화면 배율, 얇은 표면이면 테두리를 줄여 그림)로 칠하고, 내용은 `padding`(안전 여백, 없으면 `margin`) 안쪽에 둔다. 경로의 `{mode}`는 `light`·`dark`로 바뀌고, PNG·JPG를 처음 쓸 때 텍스처로 만든다(에셋 없음). 그림으로 칠하는 표면은 뒤 흐림·반사광을 그리지 않는다. 패키지에 넣으려면 `DrUIGlass`처럼 `Tokens/`(와 글꼴·`Images/`)를 `RuntimeDependencies`로 함께 넣는다.
 
 | 플랫(밝게) | 네오 브루탈리즘(밝게) |
 | --- | --- |

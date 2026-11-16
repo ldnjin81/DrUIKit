@@ -11,7 +11,8 @@ python panels.py <출력 폴더>
 ```
 
 - `<스타일>-panel-<light|dark>.png`: 512px, 9분할 여백 96px → `Images/panel-<mode>.png`(style.json `glass`, `margin: 96`, `scale: 0.5`)
-- `<스타일>-card-<light|dark>.png`: 128px, 여백 16px → `Images/card-<mode>.png`(style.json `glass-strong`, `margin: 16`, `scale: 0.5`)
+- `<스타일>-card-<light|dark>.png`: 패널과 같은 질감·선, 덩굴 장식 없음(양피지는 선 없는 종이). 512px, 여백 96px → `Images/card-<mode>.png`(style.json `glass-strong`, `margin: 96`, `scale: 0.5`)
+- 내용 안전 여백(`padding`)은 테두리 선·장식이 끝나는 곳보다 조금 안쪽으로 준다(패널 [56,40,56,40], 카드 28 등).
 
 ## 바탕(ground)
 

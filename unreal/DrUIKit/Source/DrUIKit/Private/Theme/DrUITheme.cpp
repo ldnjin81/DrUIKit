@@ -61,7 +61,7 @@ float UDrUITheme::GetBackdrop(FName Token) const {
 
 FName UDrUITheme::PickTypeface(const FCompositeFont& Font, int32 Weight) {
   // CSS 굵기 → 서체 이름. 글꼴에 있는 이름 중 가장 가까운 굵기를 고른다(같은 거리면 더 굵은 쪽).
-  static const TPair<int32, FName> Names[] = {{300, TEXT("Light")}, {400, TEXT("Regular")}, {500, TEXT("Medium")}, {600, TEXT("SemiBold")}, {700, TEXT("Bold")}};
+  static const TPair<int32, FName> Names[] = {{300, TEXT("Light")}, {400, TEXT("Regular")}, {500, TEXT("Medium")}, {600, TEXT("SemiBold")}, {700, TEXT("Bold")}, {800, TEXT("ExtraBold")}, {900, TEXT("Black")}};
   TSet<FName> Available;
   for (const FTypefaceEntry& Entry : Font.DefaultTypeface.Fonts) Available.Add(Entry.Name);
   FName Best = NAME_None;
