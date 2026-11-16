@@ -9,7 +9,7 @@ class SDrSurfaceBorder;
 
 /**
  * 표면(패널·카드 공통). 슬롯: 뒤 흐림, 채움 + 테두리(둥근 모서리), 내용.
- * 코어는 토큰 값대로 칠하기만 한다. 유리처럼 보이는지는 테마(샘플)가 정한다.
+ * 코어는 토큰 값대로 칠하기만 한다. 유리처럼 보이는지는 테마(샘플)가 정한다. 채움 토큰에 테마 이미지가 있으면 그 그림을 9분할로 칠한다.
  * 표면 품질이 낮음이면 흐림을 끄고 FillStrongToken으로 칠한다(글자 대비 유지).
  * 그림자(ShadowToken)와 윗면 반사광(HighlightToken)은 정한 표면만 그린다(기본 끔). 반사광은 채움 위·내용 아래에 그려
  * 내용이 표면 밖으로 커져도 선이 내용을 덮지 않는다. 그림자는 표면 바깥에만 그려
@@ -36,6 +36,10 @@ public:
   /** 유리 패널·떠 있는 요소 모양을 한 번에(그림자 + 반사광). */
   void SetElevation(FName InShadowToken, FName InHighlightToken = TEXT("glass-highlight")) { ShadowToken = InShadowToken; HighlightToken = InHighlightToken; ApplyTheme(); }
 
+  /** 지금 채움에 쓸 토큰(흐림이 없으면 FillStrongToken). */
+  FName ResolveFillToken() const;
+  /** 채움 토큰에 테마 이미지가 있는지(있으면 9분할 그림으로 칠하고 흐림·반사광은 끈다). */
+  bool HasFillImage() const;
   /** 지금 칠할 채움색(품질 단계 반영). 테스트용으로 공개. */
   FLinearColor ResolveFill() const;
   float ResolveBlur() const;

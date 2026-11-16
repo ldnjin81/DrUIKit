@@ -5,6 +5,8 @@
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
+#include "Components/ScaleBox.h"
 #include "Theme/DrUIThemeSubsystem.h"
 
 namespace {
@@ -21,6 +23,11 @@ TSharedRef<SWidget> UDrGlassBackdrop::RebuildWidget() {
     WidgetTree->RootWidget = Canvas;
     Ground = WidgetTree->ConstructWidget<UBorder>();
     if (UCanvasPanelSlot* GroundSlot = Canvas->AddChildToCanvas(Ground)) { GroundSlot->SetAnchors(FAnchors(0, 0, 1, 1)); GroundSlot->SetOffsets(FMargin(0)); }
+    GroundFit = WidgetTree->ConstructWidget<UScaleBox>();
+    GroundFit->SetStretch(EStretch::ScaleToFill);
+    GroundImage = WidgetTree->ConstructWidget<UImage>();
+    GroundFit->AddChild(GroundImage);
+    if (UCanvasPanelSlot* FitSlot = Canvas->AddChildToCanvas(GroundFit)) { FitSlot->SetAnchors(FAnchors(0, 0, 1, 1)); FitSlot->SetOffsets(FMargin(0)); }
     for (const FBlob& Blob : BlobLayout)
       for (int32 Ring = 0; Ring < Rings; ++Ring) {
         UBorder* Circle = WidgetTree->ConstructWidget<UBorder>();
@@ -50,6 +57,12 @@ void UDrGlassBackdrop::NativeDestruct() {
 void UDrGlassBackdrop::ApplyTheme() {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
   if (Ground) Ground->SetBrush(FSlateColorBrush(Theme.GetColor(TEXT("ground"))));
+  if (GroundFit && GroundImage) {
+    FSlateBrush Brush;
+    const bool bImage = Theme.MakeImageBrush(TEXT("ground"), Brush);
+    if (bImage) GroundImage->SetBrush(Brush);
+    GroundFit->SetVisibility(bImage ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+  }
   // 겹친 원 Rings개의 투명도 합이 가운데에서 CenterOpacity가 되도록 한 겹의 투명도를 정한다.
   const float RingOpacity = 1.f - FMath::Pow(1.f - CenterOpacity, 1.f / Rings);
   for (int32 I = 0; I < Blobs.Num(); ++I) {

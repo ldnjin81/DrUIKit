@@ -1,0 +1,20 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.0.1",
+  "FriendlyName": "DrUIParchment",
+  "Description": "DrUIKit 스타일 샘플 — 양피지 문서: 찢긴 가장자리의 바랜 종이 패널, 세피아 잉크 글자, 붉은 봉랍 강조, 서재 책상 바탕. 코드 없이 Tokens/tokens.json·style.json과 Images/(바탕·패널 그림)만 둔다.",
+  "Category": "User Interface",
+  "CreatedBy": "ldnjin81",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "DrUIKit",
+      "Enabled": true
+    },
+    {
+      "Name": "DrUIGlass",
+      "Enabled": true
+    }
+  ]
+}

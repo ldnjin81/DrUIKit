@@ -66,6 +66,7 @@
 - 코어 `DrUIStyle`: 켜진 플러그인 중 `Tokens/style.json`이 있는 것을 찾아 엔진이 뜬 뒤 모두 읽는다(설정 `bLoadStylePlugins`). 테마 id는 `<스타일>-light|dark`. Glass도 같은 방식이며 `DrGlassTheme`은 없앴다.
 - 코어에 더한 것: 그림자 토큰의 여러 겹(`ShadowLayers`, 뉴모피즘의 밝은·어두운 겹), 흐림 없는 그림자는 옮긴 둥근 상자로(브루탈리즘), 테마 기본 테두리 두께(`StrokeWidth`, 부품의 강조 두께는 그 위에 더함), 글자 스타일의 글꼴 갈래(`Family`: sans·mono)와 갈래별 글꼴, 라틴 글꼴에 없는 한국어 글자(한글·₩·CJK 기호)만 다른 서체로 그리는 대체 서체.
 - 게임 UI 스타일(2026-11-16): 판타지 RPG(`UISample/Fantasy`), SF 홀로그램(`SciFi`, 반투명·흐림), 사이버펑크 네온(`Cyber`), 캐주얼 모바일(`Casual`), 다크 판타지(`DarkFantasy`). 역시 토큰만(색·모서리·그림자·흐림·글자 간격·굵기), 글꼴은 Pretendard·Roboto·DroidSansMono를 빌려 쓴다. 스타일이 열 개라 갤러리 스타일 선택을 드롭다운으로 바꿨다. 판타지용 세리프·SF용 각진 글꼴은 새 글꼴(승인 필요)이 있어야 한다.
+- 스타일 그림(2026-11-16): `style.json`의 `images`로 색 토큰 대신 그림. `ground`는 화면 바탕(cover), 그 밖의 토큰은 그 토큰으로 채우는 `UDrSurface`를 9분할로(얇은 표면이면 테두리 그림을 줄여 그림, 흐림·반사광 끔). 판타지 RPG·다크 판타지에 바탕 그림(FLUX.1 schnell)과 패널·카드 테두리(절차적), 새 스타일 양피지(`Parchment`, 찢긴 종이 패널·서재 책상 바탕). 만드는 법은 `Tools/style-images/`. 세리프 글꼴은 아직 없다(승인 필요).
 - 글꼴: 플랫은 엔진 Roboto + Pretendard(한글), 브루탈리즘·뉴모피즘은 Pretendard(Glass 플러그인 것을 빌려 씀), 레트로는 엔진 DroidSansMono + DroidSansFallback(한글). 새로 받은 글꼴은 없다.
 - 갤러리: 탭 줄 오른쪽 스타일 전환. 캡처는 스타일 × 밝게·어둡게 × 페이지(`-DrUIGalleryStyles=`로 줄임). Glass 전용 바탕 색 덩어리는 다른 스타일에서 투명 토큰으로 사라진다.
 - 테스트: `DrUIKit.Style.ParseCss`, `DrUIKit.Style.LoadedStylesComplete`(모든 스타일·테마가 첫 스타일의 토큰을 모두 가짐, 본문 글꼴), `DrUIKit.Core.Surface.ThemeStrokeWidth`.

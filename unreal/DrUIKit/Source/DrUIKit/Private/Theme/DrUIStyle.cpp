@@ -203,6 +203,46 @@ TSharedPtr<const FCompositeFont> MakeFamilyFont(const FString& CacheKey, const T
 }
 
 TArray<FDrUIStyleInfo> GLoadedStyles;
+
+/** margin: 숫자 하나(네 변 같음) 또는 [왼, 위, 오른, 아래]. */
+FMargin ReadMargin(const TSharedPtr<FJsonObject>& Spec) {
+  double All = 0.;
+  if (Spec->TryGetNumberField(TEXT("margin"), All)) return FMargin(float(All));
+  const TArray<TSharedPtr<FJsonValue>>* Sides;
+  if (Spec->TryGetArrayField(TEXT("margin"), Sides) && Sides->Num() == 4)
+    return FMargin(float((*Sides)[0]->AsNumber()), float((*Sides)[1]->AsNumber()), float((*Sides)[2]->AsNumber()), float((*Sides)[3]->AsNumber()));
+  return FMargin(0.f);
+}
+}
+
+void DrUIStyle::ApplyImages(const TSharedPtr<FJsonObject>& Style, const FString& PluginDir, FName StyleId, const TArray<UDrUITheme*>& Themes, FString& OutError) {
+  const TSharedPtr<FJsonObject>* ImagesJson;
+  if (!Style || !Style->TryGetObjectField(TEXT("images"), ImagesJson)) return;
+  TArray<FString> Missing;
+  const FString Prefix = StyleId.ToString() + TEXT("-");
+  for (UDrUITheme* Theme : Themes) {
+    // {mode}는 tokens.json의 테마 id(light, dark …). 테마 id = "<스타일 id>-<테마 id>".
+    const FString ThemeName = Theme->ThemeId.ToString();
+    const FString Mode = ThemeName.StartsWith(Prefix) ? ThemeName.Mid(Prefix.Len()) : ThemeName;
+    for (const auto& [Token, Value] : (*ImagesJson)->Values) {
+      const TSharedPtr<FJsonObject> Spec = Value->AsObject();
+      FString File;
+      if (!Spec || !Spec->TryGetStringField(TEXT("file"), File)) continue;
+      FDrUIImage Image;
+      const FString Resolved = File.Replace(TEXT("{mode}"), *Mode);
+      Image.Path = FPaths::ConvertRelativePathToFull(Resolved.StartsWith(TEXT("{")) ? ResolveFontPath(Resolved, PluginDir) : PluginDir / Resolved);
+      if (!FPaths::FileExists(Image.Path)) { Missing.AddUnique(Image.Path); continue; }
+      FString Fit;
+      if (Spec->TryGetStringField(TEXT("fit"), Fit) && Fit == TEXT("cover")) Image.Fit = EDrUIImageFit::Cover;
+      Image.Margin = ReadMargin(Spec);
+      double Scale = 1.;
+      if (Spec->TryGetNumberField(TEXT("scale"), Scale) && Scale > 0.) Image.Scale = float(Scale);
+      FString Tint;
+      if (Spec->TryGetStringField(TEXT("tint"), Tint)) ParseCssColor(Tint, Image.Tint);
+      Theme->Images.Add(*Token, Image);
+    }
+  }
+  if (!Missing.IsEmpty()) OutError += FString::Printf(TEXT(" 이미지 파일 없음(색으로 칠함): %s"), *FString::Join(Missing, TEXT(", ")));
 }
 
 TArray<UDrUITheme*> DrUIStyle::LoadPluginStyle(const FString& PluginName, UObject* Outer, FString& OutError, FDrUIStyleInfo* OutInfo) {
@@ -242,6 +282,7 @@ TArray<UDrUITheme*> DrUIStyle::LoadPluginStyle(const FString& PluginName, UObjec
     if (const TSharedPtr<const FCompositeFont>* Sans = Fonts.Find(TEXT("sans"))) Theme->RuntimeFont = *Sans;
     Info.ThemeIds.Add(Theme->ThemeId);
   }
+  ApplyImages(Style, Dir, Info.Id, Themes, OutError);
   if (OutInfo) *OutInfo = Info;
   return Themes;
 }

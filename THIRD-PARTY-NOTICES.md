@@ -7,4 +7,6 @@
 
 Pretendard는 Glass 샘플에만, Kenney 이미지는 Prompts 샘플에만 들어 있다. 코어(`unreal/DrUIKit`)는 글꼴·이미지를 갖지 않는다.
 
+판타지 RPG·양피지·다크 판타지 샘플의 `Images/`는 제3자 그림이 아니다. 패널은 `Tools/style-images/panels.py`로 절차적으로 그렸고, 바탕은 FLUX.1 [schnell](Apache 2.0)로 만들었다(프롬프트는 `Tools/style-images/README.md`).
+
 Xbox·PlayStation·Nintendo Switch 등은 각 소유자의 상표다. Kenney 이미지는 비슷하게 그린 CC0 그림이며 플랫폼의 공식 이미지가 아니고, 소유자가 보증하거나 후원하지 않는다. 콘솔 출시 게임은 플랫폼 개발자 포털의 공식 버튼 이미지와 규정을 따른다.

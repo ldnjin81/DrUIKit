@@ -3,6 +3,8 @@
 #include "Engine/DataAsset.h"
 #include "Fonts/CompositeFont.h"
 #include "Fonts/SlateFontInfo.h"
+#include "Layout/Margin.h"
+#include "Styling/SlateBrush.h"
 #include "DrUITheme.generated.h"
 
 /** 글자 스타일 토큰 하나(디자인 시스템 type.styles). Size는 언리얼 글꼴 크기(포인트). */
@@ -38,6 +40,30 @@ struct DRUIKIT_API FDrUIShadowLayers {
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TArray<FDrUIShadow> Layers;
 };
 
+/** 이미지 토큰 맞춤 방법. */
+UENUM(BlueprintType)
+enum class EDrUIImageFit : uint8 {
+  /** 9분할: 여백(모서리·테두리)은 그대로, 가운데만 늘린다(패널 테두리). */
+  Box,
+  /** 비율을 지키며 칸을 가득 채우고 넘치는 쪽은 자른다(화면 바탕). */
+  Cover
+};
+
+/** 이미지 토큰 하나(style.json images). 색 토큰 대신 그림으로 칠한다. 파일은 처음 쓸 때 텍스처로 만든다(에셋 없음). */
+USTRUCT(BlueprintType)
+struct DRUIKIT_API FDrUIImage {
+  GENERATED_BODY()
+  /** PNG·JPG 절대 경로. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FString Path;
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") EDrUIImageFit Fit = EDrUIImageFit::Box;
+  /** 9분할 여백(이미지 픽셀). */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FMargin Margin;
+  /** 화면에 그릴 배율(2배 해상도로 그린 이미지는 .5). */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") float Scale = 1.f;
+  /** 곱할 색(바탕을 어둡게 누르는 등). */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FLinearColor Tint = FLinearColor::White;
+};
+
 /**
  * 테마 하나 = 토큰 묶음. 이름은 디자인 시스템 토큰 이름 그대로(ground, glass, ink, accent, body, radius-lg …).
  * 코어에는 값이 없다: 회색조 기본 테마(MakeDefault)만 코드로 만들고, 실제 테마는 스타일 플러그인의 tokens.json에서 가져온다(DrUIStyle).
@@ -61,6 +87,8 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TSet<FName> TranslucentTokens;
   /** 표면 테두리의 기본 두께(브루탈리즘처럼 굵은 테두리). 부품의 1px 대신 이 값, 강조 두께(2px 등)는 그 차이만큼 더한다. 0이면 부품 값 그대로. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") float StrokeWidth = 0.f;
+  /** 색 토큰 대신 그림으로 칠할 토큰(ground → 화면 바탕, glass → 패널 9분할 등). 스타일 로더가 style.json images에서 넣는다. */
+  UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") TMap<FName, FDrUIImage> Images;
   /** 이 테마를 만든 스타일(glass, flat …). 코어 기본 테마는 None. */
   UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "DrUI") FName StyleId;
 
@@ -78,6 +106,8 @@ public:
   /** 그림자 토큰의 모든 바깥 겹(없는 토큰이면 빈 배열 + 경고). */
   TArray<FDrUIShadow> GetShadowLayers(FName Token) const;
   float GetBackdrop(FName Token) const;
+  /** 토큰에 이미지가 있으면 그 브러시(텍스처를 처음 쓸 때 만든다). 없거나 파일을 읽지 못하면 false(그때는 색으로 칠한다). 경고 없음. */
+  bool MakeImageBrush(FName Token, FSlateBrush& Out) const;
   FSlateFontInfo MakeFont(FName TextToken) const;
   /** 투명도 설정을 반영한 알파. 0 → 1(불투명), .5 → Alpha 그대로, 1 → Alpha의 1/4. */
   static float AdjustAlpha(float Alpha, float Transparency);

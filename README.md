@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.ko.md)
 
-A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend engine and CommonUI widgets by inheritance, and anything inheritance can't cover is composed inside a UserWidget. Components paint only through theme tokens; the actual look comes from a style (`UISample/<Style>`): a plugin holding a `tokens.json` that the core loads at startup. Ten styles ship as samples: glass, flat, neo-brutalism, neumorphism and retro terminal, plus five common game UI looks: fantasy RPG, sci-fi hologram, cyberpunk neon, casual mobile and dark fantasy.
+A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend engine and CommonUI widgets by inheritance, and anything inheritance can't cover is composed inside a UserWidget. Components paint only through theme tokens; the actual look comes from a style (`UISample/<Style>`): a plugin holding a `tokens.json` that the core loads at startup. Eleven styles ship as samples: glass, flat, neo-brutalism, neumorphism and retro terminal, plus six common game UI looks: fantasy RPG, parchment, sci-fi hologram, cyberpunk neon, casual mobile and dark fantasy.
 
 > Status: 0.1.0 (first- and second-wave components, UI flow and screen layers). Plan and progress: `Docs/PLAN.md` (Korean).
 
@@ -16,7 +16,7 @@ A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend
 | `Host/DrUIKitHost.uproject` | Standalone build and test host (no code module) |
 | `UISample/Glass` | Liquid-glass style (plugin `DrUIGlass`: tokens, Pretendard font, backdrop, gallery level `L_DrUIGallery`) |
 | `UISample/Flat`, `Brutal`, `Neu`, `Retro` | Flat/material, neo-brutalism, neumorphism and retro terminal styles (plugins `DrUIFlat`, `DrUIBrutal`, `DrUINeu`, `DrUIRetro`: tokens only, no code) |
-| `UISample/Fantasy`, `SciFi`, `Cyber`, `Casual`, `DarkFantasy` | Game UI styles: fantasy RPG (parchment, bronze and gold), sci-fi hologram (translucent, cyan glow, angular), cyberpunk neon, casual mobile (thick outlines, round, solid drop shadows) and dark fantasy (near-black, thin pale-gold lines, wide tracking). Tokens only |
+| `UISample/Fantasy`, `Parchment`, `SciFi`, `Cyber`, `Casual`, `DarkFantasy` | Game UI styles: fantasy RPG (landscape and tavern backdrops, parchment and leather panels with ornate bronze and gold frames), parchment (scholar's desk backdrop, torn-edge paper panels, sepia ink and wax red), sci-fi hologram (translucent, cyan glow, angular), cyberpunk neon, casual mobile (thick outlines, round, solid drop shadows) and dark fantasy (cathedral and moor backdrops, near-black panels with pale-gold corner brackets). Fantasy, parchment and dark fantasy add `Images/`; the rest are tokens only |
 | `Tools/verify.ps1` | Builds the host and runs `Automation RunTests DrUIKit+DrUIGlass` |
 
 ## What's included
@@ -67,7 +67,7 @@ Every component can be driven with a gamepad or keyboard alone.
 
 ## Styles
 
-A style is any enabled plugin with `Tokens/tokens.json` (design tokens, light and dark) and `Tokens/style.json` (id, name, fonts, which fills follow the transparency setting, base border width). The core loads every style at startup; theme ids are `<style>-light` and `<style>-dark`. Fonts are TTF paths: `{plugin}`, `{plugin:Name}` or `{engine}`, plus an optional `hangul` typeface for Korean glyphs. To ship a style in a packaged game, stage its `Tokens/` (and fonts) with `RuntimeDependencies`, as `DrUIGlass` does.
+A style is any enabled plugin with `Tokens/tokens.json` (design tokens, light and dark) and `Tokens/style.json` (id, name, fonts, which fills follow the transparency setting, base border width). The core loads every style at startup; theme ids are `<style>-light` and `<style>-dark`. Fonts are TTF paths: `{plugin}`, `{plugin:Name}` or `{engine}`, plus an optional `hangul` typeface for Korean glyphs. `style.json` can also map tokens to images under `images`: `ground` is the screen backdrop (`fit: cover`, keeps aspect and fills), any other token paints surfaces filled with that token as a 9-slice (`margin` in image pixels, `scale` for on-screen size; the frame shrinks to fit thin surfaces). `{mode}` in the path becomes `light` or `dark`, and PNG/JPG files are turned into textures on first use (no assets). Image surfaces skip backdrop blur and the top highlight. To ship a style in a packaged game, stage its `Tokens/` (and fonts and `Images/`) with `RuntimeDependencies`, as `DrUIGlass` does.
 
 | Flat (light) | Neo-brutalism (light) |
 | --- | --- |
@@ -78,8 +78,8 @@ A style is any enabled plugin with `Tokens/tokens.json` (design tokens, light an
 | ![Fantasy RPG](Docs/images/style-fantasy-dark.jpg) | ![Sci-fi hologram](Docs/images/style-scifi-dark.jpg) |
 | Cyberpunk neon (dark) | Casual mobile (light) |
 | ![Cyberpunk neon](Docs/images/style-cyber-dark.jpg) | ![Casual mobile](Docs/images/style-casual-light.jpg) |
-| Dark fantasy (dark) | |
-| ![Dark fantasy](Docs/images/style-darkfantasy-dark.jpg) | |
+| Dark fantasy (dark) | Parchment (light) |
+| ![Dark fantasy](Docs/images/style-darkfantasy-dark.jpg) | ![Parchment](Docs/images/style-parchment-light.jpg) |
 
 ## Gallery
 

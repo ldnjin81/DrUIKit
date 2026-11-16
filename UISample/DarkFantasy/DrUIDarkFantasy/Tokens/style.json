@@ -22,5 +22,21 @@
         "Regular": "{engine}/Slate/Fonts/DroidSansFallback.ttf"
       }
     }
+  },
+  "images": {
+    "ground": {
+      "file": "Images/ground-{mode}.jpg",
+      "fit": "cover"
+    },
+    "glass": {
+      "file": "Images/panel-{mode}.png",
+      "margin": 96,
+      "scale": 0.5
+    },
+    "glass-strong": {
+      "file": "Images/card-{mode}.png",
+      "margin": 16,
+      "scale": 0.5
+    }
   }
 }

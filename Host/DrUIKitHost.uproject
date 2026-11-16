@@ -55,6 +55,10 @@
     {
       "Name": "DrUIDarkFantasy",
       "Enabled": true
+    },
+    {
+      "Name": "DrUIParchment",
+      "Enabled": true
     }
   ]
 }

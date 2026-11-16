@@ -102,10 +102,21 @@ public:
   FLinearColor HighlightColor = FLinearColor::Transparent;
   float Radius = 0.f;
   bool bPill = false;
+  /** 테마 이미지로 칠할 때의 9분할 브러시(그때 SBorder 자체 브러시는 비운다). */
+  TOptional<FSlateBrush> ImageBrush;
 
   virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& Geometry, const FSlateRect& Culling, FSlateWindowElementList& Out, int32 LayerId, const FWidgetStyle& Style, bool bParentEnabled) const override {
-    const int32 MaxLayer = SBorder::OnPaint(Args, Geometry, Culling, Out, LayerId, Style, bParentEnabled);
     const FVector2f Size = Geometry.GetLocalSize();
+    if (ImageBrush) {
+      // 9분할 여백이 표면보다 크면(얇은 머리줄·작은 칩) 모서리가 겹쳐 찌그러진다. 여백이 들어갈 만큼 그림 전체를 줄여 그린다.
+      PaintBrush = *ImageBrush;
+      const FVector2f Image(PaintBrush.ImageSize);
+      const float MarginX = Image.X * (PaintBrush.Margin.Left + PaintBrush.Margin.Right), MarginY = Image.Y * (PaintBrush.Margin.Top + PaintBrush.Margin.Bottom);
+      const float Fit = FMath::Min3(1.f, MarginX > 0.f ? Size.X / MarginX : 1.f, MarginY > 0.f ? Size.Y / MarginY : 1.f);
+      PaintBrush.ImageSize = FVector2D(Image * Fit);
+      FSlateDrawElement::MakeBox(Out, LayerId, Geometry.ToPaintGeometry(), &PaintBrush, ESlateDrawEffect::None, PaintBrush.GetTint(Style) * Style.GetColorAndOpacityTint());
+    }
+    const int32 MaxLayer = SBorder::OnPaint(Args, Geometry, Culling, Out, LayerId, Style, bParentEnabled);
     const float R = bPill ? Size.Y * .5f : FMath::Min(Radius, FMath::Min(Size.X, Size.Y) * .5f);
     if (HighlightColor.A <= 0.f || Size.X <= 2.f * R) return MaxLayer;
     // 윗변의 곧은 부분에만 1px 선(모서리 곡선 앞에서 멈춤).
@@ -114,6 +125,9 @@ public:
     FSlateDrawElement::MakeLines(Out, LayerId, Geometry.ToPaintGeometry(), Line, ESlateDrawEffect::None, HighlightColor * Style.GetColorAndOpacityTint(), true, 1.f);
     return MaxLayer;
   }
+private:
+  /** 그리는 동안 살아 있어야 하는 줄인 브러시. */
+  mutable FSlateBrush PaintBrush;
 };
 
 UDrSurface::UDrSurface() { SetHorizontalAlignment(HAlign_Fill); SetVerticalAlignment(VAlign_Fill); }
@@ -123,10 +137,19 @@ static EDrUISurfaceQuality CurrentQuality() {
   return Subsystem ? Subsystem->GetSurfaceQuality() : GetDefault<UDrUIKitSettings>()->SurfaceQuality;
 }
 
+FName UDrSurface::ResolveFillToken() const {
+  const bool bNoBlur = BackdropToken.IsNone() || CurrentQuality() == EDrUISurfaceQuality::Low;
+  return bNoBlur && !FillStrongToken.IsNone() ? FillStrongToken : FillToken;
+}
+
+bool UDrSurface::HasFillImage() const {
+  const FName Token = ResolveFillToken();
+  return !Token.IsNone() && UDrUIThemeSubsystem::Current().Images.Contains(Token);
+}
+
 FLinearColor UDrSurface::ResolveFill() const {
   const UDrUITheme& Theme = UDrUIThemeSubsystem::Current();
-  const bool bNoBlur = BackdropToken.IsNone() || CurrentQuality() == EDrUISurfaceQuality::Low;
-  const FName Token = bNoBlur && !FillStrongToken.IsNone() ? FillStrongToken : FillToken;
+  const FName Token = ResolveFillToken();
   if (Token.IsNone()) return FLinearColor::Transparent;
   FLinearColor Color = Theme.GetColor(Token);
   if (Theme.TranslucentTokens.Contains(Token)) {
@@ -137,7 +160,8 @@ FLinearColor UDrSurface::ResolveFill() const {
 }
 
 float UDrSurface::ResolveBlur() const {
-  if (BackdropToken.IsNone()) return 0.f;
+  // 그림으로 칠하는 표면은 흐리지 않는다(찢긴 종이처럼 가장자리가 사각형이 아니면 흐림이 삐져나온다).
+  if (BackdropToken.IsNone() || HasFillImage()) return 0.f;
   const EDrUISurfaceQuality Quality = CurrentQuality();
   if (Quality == EDrUISurfaceQuality::Low) return 0.f;
   const float Strength = UDrUIThemeSubsystem::Current().GetBackdrop(BackdropToken);
@@ -159,7 +183,11 @@ void UDrSurface::ApplyTheme() {
   // 알약(radius-pill = 999)은 반경을 그대로 쓰면 마름모처럼 그려진다. 높이의 절반으로 둥글린다.
   const bool bPill = Radius >= 500.f;
   if (bPill) Brush.OutlineSettings.RoundingType = ESlateBrushRoundingType::HalfHeightRadius;
-  SetBrush(Brush);
+  // 채움 토큰에 이미지가 있으면 9분할 그림(테두리도 그림이 맡는다).
+  FSlateBrush ImageBrush;
+  const bool bImage = Theme.MakeImageBrush(ResolveFillToken(), ImageBrush);
+  if (bImage) SetBrush(FSlateNoResource());  // 그림은 SDrSurfaceBorder가 크기에 맞춰 그린다
+  else SetBrush(Brush);
   if (!PaddingToken.IsNone()) SetPadding(FMargin(Theme.GetSpacing(PaddingToken)));
   if (Shadow) {
     Shadow->Radius = Radius;
@@ -167,7 +195,8 @@ void UDrSurface::ApplyTheme() {
     Shadow->SetLayers(ShadowToken.IsNone() ? TArray<FDrUIShadow>() : Theme.GetShadowLayers(ShadowToken));
   }
   if (SurfaceBorder) {
-    SurfaceBorder->HighlightColor = HighlightToken.IsNone() ? FLinearColor::Transparent : Theme.GetColor(HighlightToken);
+    SurfaceBorder->ImageBrush = bImage ? TOptional<FSlateBrush>(ImageBrush) : TOptional<FSlateBrush>();
+    SurfaceBorder->HighlightColor = HighlightToken.IsNone() || bImage ? FLinearColor::Transparent : Theme.GetColor(HighlightToken);
     SurfaceBorder->Radius = Radius;
     SurfaceBorder->bPill = bPill;
     SurfaceBorder->Invalidate(EInvalidateWidgetReason::Paint);

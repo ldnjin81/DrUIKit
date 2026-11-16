@@ -6,6 +6,9 @@
 #include "Core/DrUIStagger.h"
 #include "Core/DrUIState.h"
 #include "Misc/AutomationTest.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "Engine/Texture2D.h"
 #include "HAL/FileManager.h"
 #include "ImageUtils.h"
@@ -570,6 +573,51 @@ bool FDrGlyphImagesTest::RunTest(const FString&) {
   if (UTexture2D* Texture = DrUIGlyphImages::Find(EDrUIGamepadGlyphs::PlayStation, EKeys::NumPadZero); TestNotNull(TEXT("키보드 키는 패드 표기와 무관하게 keyboard 세트"), Texture))
     TestEqual(TEXT("실행 중 텍스처 크기"), FIntPoint(Texture->GetSizeX(), Texture->GetSizeY()), FIntPoint(8, 6));
   TestNull(TEXT("없는 키는 벡터로(nullptr)"), DrUIGlyphImages::Find(EDrUIGamepadGlyphs::Xbox, EKeys::NumPadOne));
+  return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDrStyleImagesTest, "DrUIKit.Style.Images", DrUIKitTestFlags)
+bool FDrStyleImagesTest::RunTest(const FString&) {
+  // style.json images: {mode}를 테마 id로 바꾸고, 없는 파일은 빼고 알리며, 이미지 토큰으로 칠하는 표면은 9분할·흐림 없음.
+  const FString Dir = FPaths::ConvertRelativePathToFull(FPaths::ProjectSavedDir() / TEXT("DrUIStyleImageTest"));
+  IFileManager::Get().MakeDirectory(*(Dir / TEXT("Images")), true);
+  TArray<FColor> Pixels;
+  Pixels.Init(FColor::Orange, 64 * 32);
+  TArray64<uint8> Png;
+  FImageUtils::PNGCompressImageArray(64, 32, Pixels, Png);
+  TestTrue(TEXT("PNG 저장"), FFileHelper::SaveArrayToFile(Png, *(Dir / TEXT("Images/panel-light.png"))));
+  IFileManager::Get().Delete(*(Dir / TEXT("Images/panel-dark.png")));
+  // MakeDefault는 고정 이름 객체라 둘을 만들면 같은 객체가 된다. 현재 테마를 복제해 쓴다.
+  UDrUITheme* Light = DuplicateObject<UDrUITheme>(&UDrUIThemeSubsystem::Current(), GetTransientPackage());
+  Light->ThemeId = TEXT("imgtest-light");
+  Light->Images.Reset();
+  UDrUITheme* Dark = DuplicateObject<UDrUITheme>(Light, GetTransientPackage());
+  Dark->ThemeId = TEXT("imgtest-dark");
+  TSharedPtr<FJsonObject> Style;
+  FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(TEXT(R"({"images":{"glass":{"file":"Images/panel-{mode}.png","margin":[8,4,8,4],"scale":0.5,"tint":"#ff000080"}}})")), Style);
+  FString Error;
+  DrUIStyle::ApplyImages(Style, Dir, TEXT("imgtest"), {Light, Dark}, Error);
+  TestTrue(TEXT("밝게에 이미지"), Light->Images.Contains(TEXT("glass")));
+  TestFalse(TEXT("어둡게는 파일 없음 → 색으로"), Dark->Images.Contains(TEXT("glass")));
+  TestTrue(TEXT("없는 파일을 알림"), Error.Contains(TEXT("panel-dark.png")));
+  FSlateBrush Brush;
+  if (TestTrue(TEXT("브러시"), Light->MakeImageBrush(TEXT("glass"), Brush))) {
+    TestTrue(TEXT("9분할"), Brush.DrawAs == ESlateBrushDrawType::Box);
+    TestTrue(TEXT("배율 반영 크기"), FVector2D(Brush.ImageSize).Equals(FVector2D(32, 16)));
+    TestTrue(TEXT("여백은 이미지 크기 비율"), FMath::IsNearlyEqual(Brush.Margin.Left, 8.f / 64.f) && FMath::IsNearlyEqual(Brush.Margin.Top, 4.f / 32.f));
+    TestTrue(TEXT("색 곱하기"), FMath::IsNearlyEqual(Brush.TintColor.GetSpecifiedColor().A, 128.f / 255.f, .01f));
+  }
+  TestFalse(TEXT("이미지 없는 토큰"), Light->MakeImageBrush(TEXT("glass-strong"), Brush));
+
+  UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
+  if (!TestNotNull(TEXT("서브시스템"), Subsystem)) return false;
+  const FName Before = UDrUIThemeSubsystem::Current().ThemeId;
+  Subsystem->AddTheme(Light);
+  Subsystem->SetTheme(Light->ThemeId);
+  UDrSurface* Surface = NewObject<UDrSurface>();
+  TestTrue(TEXT("표면이 이미지로"), Surface->HasFillImage());
+  TestEqual(TEXT("이미지 표면은 흐림 없음"), Surface->ResolveBlur(), 0.f);
+  Subsystem->SetTheme(Before);
   return true;
 }
 

@@ -3,6 +3,9 @@
 #include "DrUIKit.h"
 #include "Engine/Font.h"
 #include "Styling/CoreStyle.h"
+#include "Engine/Texture2D.h"
+#include "ImageUtils.h"
+#include "UObject/StrongObjectPtr.h"
 
 const FLinearColor UDrUITheme::MissingColor(1.f, 0.f, 1.f, 1.f);
 
@@ -116,4 +119,30 @@ UDrUITheme* UDrUITheme::MakeDefault(UObject* Outer) {
   Theme->TranslucentTokens = {DrUITokens::Glass, DrUITokens::GlassStrong};
   Theme->Shadows = {{DrUITokens::ShadowGlass, FDrUIShadow()}, {DrUITokens::ShadowFloat, FDrUIShadow()}};
   return Theme;
+}
+
+bool UDrUITheme::MakeImageBrush(FName Token, FSlateBrush& Out) const {
+  const FDrUIImage* Image = Images.Find(Token);
+  if (!Image) return false;
+  // 같은 파일은 테마가 달라도 한 번만 텍스처로(밝게·어둡게가 같은 그림을 쓰는 등). 실패도 기억해 다시 읽지 않는다.
+  static TMap<FString, TStrongObjectPtr<UTexture2D>> Cache;
+  TStrongObjectPtr<UTexture2D>* Found = Cache.Find(Image->Path);
+  if (!Found) {
+    UTexture2D* Texture = FImageUtils::ImportFileAsTexture2D(Image->Path);
+    if (!Texture) UE_LOG(LogDrUIKit, Warning, TEXT("테마 이미지를 읽을 수 없음: %s"), *Image->Path);
+    Found = &Cache.Add(Image->Path, TStrongObjectPtr<UTexture2D>(Texture));
+  }
+  UTexture2D* Texture = Found->Get();
+  if (!Texture) return false;
+  const FVector2D Size(Texture->GetSizeX(), Texture->GetSizeY());
+  Out = FSlateBrush();
+  Out.SetResourceObject(Texture);
+  Out.ImageSize = Size * Image->Scale;
+  Out.TintColor = Image->Tint;
+  if (Image->Fit == EDrUIImageFit::Box) {
+    Out.DrawAs = ESlateBrushDrawType::Box;
+    // 슬레이트 9분할 여백은 이미지 크기에 대한 비율.
+    Out.Margin = FMargin(Image->Margin.Left / Size.X, Image->Margin.Top / Size.Y, Image->Margin.Right / Size.X, Image->Margin.Bottom / Size.Y);
+  } else Out.DrawAs = ESlateBrushDrawType::Image;
+  return true;
 }
