@@ -7,6 +7,7 @@
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrSurface.h"
 #include "Widgets/DrText.h"
+#include "UObject/Package.h"
 
 UDrListItem* UDrListItem::Make(UObject* Outer, const FText& InTitle, const FText& InSubtitle, const FText& InTrailing) {
   UDrListItem* Item = NewObject<UDrListItem>(Outer ? Outer : GetTransientPackage());

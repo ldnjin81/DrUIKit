@@ -20,6 +20,8 @@
 #include "Widgets/DrPressAnyKey.h"
 #include "Widgets/DrTabList.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
 
 EDrUIInputAction DrUIInput::GetActionForKey(const FKey& Key) {
   if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Virtual_Gamepad_Accept.GetVirtualKey()) return EDrUIInputAction::Accept;

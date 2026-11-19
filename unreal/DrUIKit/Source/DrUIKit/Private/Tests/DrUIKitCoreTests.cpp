@@ -45,6 +45,8 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Spacer.h"
 #include "UObject/UObjectIterator.h"
+#include "UObject/Package.h"
+#include "Layout/ArrangedChildren.h"
 
 constexpr EAutomationTestFlags DrUIKitTestFlags = EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter;
 

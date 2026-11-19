@@ -6,6 +6,7 @@
 #include "Engine/Texture2D.h"
 #include "ImageUtils.h"
 #include "UObject/StrongObjectPtr.h"
+#include "UObject/Package.h"
 
 const FLinearColor UDrUITheme::MissingColor(1.f, 0.f, 1.f, 1.f);
 

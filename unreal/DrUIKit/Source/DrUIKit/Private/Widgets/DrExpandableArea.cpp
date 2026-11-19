@@ -9,6 +9,7 @@
 #include "Widgets/DrGlyph.h"
 #include "Widgets/DrSurface.h"
 #include "Widgets/DrText.h"
+#include "Brushes/SlateNoResource.h"
 
 namespace {
 bool IsExpanderReduceMotion() {

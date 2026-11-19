@@ -10,6 +10,7 @@
 #include "Theme/DrUIKitSettings.h"
 #include "Theme/DrUITheme.h"
 #include "Theme/DrUIThemeSubsystem.h"
+#include "UObject/Package.h"
 
 bool DrUIStyle::ParseCssColor(const FString& InText, FLinearColor& Out) {
   const FString Text = InText.TrimStartAndEnd().ToLower();
