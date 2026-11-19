@@ -630,7 +630,7 @@ bool FDrStyleImagesTest::RunTest(const FString&) {
   Subsystem->SetTheme(Light->ThemeId);
   EarlySlate->SlatePrepass(1.f);
   AddInfo(FString::Printf(TEXT("early desired %s"), *EarlySlate->GetDesiredSize().ToString()));
-  TestTrue(TEXT("테마가 바뀐 뒤 안전 여백"), EarlySlate->GetDesiredSize().Equals(FVector2D(18, 14), .01));
+  TestTrue(TEXT("테마가 바뀐 뒤 안전 여백"), EarlySlate->GetDesiredSize().Equals(FVector2D(18, 14), .01f));
   {
     const FGeometry Root = FGeometry::MakeRoot(FVector2D(18, 14), FSlateLayoutTransform());
     const TSharedRef<SWidget> Target = EarlyContent->TakeWidget();
@@ -660,7 +660,7 @@ bool FDrStyleImagesTest::RunTest(const FString&) {
   TSharedRef<SWidget> Slate = Surface->TakeWidget();
   Slate->SlatePrepass(1.f);
   AddInfo(FString::Printf(TEXT("desired %s"), *Slate->GetDesiredSize().ToString()));
-  TestTrue(TEXT("안전 여백만큼 커짐"), Slate->GetDesiredSize().Equals(FVector2D(18, 14), .01));
+  TestTrue(TEXT("안전 여백만큼 커짐"), Slate->GetDesiredSize().Equals(FVector2D(18, 14), .01f));
   Subsystem->SetTheme(Before);
   return true;
 }

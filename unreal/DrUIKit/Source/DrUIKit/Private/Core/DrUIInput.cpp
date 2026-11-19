@@ -22,8 +22,8 @@
 #include "Widgets/Layout/SScrollBox.h"
 
 EDrUIInputAction DrUIInput::GetActionForKey(const FKey& Key) {
-  if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Virtual_Accept) return EDrUIInputAction::Accept;
-  if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape || Key == EKeys::Virtual_Back) return EDrUIInputAction::Back;
+  if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter || Key == EKeys::SpaceBar || Key == EKeys::Virtual_Gamepad_Accept.GetVirtualKey()) return EDrUIInputAction::Accept;
+  if (Key == EKeys::Gamepad_FaceButton_Right || Key == EKeys::Escape || Key == EKeys::Virtual_Gamepad_Back.GetVirtualKey()) return EDrUIInputAction::Back;
   if (Key == EKeys::Gamepad_LeftShoulder || Key == EKeys::Q) return EDrUIInputAction::PrevTab;
   if (Key == EKeys::Gamepad_RightShoulder || Key == EKeys::E) return EDrUIInputAction::NextTab;
   if (Key == EKeys::Gamepad_LeftTrigger || Key == EKeys::Z) return EDrUIInputAction::PrevSubTab;

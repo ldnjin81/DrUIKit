@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.ko.md)
 
-A **style-neutral UI component** plugin for Unreal Engine 5.8. Components extend engine and CommonUI widgets by inheritance, and anything inheritance can't cover is composed inside a UserWidget. Components paint only through theme tokens; the actual look comes from a style (`UISample/<Style>`): a plugin holding a `tokens.json` that the core loads at startup. Eleven styles ship as samples: glass, flat, neo-brutalism, neumorphism and retro terminal, plus six common game UI looks: fantasy RPG, parchment, sci-fi hologram, cyberpunk neon, casual mobile and dark fantasy.
+A **style-neutral UI component** plugin for Unreal Engine 5.9 (5.8 compatible). Components extend engine and CommonUI widgets by inheritance, and anything inheritance can't cover is composed inside a UserWidget. Components paint only through theme tokens; the actual look comes from a style (`UISample/<Style>`): a plugin holding a `tokens.json` that the core loads at startup. Eleven styles ship as samples: glass, flat, neo-brutalism, neumorphism and retro terminal, plus six common game UI looks: fantasy RPG, parchment, sci-fi hologram, cyberpunk neon, casual mobile and dark fantasy.
 
 > Status: 0.1.0 (first- and second-wave components, UI flow and screen layers). Plan and progress: `Docs/PLAN.md` (Korean).
 
@@ -98,7 +98,7 @@ The sample's labels are in Korean; the components themselves take any text.
 ## Verify
 
 ```powershell
-.\Tools\verify.ps1      # default engine path: C:\Program Files\Epic Games\UE_5.8
+.\Tools\verify.ps1      # default engine: C:\Program Files\Epic Games\UE_5.9, else UE_5.8
 ```
 
 ## License

@@ -13,7 +13,7 @@ DEFINE_LOG_CATEGORY(LogDrUIKit);
 class FDrUIKitModule : public IModuleInterface {
 public:
   virtual void StartupModule() override {
-    PostEngineInitHandle = FCoreDelegates::OnPostEngineInit.AddLambda([] {
+    PostEngineInitHandle = FCoreDelegates::GetOnPostEngineInit().AddLambda([] {
       UDrUIThemeSubsystem* Subsystem = UDrUIThemeSubsystem::Get();
       if (Subsystem && GetDefault<UDrUIKitSettings>()->bLoadStylePlugins) DrUIStyle::LoadAllStyles(*Subsystem);
       DrUIGlyphImages::LoadAll();
@@ -21,7 +21,7 @@ public:
     });
   }
   virtual void ShutdownModule() override {
-    FCoreDelegates::OnPostEngineInit.Remove(PostEngineInitHandle);
+    FCoreDelegates::GetOnPostEngineInit().Remove(PostEngineInitHandle);
     DrUIInputProcessor::Unregister();
   }
 private:
