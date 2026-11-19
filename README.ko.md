@@ -97,6 +97,8 @@
 .\Tools\verify.ps1      # 기본 엔진: C:\Program Files\Epic Games\UE_5.9, 없으면 UE_5.8
 ```
 
+2026-11-19 UE 5.9.0과 5.8.4에서 확인: 호스트 빌드, `DrUIKit.*` 31/31, 두 엔진 모두 `RunUAT BuildPlugin` 단독 빌드 경고·오류 0.
+
 ## 라이선스
 
 MIT

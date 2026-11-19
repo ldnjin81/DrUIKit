@@ -101,6 +101,8 @@ The sample's labels are in Korean; the components themselves take any text.
 .\Tools\verify.ps1      # default engine: C:\Program Files\Epic Games\UE_5.9, else UE_5.8
 ```
 
+Verified 2026-11-19 on UE 5.9.0 and 5.8.4: host build, 31/31 `DrUIKit.*` tests, and a warning-free `RunUAT BuildPlugin` package build on both engines.
+
 ## License
 
 MIT
