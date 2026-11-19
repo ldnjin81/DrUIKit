@@ -30,6 +30,7 @@ TSharedRef<SWidget> UDrActionBar::RebuildWidget() {
   }
   if (Surface) {
     Surface->FillToken = bSurface ? DrUITokens::Glass : NAME_None;
+    Surface->FillStrongToken = bSurface ? DrUITokens::GlassStrong : NAME_None;  // 없으면 흐림이 꺼진 표면이 glass-strong으로 칠해진다
     Surface->StrokeToken = bSurface ? DrUITokens::GlassStroke : NAME_None;
     Surface->BackdropToken = bSurface ? DrUITokens::BackdropGlass : NAME_None;
     Surface->ApplyTheme();
